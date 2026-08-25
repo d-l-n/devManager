@@ -12,16 +12,18 @@ jobs:
         include:
           - os: windows-latest
             artifact_name: DevManager-windows
-            zip_cmd: powershell -Command "Compress-Archive -Path dist\DevManager\* -DestinationPath dist\DevManager-windows.zip"
+            zip_cmd: powershell -Command "Compress-Archive -Path dist\\DevManager\\* -DestinationPath dist\\DevManager-windows.zip"
             zip_file: dist/DevManager-windows.zip
           - os: macos-latest
             artifact_name: DevManager-macos
-            zip_cmd: cd dist && zip -r ../DevManager-macos.zip DevManager
-            zip_file: dist/DevManager-macos.zip
+            zip_cmd: zip -r DevManager-macos.zip DevManager
+            zip_file: DevManager-macos.zip
+            zip_workdir: dist
           - os: ubuntu-latest
             artifact_name: DevManager-linux
-            zip_cmd: cd dist && zip -r ../DevManager-linux.zip DevManager
-            zip_file: dist/DevManager-linux.zip
+            zip_cmd: zip -r DevManager-linux.zip DevManager
+            zip_file: DevManager-linux.zip
+            zip_workdir: dist
 
     runs-on: ${{ matrix.os }}
 
@@ -43,14 +45,20 @@ jobs:
       - name: Build with PyInstaller
         run: pyinstaller devManager.spec
 
-      - name: Create zip
+      - name: Create zip (Unix)
+        if: runner.os != 'Windows'
+        working-directory: dist
+        run: zip -r ../${{ matrix.artifact_name }}.zip DevManager
+
+      - name: Create zip (Windows)
+        if: runner.os == 'Windows'
         run: ${{ matrix.zip_cmd }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: ${{ matrix.zip_file }}
+          path: ${{ matrix.artifact_name }}.zip
 
   release:
     needs: build
