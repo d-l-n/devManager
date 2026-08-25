@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 
 def normalize_path(path: str) -> str:

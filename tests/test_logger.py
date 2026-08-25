@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 from app.utils.app_logger import AppLogger
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import shutil
 import sys
@@ -411,7 +412,7 @@ class MainWindow(QMainWindow):
 
         # Help Menu
         help_menu = menubar.addMenu("&Help")
-        about_action = QAction(get_icon("server", "#6366f1"), "&About Local Dev Manager", self)
+        about_action = QAction(get_icon("server", "#6366f1"), "&Acerca de Local Dev Manager", self)
         about_action.triggered.connect(self._show_about)
         help_menu.addAction(about_action)
 
@@ -516,8 +517,8 @@ class MainWindow(QMainWindow):
         """Force-quit the application completely (bypass tray, stop all servers)."""
         reply = QMessageBox.question(
             self,
-            "Quit Application",
-            "Are you sure you want to quit Local Dev Manager?\n\nAll running servers, test runners, and active scripts will be stopped.",
+            "Salir de la Aplicación",
+            "Confirmar salida de Local Dev Manager\n\nTodos los servidores, ejecutores de pruebas y scripts activos se detendrán",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
@@ -687,8 +688,8 @@ class MainWindow(QMainWindow):
 
     def _on_config_error(self, message: str):
         self._status_bar.showMessage(f"Config Warning: {message}", 6000)
-        self._notify("Configuration Notice", message, ToastLevel.WARNING)
-        QMessageBox.warning(self, "Configuration Notice", message)
+        self._notify("Notificación de Configuración", message, ToastLevel.WARNING)
+        QMessageBox.warning(self, "Notificación de Configuración", message)
 
     def _on_project_selected(self, index: int):
         self._current_index = index
@@ -1136,9 +1137,9 @@ class MainWindow(QMainWindow):
         if count > 0:
             self._status_bar.showMessage(f"Assigned unique sequential ports to {count} project(s)", 5000)
             QMessageBox.information(
-                self, "Unique Ports Assigned",
+                self, "Puertos Únicos Asignados",
                 f"Successfully assigned unique ports to {count} project(s) starting from :5173.\n\n"
-                "Projects can now run concurrently without port conflicts."
+                "Los proyectos ahora pueden ejecutarse concurrentemente sin conflictos de puerto."
             )
         else:
             self._status_bar.showMessage("All projects already have unique ports", 3000)
@@ -1152,8 +1153,8 @@ class MainWindow(QMainWindow):
 
         reply = QMessageBox.question(
             self,
-            "Confirm Removal",
-            f"Are you sure you want to remove '{project.name}' from the manager?\n\n(No local files will be deleted).",
+            "Confirmar Eliminación",
+            f"Confirmar eliminación de '{project.name}'\ del gestor\n\n(No se eliminarán archivos locales)",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
@@ -1261,8 +1262,8 @@ class MainWindow(QMainWindow):
         """Gracefully stops all servers and restarts the Dev Manager application."""
         reply = QMessageBox.question(
             self,
-            "Restart Dev Manager",
-            "Are you sure you want to restart Local Dev Manager?\n\nAll running servers, test runners, and active scripts will be stopped.",
+            "Reiniciar Dev Manager",
+            "Confirmar reinicio de Local Dev Manager\n\nTodos los servidores, ejecutores de pruebas y scripts activos se detendrán",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
@@ -1280,10 +1281,10 @@ class MainWindow(QMainWindow):
     def _show_about(self):
         QMessageBox.about(
             self,
-            "About Local Dev Manager",
+            "Acerca de Local Dev Manager",
             "<h3>⚡ Local Dev Manager</h3>"
-            "<p>A modern desktop tool for managing local development servers, custom scripts, and Playwright workflows.</p>"
-            "<p>Built with Python, PySide6, Reicon vector system (cpu-bolt), and Light/Dark theme support.</p>"
+            "<p>Una herramienta de escritorio moderna para gestionar servidores de desarrollo local, scripts personalizados y flujos de trabajo de Playwright.</p>"
+            "<p>Construido con Python, PySide6, sistema de vectores Reicon (cpu-bolt) y soporte para tema Claro/Oscuro.</p>"
         )
 
     # ---------------- Settings ----------------
@@ -1391,8 +1392,8 @@ class MainWindow(QMainWindow):
         if pid <= 0:
             return
         reply = QMessageBox.question(
-            self, "Kill Process",
-            f"Force-terminate process tree with PID {pid}?\n\nThis cannot be undone.",
+            self, "Terminar Proceso",
+            f"Confirmar terminación del árbol de procesos con PID {pid}\n\nEsta acción no se puede deshacer",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )

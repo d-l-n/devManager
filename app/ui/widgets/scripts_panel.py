@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from typing import Dict, Optional
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton,

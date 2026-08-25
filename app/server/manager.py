@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from typing import Optional
 import time
 from PySide6.QtCore import QObject, Signal, QTimer
@@ -187,7 +188,7 @@ class ServerManager(QObject):
                 self._is_mismatch = True
                 self.port_mismatch.emit(configured_port, detected, self._active_url)
                 self.log_output.emit(
-                    f"⚠️ [PORT MISMATCH] Server started on port {detected}, differing from configured port {configured_port}!"
+                    f"⚠️ [PORT MISMATCH] Server started on port {detected}, differing from configured port {configured_port}"
                 )
                 self.log_output.emit(f"🔗 Active URL redirected to: {self._active_url}")
             elif has_changed:

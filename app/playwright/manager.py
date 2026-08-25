@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from typing import Optional
 from PySide6.QtCore import QObject, Signal
 from app.models.project import Project, PlaywrightState, ServerState

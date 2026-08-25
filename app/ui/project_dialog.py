@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 from typing import Optional
 from PySide6.QtWidgets import (
@@ -55,7 +56,7 @@ class ProjectDialog(QDialog):
         browse_btn.setFixedWidth(100)
         browse_btn.clicked.connect(self._browse_path)
 
-        detect_btn = QPushButton(" Auto-Detect")
+        detect_btn = QPushButton(" Detectar Automáticamente")
         detect_btn.setIcon(get_icon("search", "#e0af68"))
         detect_btn.setFixedWidth(120)
         detect_btn.setToolTip("Auto-detect project settings from folder contents")
@@ -201,7 +202,7 @@ class ProjectDialog(QDialog):
         errors = project.validate()
 
         if errors:
-            QMessageBox.warning(self, "Validation Error", "\n".join(errors))
+            QMessageBox.warning(self, "Error de Validación", "\n".join(errors))
             return False
         return True
 
@@ -218,8 +219,8 @@ class ProjectDialog(QDialog):
         path = self._path_edit.text().strip()
         if not path or not os.path.isdir(path):
             QMessageBox.information(
-                self, "Auto-Detect",
-                "Please select a valid project folder first."
+                self, "Detectar Automáticamente",
+                "Seleccionar una carpeta de proyecto válida primero"
             )
             return
 

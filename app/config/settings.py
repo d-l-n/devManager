@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # app/config/settings.py
 from typing import Any, Optional
 from PySide6.QtCore import QObject, Signal, QSettings

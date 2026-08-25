@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # app/utils/evidence.py
 """Filesystem scanner for Playwright test artifacts (screenshots, videos, traces)."""
 import os

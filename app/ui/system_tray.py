@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from typing import List, Dict, Optional
 from PySide6.QtWidgets import QSystemTrayIcon, QMenu
 from PySide6.QtGui import QAction, QIcon

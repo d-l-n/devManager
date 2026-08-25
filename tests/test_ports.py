@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import socket
 import pytest
 from app.utils.ports import is_port_open, build_server_command

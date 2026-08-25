@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 from typing import Dict
 from PySide6.QtGui import QIcon, QPixmap

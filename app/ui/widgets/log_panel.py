@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 from datetime import datetime
 from typing import List, Tuple
@@ -206,18 +207,18 @@ class LogPanel(QWidget):
         full_text = "\n".join(line for line, _ in self._raw_lines)
         if full_text:
             QApplication.clipboard().setText(full_text)
-            self._copy_btn.setText(" Copied!")
+            self._copy_btn.setText(" Copiado")
             QTimer.singleShot(1800, lambda: self._copy_btn.setText(" Copy All"))
 
     def _save_logs(self):
         full_text = "\n".join(line for line, _ in self._raw_lines)
         if not full_text:
-            QMessageBox.information(self, "No Logs", "There are no logs to export.")
+            QMessageBox.information(self, "Sin Logs", "Sin logs para exportar")
             return
 
         file_path, _ = QFileDialog.getSaveFileName(
             self,
-            "Save Logs As",
+            "Guardar Logs Como",
             f"devmanager_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log",
             "Log Files (*.log);;Text Files (*.txt);;All Files (*.*)"
         )
@@ -225,10 +226,10 @@ class LogPanel(QWidget):
             try:
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(full_text + "\n")
-                self._save_btn.setText(" Saved!")
+                self._save_btn.setText(" Guardado")
                 QTimer.singleShot(1800, lambda: self._save_btn.setText(" Save"))
             except Exception as e:
-                QMessageBox.critical(self, "Error Saving Logs", f"Failed to save log file:\n{str(e)}")
+                QMessageBox.critical(self, "Error al Guardar Logs", f"Error al guardar archivo de log\n{str(e)}")
 
     def _toggle_wrap(self, checked: bool):
         if checked:

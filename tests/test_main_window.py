@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 from PySide6.QtWidgets import QApplication
 from app.config.manager import ConfigManager

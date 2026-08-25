@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Application-level logger that captures Python stdout/stderr and Python logging
 into a Qt signal so the GUI can display it in an integrated App Log panel.

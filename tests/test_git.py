@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # tests/test_git.py
 import shutil
 import pytest

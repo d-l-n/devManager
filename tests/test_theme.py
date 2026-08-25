@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 from app.ui.theme import ThemeManager, ThemeMode, THEME_CYCLE
 

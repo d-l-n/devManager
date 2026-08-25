@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # app/ui/settings_dialog.py
 import os
 from PySide6.QtWidgets import (

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # app/process/monitor.py
 """Process/port inspection helpers built on psutil.
 

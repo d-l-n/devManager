@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # app/ui/widgets/git_panel.py
 from typing import Optional
 from PySide6.QtWidgets import (

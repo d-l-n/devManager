@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from typing import List, Optional
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QListWidget, QListWidgetItem,

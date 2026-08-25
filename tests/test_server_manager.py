@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 from app.models.project import Project, ServerConfig, PlaywrightConfig, ServerState
 from app.server.manager import ServerManager

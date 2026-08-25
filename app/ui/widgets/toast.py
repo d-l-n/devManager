@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # app/ui/widgets/toast.py
 """Stacked toast notifications overlaid on the main window (bottom-right)."""
 from enum import Enum

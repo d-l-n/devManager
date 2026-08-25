@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # app/ui/widgets/monitor_panel.py
 import os
 from typing import Dict, List, Optional
