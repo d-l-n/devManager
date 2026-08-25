@@ -1,0 +1,82 @@
+# -*- mode: python ; coding: utf-8 -*-
+
+a = Analysis(
+    ['main.py'],
+    pathex=[],
+    binaries=[],
+    datas=[
+        ('app/ui/resources/*.svg', 'app/ui/resources'),
+    ],
+    hiddenimports=[
+        'app.config.manager',
+        'app.config.settings',
+        'app.models.project',
+        'app.process.runner',
+        'app.process.monitor',
+        'app.server.manager',
+        'app.playwright.manager',
+        'app.scripts.manager',
+        'app.ui.main_window',
+        'app.ui.project_dialog',
+        'app.ui.settings_dialog',
+        'app.ui.system_tray',
+        'app.ui.theme',
+        'app.ui.icons',
+        'app.ui.global_panels',
+        'app.ui.widgets.project_list',
+        'app.ui.widgets.server_panel',
+        'app.ui.widgets.playwright_panel',
+        'app.ui.widgets.scripts_panel',
+        'app.ui.widgets.log_panel',
+        'app.ui.widgets.git_panel',
+        'app.ui.widgets.monitor_panel',
+        'app.ui.widgets.evidence_panel',
+        'app.ui.widgets.toast',
+        'app.utils.ports',
+        'app.utils.git',
+        'app.utils.evidence',
+        'app.utils.detection',
+        'app.utils.app_logger',
+        'app.utils.paths',
+        'psutil',
+    ],
+    hookspath=[],
+    hooksconfig={},
+    runtime_hooks=[],
+    excludes=[
+        'pytest',
+        'unittest',
+    ],
+    noarchive=False,
+)
+
+pyz = PYZ(a.pure)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    [],
+    exclude_binaries=True,
+    name='DevManager',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    console=False,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+    icon=None,
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='DevManager',
+)
