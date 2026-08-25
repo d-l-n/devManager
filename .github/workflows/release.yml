@@ -52,7 +52,7 @@ jobs:
 
       - name: Create zip (Windows)
         if: runner.os == 'Windows'
-        run: ${{ matrix.zip_cmd }}
+        run: Compress-Archive -Path dist\DevManager\* -DestinationPath DevManager-windows.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
