@@ -1,6 +1,7 @@
 from typing import Optional
 from PySide6.QtCore import QObject, QProcess, Signal, QProcessEnvironment
 import os
+import platform
 import re
 
 # Regex to match ANSI escape sequences (colors, formatting, etc.)
@@ -47,15 +48,18 @@ class ProcessRunner(QObject):
         # Separate channels for stdout and stderr
         self._process.setProcessChannelMode(QProcess.ProcessChannelMode.SeparateChannels)
 
-        # Execute via cmd.exe on Windows
-        self._process.start('cmd.exe', ['/d', '/s', '/c', command])
+        # Execute via shell: cmd.exe on Windows, sh on Unix
+        if platform.system() == 'Windows':
+            self._process.start('cmd.exe', ['/d', '/s', '/c', command])
+        else:
+            self._process.start('sh', ['-c', command])
 
     def stop(self):
         if not self.is_running():
             return
             
         pid = self.pid()
-        if pid:
+        if pid and platform.system() == 'Windows':
             kill_proc = QProcess()
             kill_proc.start('taskkill', ['/T', '/F', '/PID', str(pid)])
             kill_proc.waitForFinished(5000)
