@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -29,7 +31,13 @@ func NewApp() *App {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	a.configPath = "projects.json"
+	// Paridad Python (main.py): projects.json junto al ejecutable/script,
+	// independiente del CWD de lanzamiento.
+	exePath, err := os.Executable()
+	if err != nil {
+		exePath = "."
+	}
+	a.configPath = filepath.Join(filepath.Dir(exePath), "projects.json")
 
 	a.cfg, _ = config.NewManager(a.configPath, config.Options{
 		OnProjectsChanged: func() { runtime.EventsEmit(a.ctx, "projects:changed") },
@@ -86,12 +94,17 @@ func (a *App) UpdateProject(index int, p models.Project) []string {
 
 func (a *App) RemoveProject(index int) {
 	// Paridad UI Python: no se puede remover con servidor corriendo.
+	// Se mira el ESTADO real del manager, no su mera existencia en el mapa
+	// (el manager persiste tras Stop para conservar logs/estado).
 	a.mu.Lock()
-	_, running := a.servers[index]
+	sm, exists := a.servers[index]
 	a.mu.Unlock()
-	if running {
-		a.emitConfigError("Cannot remove project while its server is running")
-		return
+	if exists {
+		switch sm.State() {
+		case models.StateRunning, models.StateStarting, models.StateStopping:
+			a.emitConfigError("Cannot remove project while its server is running")
+			return
+		}
 	}
 	_ = a.cfg.RemoveProject(index)
 }
