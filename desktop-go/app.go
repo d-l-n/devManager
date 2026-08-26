@@ -4,11 +4,16 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"image"
+	_ "image/jpeg"
+	_ "image/png"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,9 +24,12 @@ import (
 	"desktop-go/internal/config"
 	"desktop-go/internal/models"
 	"desktop-go/internal/playwright"
+	"desktop-go/internal/process"
 	"desktop-go/internal/scripts"
 	"desktop-go/internal/server"
+	"desktop-go/internal/sysmon"
 	"desktop-go/internal/utils/detection"
+	"desktop-go/internal/utils/evidence"
 	"desktop-go/internal/utils/git"
 )
 
@@ -35,9 +43,14 @@ type App struct {
 	playwrightManagers map[int]*playwright.Manager
 	scriptManagers     map[int]*scripts.Manager
 
+	traceRunner *process.Runner
+
 	gitBusy bool // un comando git global a la vez (paridad QProcess único del panel)
 
 	configPath string
+
+	settingsPath string
+	settings     config.Settings
 }
 
 func NewApp() *App {
@@ -64,11 +77,23 @@ func (a *App) startup(ctx context.Context) {
 			runtime.EventsEmit(a.ctx, "config:error", map[string]string{"message": msg})
 		},
 	})
+
+	// Settings persistentes en %APPDATA%\devManager\settings.json (spec §4),
+	// independiente del CWD y del exe.
+	settingsDir, err := os.UserConfigDir()
+	if err != nil || settingsDir == "" {
+		settingsDir = "."
+	}
+	a.settingsPath = filepath.Join(settingsDir, "devManager", "settings.json")
+	a.mu.Lock()
+	a.settings = config.LoadSettings(a.settingsPath)
+	a.mu.Unlock()
 }
 
-// shutdown detiene servidores y managers de playwright/scripts al cerrar la
-// ventana (paridad _real_exit).
-func (a *App) shutdown(ctx context.Context) {
+// stopAllRunners detiene servidores, playwright, scripts y el trace viewer.
+// Usado por shutdown y por RestartApp. Los Stop() corren FUERA del lock
+// (pueden bloquear hasta 5s esperando taskkill).
+func (a *App) stopAllRunners() {
 	a.mu.Lock()
 	servers := make([]*server.Manager, 0, len(a.servers))
 	for _, sm := range a.servers {
@@ -82,7 +107,9 @@ func (a *App) shutdown(ctx context.Context) {
 	for _, scm := range a.scriptManagers {
 		scms = append(scms, scm)
 	}
+	trace := a.traceRunner
 	a.mu.Unlock()
+
 	for _, sm := range servers {
 		sm.Stop()
 	}
@@ -92,6 +119,15 @@ func (a *App) shutdown(ctx context.Context) {
 	for _, scm := range scms {
 		scm.Stop()
 	}
+	if trace != nil && trace.IsRunning() {
+		trace.Stop()
+	}
+}
+
+// shutdown detiene servidores y managers de playwright/scripts al cerrar la
+// ventana (paridad _real_exit).
+func (a *App) shutdown(ctx context.Context) {
+	a.stopAllRunners()
 }
 
 func (a *App) GetProjects() []models.Project {
@@ -309,6 +345,9 @@ func (a *App) ensureManagers(index int) (*server.Manager, *playwright.Manager, *
 				runtime.EventsEmit(a.ctx, "script:finished", map[string]interface{}{
 					"index": index, "name": name, "exitCode": code,
 				})
+				if code != 0 {
+					a.emitNotify(project.Name, fmt.Sprintf("Script '%s' exited with code %d", name, code), "error")
+				}
 			},
 			OnLog: func(msg string, isError bool) {
 				runtime.EventsEmit(a.ctx, "script:log", map[string]interface{}{
@@ -329,6 +368,13 @@ func (a *App) emitConfigError(message string) {
 	} else {
 		fmt.Println("config error:", message)
 	}
+}
+
+// emitNotify emite el evento "notify" consumido por el widget de toasts.
+func (a *App) emitNotify(title, message, level string) {
+	runtime.EventsEmit(a.ctx, "notify", map[string]string{
+		"title": title, "message": message, "level": level,
+	})
 }
 
 // ---- Playwright bindings ----
@@ -449,6 +495,7 @@ func (a *App) GitAction(index int, action string) {
 		return
 	}
 	path := projects[index].Path
+	projectName := projects[index].Name
 
 	a.mu.Lock()
 	if a.gitBusy {
@@ -470,6 +517,9 @@ func (a *App) GitAction(index int, action string) {
 		runtime.EventsEmit(a.ctx, "git:finished", map[string]interface{}{
 			"index": index, "name": action, "exitCode": code, "cleanStash": stashClean,
 		})
+		if code != 0 {
+			a.emitNotify(projectName, fmt.Sprintf("Git %s failed (exit %d)", action, code), "error")
+		}
 
 		a.mu.Lock()
 		a.gitBusy = false
@@ -526,4 +576,389 @@ func (a *App) runGitStreaming(index int, action, path string, args []string) (in
 	}
 	cleanStash := action == "Stash" && code == 0 && strings.Contains(stdoutBuf.String(), "No local changes")
 	return code, cleanStash
+}
+
+// ---- Monitor bindings (paridad _refresh_monitor_data) ----
+
+type PortRow struct {
+	Index     int    `json:"index"`
+	Name      string `json:"name"`
+	Port      int    `json:"port"`
+	State     string `json:"state"` // "ours" | "foreign" | "free"
+	OwnerName string `json:"ownerName"`
+	OwnerPID  int    `json:"ownerPID"`
+}
+
+type ResRow struct {
+	Name     string  `json:"name"`
+	PID      int     `json:"pid"`
+	Children int     `json:"children"`
+	CPU      float64 `json:"cpu"`
+	RSS      float64 `json:"rss"`
+}
+
+type MonitorData struct {
+	PortRows []PortRow `json:"portRows"`
+	ResRows  []ResRow  `json:"resRows"`
+}
+
+type runningServer struct {
+	index   int
+	project models.Project
+	manager *server.Manager
+}
+
+// runningServersSnapshot copia bajo lock el mapa de managers junto a los
+// proyectos actuales, quedándose solo con los RUNNING. Orden estable por índice.
+func (a *App) runningServersSnapshot() []runningServer {
+	a.mu.Lock()
+	servers := make(map[int]*server.Manager, len(a.servers))
+	for idx, sm := range a.servers {
+		servers[idx] = sm
+	}
+	a.mu.Unlock()
+
+	projects := a.cfg.Projects()
+	out := make([]runningServer, 0, len(servers))
+	for idx, sm := range servers {
+		if idx < 0 || idx >= len(projects) || sm.State() != models.StateRunning {
+			continue
+		}
+		out = append(out, runningServer{index: idx, project: projects[idx], manager: sm})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].index < out[j].index })
+	return out
+}
+
+func (a *App) GetMonitorData() MonitorData {
+	running := a.runningServersSnapshot()
+
+	// Mapa puerto activo → nombre de proyecto (solo servers RUNNING propios).
+	oursByPort := map[int]string{}
+	for _, rs := range running {
+		port := rs.manager.ActivePort()
+		if port > 0 {
+			if _, taken := oursByPort[port]; !taken {
+				oursByPort[port] = rs.project.Name
+			}
+		}
+	}
+
+	data := MonitorData{PortRows: []PortRow{}, ResRows: []ResRow{}}
+	projects := a.cfg.Projects()
+	for i, p := range projects {
+		if !p.Server.Enabled || p.Server.Port <= 0 {
+			continue
+		}
+		row := PortRow{Index: i, Name: p.Name, Port: p.Server.Port, State: "free"}
+		if owner, ok := oursByPort[p.Server.Port]; ok {
+			row.State = "ours"
+			row.OwnerName = owner
+		} else if o := sysmon.GetPortOwner(p.Server.Port); o != nil {
+			row.State = "foreign"
+			row.OwnerName = o.Name
+			row.OwnerPID = o.PID
+		}
+		data.PortRows = append(data.PortRows, row)
+	}
+
+	a.mu.Lock()
+	polling := a.settings.MonitorPolling
+	a.mu.Unlock()
+	if polling {
+		for _, rs := range running {
+			pid := rs.manager.PID()
+			if pid <= 0 {
+				continue
+			}
+			u := sysmon.GetProcessTreeUsage(pid)
+			if u == nil {
+				continue
+			}
+			data.ResRows = append(data.ResRows, ResRow{
+				Name: rs.project.Name, PID: u.PID, Children: u.Children,
+				CPU: u.CPUPercent, RSS: u.RSSMB,
+			})
+		}
+	}
+	return data
+}
+
+// ---- Kill tree (confirm lo hace el frontend) ----
+
+type NotifyResult struct {
+	Ok      bool   `json:"ok"`
+	Message string `json:"message"`
+}
+
+func (a *App) KillTree(pid int) NotifyResult {
+	ok, msg := sysmon.KillTree(pid)
+	level := "error"
+	message := fmt.Sprintf("Failed killing PID %d: %s", pid, msg)
+	title := "System"
+	if ok {
+		level = "success"
+		message = fmt.Sprintf("Process tree %d terminated", pid)
+	}
+	a.emitNotify(title, message, level)
+	return NotifyResult{Ok: ok, Message: msg}
+}
+
+// ---- Evidence bindings ----
+
+const maxThumbnailBytes = 2 * 1024 * 1024
+
+func (a *App) GetEvidence(index int) []evidence.File {
+	project := a.currentProject(index)
+	if project.Path == "" {
+		return nil
+	}
+	found := evidence.Scan(project.Path, 200)
+	if found == nil {
+		return []evidence.File{}
+	}
+	return found
+}
+
+// pathUnderProject valida que target esté bajo algún project.Path configurado
+// (case-insensitive, prefijo completo + separador; igualdad exacta permitida).
+func (a *App) pathUnderProject(target string) bool {
+	if strings.TrimSpace(target) == "" {
+		return false
+	}
+	clean := filepath.Clean(target)
+	for _, p := range a.cfg.Projects() {
+		root := filepath.Clean(p.Path)
+		if root == "" {
+			continue
+		}
+		if strings.EqualFold(clean, root) {
+			return true
+		}
+		if len(clean) > len(root) &&
+			strings.EqualFold(clean[:len(root)], root) &&
+			clean[len(root)] == os.PathSeparator {
+			return true
+		}
+	}
+	return false
+}
+
+// GetEvidenceThumbnail devuelve un data URL base64 (mime real detectado al
+// decodificar) si el archivo decodifica como imagen y pesa <2MB; sino "".
+// SIN resize: la galería escala por CSS (paridad visual aceptable).
+func (a *App) GetEvidenceThumbnail(path string) string {
+	if !a.pathUnderProject(path) {
+		return ""
+	}
+	data, err := os.ReadFile(path)
+	if err != nil || len(data) == 0 || len(data) >= maxThumbnailBytes {
+		return ""
+	}
+	_, format, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return ""
+	}
+	mime := ""
+	switch format {
+	case "png":
+		mime = "image/png"
+	case "jpeg":
+		mime = "image/jpeg"
+	default:
+		return ""
+	}
+	return "data:" + mime + ";base64," + base64.StdEncoding.EncodeToString(data)
+}
+
+// openWithRundll32 abre target con el handler del sistema (argv simple,
+// sin comillas embebidas — constraint global).
+func openWithRundll32(target string) {
+	_ = exec.Command("rundll32", "url.dll,FileProtocolHandler", target).Start()
+}
+
+func (a *App) OpenHTMLReport(index int) {
+	project := a.currentProject(index)
+	if project.Path == "" {
+		return
+	}
+	report := evidence.FindHTMLReport(project.Path)
+	if report == "" || !a.pathUnderProject(report) {
+		return
+	}
+	openWithRundll32(report)
+}
+
+func (a *App) OpenExternally(path string) {
+	if !a.pathUnderProject(path) {
+		return
+	}
+	openWithRundll32(filepath.Clean(path))
+}
+
+func (a *App) OpenContainingFolder(path string) {
+	if !a.pathUnderProject(path) {
+		return
+	}
+	openWithRundll32(filepath.Dir(filepath.Clean(path)))
+}
+
+// ---- Acciones externas por proyecto ----
+
+func (a *App) OpenInExplorer(index int) {
+	project := a.currentProject(index)
+	if project.Path == "" {
+		return
+	}
+	openWithRundll32(project.Path)
+}
+
+func (a *App) OpenTerminal(index int) {
+	project := a.currentProject(index)
+	path := project.Path
+	if path == "" {
+		return
+	}
+	wt := exec.Command("wt.exe", "-d", path)
+	if err := wt.Start(); err != nil {
+		// Fallback argv-safe: comilla simple dentro de argumento único.
+		_ = exec.Command("powershell", "-NoExit", "-Command",
+			"Set-Location -LiteralPath '"+path+"'").Start()
+	}
+}
+
+func (a *App) OpenVSCode(index int) {
+	project := a.currentProject(index)
+	if project.Path == "" {
+		return
+	}
+	_ = exec.Command("cmd", "/c", "code", project.Path).Start()
+}
+
+func (a *App) OpenOpenCode(index int) {
+	project := a.currentProject(index)
+	if project.Path == "" {
+		return
+	}
+	_ = exec.Command("cmd", "/c", "opencode", project.Path).Start()
+}
+
+// ---- Trace viewer ----
+
+// OpenTraceViewer lanza `npx playwright show-trace <path>` vía Runner normal.
+// Guard: si ya hay un visor abierto se notifica y no se lanza otro (paridad
+// is_running de Python). shutdown()/RestartApp también lo detienen.
+func (a *App) OpenTraceViewer(index int, path string) {
+	project := a.currentProject(index)
+	if project.Path == "" || !a.pathUnderProject(path) {
+		return
+	}
+
+	var tr *process.Runner
+	a.mu.Lock()
+	if a.traceRunner != nil && a.traceRunner.IsRunning() {
+		a.mu.Unlock()
+		a.emitNotify(project.Name, "Trace viewer already open", "error")
+		return
+	}
+	tr = process.NewRunner(process.RunnerCallbacks{
+		OnStdout: func(line string) {
+			runtime.EventsEmit(a.ctx, "trace:log", map[string]interface{}{
+				"index": index, "line": line, "isError": false,
+			})
+		},
+		OnStderr: func(line string) {
+			runtime.EventsEmit(a.ctx, "trace:log", map[string]interface{}{
+				"index": index, "line": line, "isError": true,
+			})
+		},
+		OnError: func(desc string) {
+			runtime.EventsEmit(a.ctx, "trace:log", map[string]interface{}{
+				"index": index, "line": desc, "isError": true,
+			})
+		},
+	})
+	a.traceRunner = tr
+	a.mu.Unlock()
+
+	command := `npx playwright show-trace "` + path + `"`
+	if err := tr.Start(command, project.Path, nil); err != nil {
+		a.emitNotify(project.Name, "Failed opening trace viewer: "+err.Error(), "error")
+	}
+}
+
+// ---- Settings bindings ----
+
+func (a *App) GetSettings() config.Settings {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.settings
+}
+
+// SetSetting valida key/value, persiste y emite "settings:changed" con el
+// valor normalizado. Inválido → []string{msg} sin guardar.
+func (a *App) SetSetting(key, value string) []string {
+	s := a.GetSettings()
+	normalized := ""
+	switch key {
+	case "theme":
+		switch value {
+		case "light", "dark", "oled":
+			s.Theme = value
+			normalized = value
+		default:
+			return []string{"Invalid theme value (expected light, dark or oled)"}
+		}
+	case "monitor_polling":
+		b, err := parseStrictBool(value)
+		if err != nil {
+			return []string{"Invalid monitor_polling value (expected true or false)"}
+		}
+		s.MonitorPolling = b
+		normalized = strconv.FormatBool(b)
+	case "toasts_enabled":
+		b, err := parseStrictBool(value)
+		if err != nil {
+			return []string{"Invalid toasts_enabled value (expected true or false)"}
+		}
+		s.ToastsEnabled = b
+		normalized = strconv.FormatBool(b)
+	default:
+		return []string{"Unknown setting key: " + key}
+	}
+
+	if err := config.SaveSettings(a.settingsPath, s); err != nil {
+		return []string{err.Error()}
+	}
+	a.mu.Lock()
+	a.settings = s
+	a.mu.Unlock()
+	runtime.EventsEmit(a.ctx, "settings:changed", map[string]string{
+		"key": key, "value": normalized,
+	})
+	return nil
+}
+
+func parseStrictBool(v string) (bool, error) {
+	switch v {
+	case "true":
+		return true, nil
+	case "false":
+		return false, nil
+	default:
+		return false, fmt.Errorf("invalid bool %q", v)
+	}
+}
+
+// ---- Restart app ----
+
+// RestartApp para todos los runners, relanza el propio exe detached y sale
+// (paridad QProcess.startDetached(sys.executable)).
+func (a *App) RestartApp() {
+	a.stopAllRunners()
+	exePath, err := os.Executable()
+	if err == nil && exePath != "" {
+		_ = exec.Command(exePath).Start()
+	}
+	runtime.Quit(a.ctx)
 }
