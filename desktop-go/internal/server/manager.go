@@ -37,8 +37,8 @@ type Manager struct {
 	stopRequested   bool
 	failureReason   string
 
-	runner         *process.Runner
-	cb             Callbacks
+	runner *process.Runner
+	cb     Callbacks
 
 	stateListeners []func(models.ServerState)
 	readyListeners []func()
@@ -104,6 +104,18 @@ func (m *Manager) FailureReason() string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.failureReason
+}
+
+// PID expone el pid del proceso servidor si está corriendo (para monitor).
+func (m *Manager) PID() int {
+	m.mu.Lock()
+	r := m.runner
+	state := m.state
+	m.mu.Unlock()
+	if r == nil || state == models.StateStopped {
+		return 0
+	}
+	return r.PID()
 }
 
 // AddStateListener registra un oyente adicional de cambios de estado
