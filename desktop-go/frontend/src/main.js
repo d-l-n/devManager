@@ -1,43 +1,170 @@
-import './style.css';
-import './app.css';
+import { api, events } from './api.js';
 
-import logo from './assets/images/logo-universal.png';
-import {Greet} from '../wailsjs/go/main/App';
+const $ = (id) => document.getElementById(id);
 
-document.querySelector('#app').innerHTML = `
-    <img id="logo" class="logo">
-      <div class="result" id="result">Please enter your name below 👇</div>
-      <div class="input-box" id="input">
-        <input class="input" id="name" type="text" autocomplete="off" />
-        <button class="btn" onclick="greet()">Greet</button>
-      </div>
-    </div>
-`;
-document.getElementById('logo').src = logo;
-
-let nameElement = document.getElementById("name");
-nameElement.focus();
-let resultElement = document.getElementById("result");
-
-// Setup the greet function
-window.greet = function () {
-    // Get name
-    let name = nameElement.value;
-
-    // Check if the input is empty
-    if (name === "") return;
-
-    // Call App.Greet(name)
-    try {
-        Greet(name)
-            .then((result) => {
-                // Update result with data back from App.Greet()
-                resultElement.innerText = result;
-            })
-            .catch((err) => {
-                console.error(err);
-            });
-    } catch (err) {
-        console.error(err);
-    }
+const state = {
+    projects: [],
+    selected: -1,
+    logs: new Map(),      // index -> [{ts,line,isError}]
+    errorsOnly: false,
 };
+
+function timestamp() {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+async function refreshProjects(keepSelection = true) {
+    state.projects = await api.getProjects();
+    if (!keepSelection || state.selected >= state.projects.length) {
+        state.selected = state.projects.length ? 0 : -1;
+    }
+    renderList();
+    renderDetail();
+}
+
+function renderList() {
+    const ul = $('project-list');
+    ul.innerHTML = '';
+    const q = $('search').value.toLowerCase();
+    state.projects.forEach((p, i) => {
+        if (q && !p.name.toLowerCase().includes(q)) return;
+        const li = document.createElement('li');
+        li.className = i === state.selected ? 'selected' : '';
+        const dot = document.createElement('span');
+        dot.className = 'proj-dot';
+        dot.dataset.index = i;
+        li.appendChild(dot);
+        const name = document.createElement('span');
+        name.textContent = p.name;
+        li.appendChild(name);
+        li.addEventListener('click', () => {
+            state.selected = i;
+            renderList();
+            renderDetail();
+        });
+        ul.appendChild(li);
+    });
+    updateDots();
+}
+
+function updateDots() {
+    document.querySelectorAll('.proj-dot').forEach(async (dot) => {
+        const i = parseInt(dot.dataset.index, 10);
+        const status = await api.getServerStatus(i);
+        dot.className = `proj-dot ${status.state}`;
+    });
+}
+
+function renderDetail() {
+    const has = state.selected >= 0;
+    $('empty-state').hidden = has;
+    $('project-detail').hidden = !has;
+    if (!has) return;
+    const p = state.projects[state.selected];
+    $('project-name').textContent = p.name;
+    $('url-label').textContent = p.server.url;
+    reloadLogs();
+    refreshStatus();
+}
+
+let uptimeTimer = null;
+async function refreshStatus() {
+    if (state.selected < 0) return;
+    const status = await api.getServerStatus(state.selected);
+    const badge = $('state-badge');
+    badge.className = `badge ${status.state}`;
+    badge.textContent = status.state;
+    ['btn-start', 'btn-restart'].forEach((id) => {
+        $(id).disabled = status.state === 'running' || status.state === 'starting';
+    });
+    $('btn-stop').disabled = status.state === 'stopped';
+
+    const up = $('uptime-label');
+    if (status.uptimeSeconds > 0) {
+        const s = Math.floor(status.uptimeSeconds);
+        up.textContent = `up ${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m ${s % 60}s`;
+    } else {
+        up.textContent = '';
+    }
+    updateDots();
+}
+
+function appendLog(index, line, isError) {
+    if (!state.logs.has(index)) state.logs.set(index, []);
+    state.logs.get(index).push({ ts: timestamp(), line, isError });
+
+    if (index !== state.selected) return;
+    if (state.errorsOnly && !isError) return;
+    appendLogEntry({ ts: timestamp(), line, isError });
+}
+
+function appendLogEntry(entry) {
+    const out = $('log-output');
+    const div = document.createElement('div');
+    div.className = `log-line${entry.isError ? ' err' : ''}`;
+    const ts = document.createElement('span');
+    ts.className = 'ts';
+    ts.textContent = `[${entry.ts}]`;
+    div.appendChild(ts);
+    div.appendChild(document.createTextNode(entry.line));
+    out.appendChild(div);
+    out.scrollTop = out.scrollHeight;
+}
+
+function reloadLogs() {
+    const out = $('log-output');
+    out.innerHTML = '';
+    (state.logs.get(state.selected) || [])
+        .filter((e) => !state.errorsOnly || e.isError)
+        .forEach(appendLogEntry);
+}
+
+function wireEvents() {
+    $('btn-add').addEventListener('click', async () => {
+        const name = prompt('Project name:');
+        if (!name) return;
+        const path = prompt('Project path:');
+        if (!path) return;
+        const errs = await api.addProject({
+            name, path,
+            server: { enabled: true, command: 'npm run dev', port: 5173, url: 'http://localhost:5173', startup_timeout: 15000 },
+            playwright: { enabled: false, command: '', ui_command: '', debug_command: '', report_command: '' },
+            pinned: false,
+        });
+        if (errs && errs.length) alert(errs.join('\n'));
+        await refreshProjects();
+    });
+
+    $('search').addEventListener('input', renderList);
+    $('errors-only').addEventListener('change', (e) => {
+        state.errorsOnly = e.target.checked;
+        reloadLogs();
+    });
+    $('btn-clear-log').addEventListener('click', () => {
+        state.logs.set(state.selected, []);
+        $('log-output').innerHTML = '';
+    });
+
+    $('btn-start').addEventListener('click', () => api.startServer(state.selected));
+    $('btn-stop').addEventListener('click', () => api.stopServer(state.selected));
+    $('btn-restart').addEventListener('click', () => api.restartServer(state.selected));
+
+    // Eventos push desde Go
+    events().EventsOn('projects:changed', async () => refreshProjects());
+    events().EventsOn('config:error', (payload) => alert(payload.message));
+    events().EventsOn('server:log', (payload) =>
+        appendLog(payload.index, payload.line, payload.isError));
+    events().EventsOn('server:state', () => refreshStatus());
+    events().EventsOn('server:ready', () => refreshStatus());
+
+    setInterval(refreshStatus, 1000); // uptime ticker
+}
+
+async function boot() {
+    wireEvents();
+    await refreshProjects(false);
+}
+
+boot();

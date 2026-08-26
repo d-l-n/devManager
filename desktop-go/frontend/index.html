@@ -1,12 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>desktop-go</title>
+    <meta charset="UTF-8">
+    <title>Local Dev Manager</title>
+    <link rel="stylesheet" href="src/theme.css">
 </head>
 <body>
-<div id="app"></div>
-<script src="./src/main.js" type="module"></script>
+<div id="app">
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <span class="app-title">Local Dev Manager</span>
+            <button id="btn-add" class="icon-btn" title="Add Project">+</button>
+        </div>
+        <input id="search" type="text" placeholder="Search projects...">
+        <ul id="project-list"></ul>
+    </aside>
+    <main id="main">
+        <div id="empty-state">Select or add a project</div>
+        <section id="project-detail" hidden>
+            <header id="detail-header">
+                <h2 id="project-name"></h2>
+                <div class="actions">
+                    <button id="btn-start">▶ Start</button>
+                    <button id="btn-stop">■ Stop</button>
+                    <button id="btn-restart">↻ Restart</button>
+                </div>
+            </header>
+            <div id="status-bar">
+                <span id="state-badge" class="badge stopped">stopped</span>
+                <span id="url-label"></span>
+                <span id="uptime-label"></span>
+            </div>
+            <nav id="tabs">
+                <button class="tab active" data-tab="logs">Logs</button>
+            </nav>
+            <section id="panel-logs" class="panel active">
+                <div class="log-toolbar">
+                    <label><input type="checkbox" id="errors-only"> Errors only</label>
+                    <button id="btn-clear-log">Clear</button>
+                </div>
+                <div id="log-output"></div>
+            </section>
+        </section>
+    </main>
+</div>
+<script type="module" src="src/main.js"></script>
 </body>
 </html>

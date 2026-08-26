@@ -1,0 +1,115 @@
+/* Tema base Fase 1 (dark). Light/OLED completos llegan en Fase 3 vía clases. */
+:root {
+    --bg: #1e1f22;
+    --bg-panel: #26282c;
+    --bg-input: #313338;
+    --fg: #e4e6eb;
+    --fg-dim: #9aa0a8;
+    --accent: #4f9cf9;
+    --ok: #3fb96f;
+    --warn: #e5b45b;
+    --err: #e5534b;
+    --border: #3a3d42;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #app { height: 100%; }
+body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg); color: var(--fg); font-size: 13px;
+    overflow: hidden;
+}
+#app { display: flex; }
+
+#sidebar {
+    width: 260px; min-width: 260px;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+}
+.sidebar-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px;
+}
+.app-title { font-weight: 600; font-size: 14px; }
+.icon-btn {
+    background: var(--bg-input); color: var(--fg);
+    border: 1px solid var(--border); border-radius: 6px;
+    width: 26px; height: 26px; cursor: pointer; font-size: 15px;
+}
+.icon-btn:hover { border-color: var(--accent); }
+#search {
+    margin: 0 12px 8px; padding: 6px 10px;
+    background: var(--bg-input); color: var(--fg);
+    border: 1px solid var(--border); border-radius: 6px; outline: none;
+}
+#project-list { list-style: none; overflow-y: auto; flex: 1; }
+#project-list li {
+    padding: 9px 14px; cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    border-left: 3px solid transparent;
+}
+#project-list li:hover { background: var(--bg-input); }
+#project-list li.selected {
+    background: var(--bg-input);
+    border-left-color: var(--accent);
+}
+.proj-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--fg-dim); }
+.proj-dot.running { background: var(--ok); }
+.proj-dot.starting { background: var(--warn); }
+.proj-dot.error { background: var(--err); }
+
+#main { flex: 1; display: flex; flex-direction: column; padding: 16px; overflow: auto; }
+#empty-state { color: var(--fg-dim); margin: auto; }
+
+#detail-header { display: flex; align-items: center; justify-content: space-between; }
+.actions button {
+    background: var(--bg-input); color: var(--fg);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 7px 14px; margin-left: 6px; cursor: pointer;
+}
+.actions button:hover:not(:disabled) { border-color: var(--accent); }
+.actions button:disabled { opacity: .4; cursor: default; }
+
+#status-bar {
+    display: flex; align-items: center; gap: 12px;
+    margin: 12px 0; color: var(--fg-dim);
+}
+.badge {
+    padding: 3px 10px; border-radius: 999px; font-size: 11px;
+    text-transform: uppercase; letter-spacing: .5px;
+}
+.badge.stopped  { background: #ffffff14; color: var(--fg-dim); }
+.badge.starting { background: #e5b45b26; color: var(--warn); }
+.badge.running  { background: #3fb96f26; color: var(--ok); }
+.badge.stopping { background: #e5b45b26; color: var(--warn); }
+.badge.error    { background: #e5534b26; color: var(--err); }
+
+#tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); }
+.tab {
+    background: none; border: none; color: var(--fg-dim);
+    padding: 8px 14px; cursor: pointer;
+    border-bottom: 2px solid transparent;
+}
+.tab.active { color: var(--fg); border-bottom-color: var(--accent); }
+
+.panel { display: none; flex: 1; flex-direction: column; min-height: 200px; }
+.panel.active { display: flex; }
+.log-toolbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; color: var(--fg-dim);
+}
+.log-toolbar button {
+    background: var(--bg-input); color: var(--fg);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 4px 10px; cursor: pointer;
+}
+#log-output {
+    flex: 1; overflow-y: auto;
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px;
+    font-family: Consolas, monospace; font-size: 12px;
+    white-space: pre-wrap; word-break: break-all;
+}
+.log-line { padding: 1px 0; }
+.log-line .ts { color: var(--fg-dim); margin-right: 6px; }
+.log-line.err { color: var(--err); }
