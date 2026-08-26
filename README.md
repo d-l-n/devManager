@@ -55,6 +55,25 @@ El script `run.bat`:
 
 ---
 
+## Versión Go/Wails (experimental)
+
+Existe una reescritura nativa del núcleo en **Go + Wails v2** (`desktop-go/`), sin
+dependencia de Python ni Node. Fase 1 incluye: CRUD de `projects.json` (comparte el
+mismo archivo con la app Python), ciclo de vida de servidores y logs en vivo.
+
+- **Ejecutar:** doble clic en `run-go.vbs`, o directamente `desktop-go\build\bin\devManager.exe`.
+- **Compilar:** requiere Go 1.22+ y Wails CLI:
+  ```powershell
+  cd desktop-go
+  wails build
+  ```
+- **Tests:** `go test ./internal/...` desde `desktop-go/`.
+
+> Estado: paridad parcial con la app Python. Playwright, Git, Monitor, Evidence y
+> Settings llegan en fases siguientes (ver `docs/superpowers/plans/`).
+
+---
+
 ## Estructura del Proyecto
 
 ```text
