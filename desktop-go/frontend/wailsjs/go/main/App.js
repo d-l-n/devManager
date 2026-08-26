@@ -86,6 +86,10 @@ export function OpenVSCode(arg1) {
   return window['go']['main']['App']['OpenVSCode'](arg1);
 }
 
+export function Quit() {
+  return window['go']['main']['App']['Quit']();
+}
+
 export function RemoveProject(arg1) {
   return window['go']['main']['App']['RemoveProject'](arg1);
 }

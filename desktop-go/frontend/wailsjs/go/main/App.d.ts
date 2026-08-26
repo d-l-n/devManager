@@ -49,6 +49,8 @@ export function OpenTraceViewer(arg1:number,arg2:string):Promise<void>;
 
 export function OpenVSCode(arg1:number):Promise<void>;
 
+export function Quit():Promise<void>;
+
 export function RemoveProject(arg1:number):Promise<void>;
 
 export function RestartApp():Promise<void>;
