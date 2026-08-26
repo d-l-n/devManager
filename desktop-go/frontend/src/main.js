@@ -1,4 +1,7 @@
 import { api, events } from './api.js';
+import { mount as mountPlaywright } from './panels/playwright.js';
+import { mount as mountScripts } from './panels/scripts.js';
+import { mount as mountGit } from './panels/git.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -67,6 +70,9 @@ function renderDetail() {
     $('url-label').textContent = p.server.url;
     reloadLogs();
     refreshStatus();
+    ctx.panels.playwrightPanel.onProjectChanged(p);
+    ctx.panels.scriptsPanel.onProjectChanged(p);
+    ctx.panels.gitPanel.onProjectChanged(p);
 }
 
 let uptimeTimer = null;
@@ -161,6 +167,28 @@ function wireEvents() {
 
     setInterval(refreshStatus, 1000); // uptime ticker
 }
+
+const ctx = {
+    $,
+    api,
+    events,
+    selectedIndex: () => state.selected,
+    appendLog,
+};
+
+const playwrightPanel = mountPlaywright(ctx);
+const scriptsPanel = mountScripts(ctx);
+const gitPanel = mountGit(ctx);
+ctx.panels = { playwrightPanel, scriptsPanel, gitPanel };
+
+function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((b) =>
+        b.classList.toggle('active', b.dataset.tab === name));
+    document.querySelectorAll('.panel').forEach((p) =>
+        p.classList.toggle('active', p.id === `panel-${name}`));
+}
+document.querySelectorAll('.tab').forEach((btn) =>
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 
 async function boot() {
     wireEvents();

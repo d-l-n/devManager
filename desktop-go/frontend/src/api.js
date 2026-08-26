@@ -11,6 +11,21 @@ export const api = {
     stopServer: (i) => app().StopServer(i),
     restartServer: (i) => app().RestartServer(i),
     getServerStatus: (i) => app().GetServerStatus(i),
+    // Playwright
+    runTests: (i) => app().RunTests(i),
+    runUI: (i) => app().RunUI(i),
+    runDebug: (i) => app().RunDebug(i),
+    showReport: (i) => app().ShowReport(i),
+    stopPlaywright: (i) => app().StopPlaywright(i),
+    getPlaywrightStatus: (i) => app().GetPlaywrightStatus(i),
+    // Scripts
+    getScripts: (i) => app().GetScripts(i),
+    runScript: (i, name, cmd) => app().RunScript(i, name, cmd),
+    stopScript: (i) => app().StopScript(i),
+    getScriptStatus: (i) => app().GetScriptStatus(i),
+    // Git
+    getGitStatus: (i) => app().GetGitStatus(i),
+    gitAction: (i, action) => app().GitAction(i, action),
 };
 
 export const events = () => window.runtime;
