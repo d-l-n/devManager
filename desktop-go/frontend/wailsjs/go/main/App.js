@@ -6,12 +6,32 @@ export function AddProject(arg1) {
   return window['go']['main']['App']['AddProject'](arg1);
 }
 
+export function GetGitStatus(arg1) {
+  return window['go']['main']['App']['GetGitStatus'](arg1);
+}
+
+export function GetPlaywrightStatus(arg1) {
+  return window['go']['main']['App']['GetPlaywrightStatus'](arg1);
+}
+
 export function GetProjects() {
   return window['go']['main']['App']['GetProjects']();
 }
 
+export function GetScriptStatus(arg1) {
+  return window['go']['main']['App']['GetScriptStatus'](arg1);
+}
+
+export function GetScripts(arg1) {
+  return window['go']['main']['App']['GetScripts'](arg1);
+}
+
 export function GetServerStatus(arg1) {
   return window['go']['main']['App']['GetServerStatus'](arg1);
+}
+
+export function GitAction(arg1, arg2) {
+  return window['go']['main']['App']['GitAction'](arg1, arg2);
 }
 
 export function RemoveProject(arg1) {
@@ -22,8 +42,36 @@ export function RestartServer(arg1) {
   return window['go']['main']['App']['RestartServer'](arg1);
 }
 
+export function RunDebug(arg1) {
+  return window['go']['main']['App']['RunDebug'](arg1);
+}
+
+export function RunScript(arg1, arg2, arg3) {
+  return window['go']['main']['App']['RunScript'](arg1, arg2, arg3);
+}
+
+export function RunTests(arg1) {
+  return window['go']['main']['App']['RunTests'](arg1);
+}
+
+export function RunUI(arg1) {
+  return window['go']['main']['App']['RunUI'](arg1);
+}
+
+export function ShowReport(arg1) {
+  return window['go']['main']['App']['ShowReport'](arg1);
+}
+
 export function StartServer(arg1) {
   return window['go']['main']['App']['StartServer'](arg1);
+}
+
+export function StopPlaywright(arg1) {
+  return window['go']['main']['App']['StopPlaywright'](arg1);
+}
+
+export function StopScript(arg1) {
+  return window['go']['main']['App']['StopScript'](arg1);
 }
 
 export function StopServer(arg1) {
