@@ -37,8 +37,11 @@ type Manager struct {
 	stopRequested   bool
 	failureReason   string
 
-	runner *process.Runner
-	cb     Callbacks
+	runner         *process.Runner
+	cb             Callbacks
+
+	stateListeners []func(models.ServerState)
+	readyListeners []func()
 
 	stopCtx      context.Context
 	cancelWait   context.CancelFunc
@@ -103,6 +106,21 @@ func (m *Manager) FailureReason() string {
 	return m.failureReason
 }
 
+// AddStateListener registra un oyente adicional de cambios de estado
+// (usado por playwright.Manager para observar al servidor).
+func (m *Manager) AddStateListener(fn func(models.ServerState)) {
+	m.mu.Lock()
+	m.stateListeners = append(m.stateListeners, fn)
+	m.mu.Unlock()
+}
+
+// AddReadyListener registra un oyente adicional de servidor listo.
+func (m *Manager) AddReadyListener(fn func()) {
+	m.mu.Lock()
+	m.readyListeners = append(m.readyListeners, fn)
+	m.mu.Unlock()
+}
+
 // StartedAt replica started_at: timestamp al entrar RUNNING; false si parado.
 func (m *Manager) StartedAt() (time.Time, bool) {
 	m.mu.Lock()
@@ -137,9 +155,29 @@ func (m *Manager) setState(s models.ServerState) {
 	}
 	m.state = s
 	onChange := m.cb.OnStateChange
+	listeners := make([]func(models.ServerState), len(m.stateListeners))
+	copy(listeners, m.stateListeners)
 	m.mu.Unlock()
 	if onChange != nil {
 		onChange(s)
+	}
+	for _, fn := range listeners {
+		fn(s)
+	}
+}
+
+// fireReady dispara OnReady y los readyListeners registrados (fuera del lock).
+func (m *Manager) fireReady() {
+	m.mu.Lock()
+	onReady := m.cb.OnReady
+	listeners := make([]func(), len(m.readyListeners))
+	copy(listeners, m.readyListeners)
+	m.mu.Unlock()
+	if onReady != nil {
+		onReady()
+	}
+	for _, fn := range listeners {
+		fn()
 	}
 }
 
@@ -326,17 +364,13 @@ func (m *Manager) onRunnerStarted(ctx context.Context, startupTimeout time.Durat
 		}()
 	} else if port <= 0 {
 		m.enterRunning()
-		if m.cb.OnReady != nil {
-			m.cb.OnReady()
-		}
+		m.fireReady()
 	}
 }
 
 func (m *Manager) onPortReady() {
 	m.enterRunning()
-	if m.cb.OnReady != nil {
-		m.cb.OnReady()
-	}
+	m.fireReady()
 	port := m.ActivePort()
 	m.log(fmt.Sprintf("Server is ready on port %d", port), false)
 }
@@ -395,9 +429,7 @@ func (m *Manager) onRunnerOutput(line string, isError bool) {
 
 	if m.State() == models.StateStarting {
 		m.enterRunning()
-		if m.cb.OnReady != nil {
-			m.cb.OnReady()
-		}
+		m.fireReady()
 	}
 }
 
