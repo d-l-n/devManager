@@ -30,8 +30,8 @@ func ExtractPortFromLog(line string) int {
 
 // Script es una entrada ordenada de package.json#scripts.
 type Script struct {
-	Name    string
-	Command string
+	Name    string `json:"name"`
+	Command string `json:"command"`
 }
 
 // DetectPackageManager replica detect_package_manager.
