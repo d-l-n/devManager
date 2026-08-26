@@ -15,9 +15,21 @@
         <input id="search" type="text" placeholder="Search projects...">
         <ul id="project-list"></ul>
     </aside>
-    <main id="main">
-        <div id="empty-state">Select or add a project</div>
-        <section id="project-detail" hidden>
+    <div id="main-area">
+        <header id="app-bar">
+            <div class="seg-group">
+                <button id="view-project" class="seg active">Project</button>
+                <button id="view-monitor" class="seg">Monitor</button>
+            </div>
+            <div class="app-bar-actions">
+                <button id="btn-theme" class="icon-btn" title="Toggle theme">&#127763;</button>
+                <button id="btn-settings" class="icon-btn" title="Settings">&#9881;</button>
+                <button id="btn-quit" class="icon-btn" title="Quit">&#9211;</button>
+            </div>
+        </header>
+        <main id="main">
+            <div id="empty-state">Select or add a project</div>
+            <section id="project-detail" hidden>
             <header id="detail-header">
                 <h2 id="project-name"></h2>
                 <div class="actions">
@@ -114,7 +126,25 @@
                 </div>
             </section>
         </section>
+        <section id="monitor-view" hidden>
+            <header id="monitor-toolbar">
+                <button id="mon-refresh" class="btn btn-accent">Refresh</button>
+                <label><input type="checkbox" id="mon-auto"> Auto-refresh (3s)</label>
+                <span id="mon-summary" class="dim"></span>
+            </header>
+            <div class="group">
+                <div class="group-title">Configured Ports</div>
+                <div id="mon-ports-empty" class="dim center padded" hidden>No projects with servers configured.</div>
+                <div id="mon-ports"></div>
+            </div>
+            <div class="group grow">
+                <div class="group-title">Resources (Running Servers)</div>
+                <div id="mon-res-empty" class="dim center padded">Resource polling disabled in Settings.</div>
+                <div id="mon-res"></div>
+            </div>
+        </section>
     </main>
+    </div>
 </div>
 <script type="module" src="src/main.js"></script>
 </body>

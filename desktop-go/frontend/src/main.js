@@ -2,6 +2,7 @@ import { api, events } from './api.js';
 import { mount as mountPlaywright } from './panels/playwright.js';
 import { mount as mountScripts } from './panels/scripts.js';
 import { mount as mountGit } from './panels/git.js';
+import { mount as mountMonitor, THEME_CYCLE } from './panels/monitor.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -10,6 +11,7 @@ const state = {
     selected: -1,
     logs: new Map(),      // index -> [{ts,line,isError}]
     errorsOnly: false,
+    view: 'project',
 };
 
 function timestamp() {
@@ -62,9 +64,10 @@ function updateDots() {
 
 function renderDetail() {
     const has = state.selected >= 0;
-    $('empty-state').hidden = has;
-    $('project-detail').hidden = !has;
-    if (!has) return;
+    const monitorMode = state.view === 'monitor';
+    $('empty-state').hidden = has || monitorMode;
+    $('project-detail').hidden = !has || monitorMode;
+    if (!has || monitorMode) return;
     const p = state.projects[state.selected];
     $('project-name').textContent = p.name;
     $('url-label').textContent = p.server.url;
@@ -127,6 +130,21 @@ function reloadLogs() {
         .forEach(appendLogEntry);
 }
 
+function switchView(view) {
+    if (state.view === view) return;
+    state.view = view;
+    $('view-project').classList.toggle('active', view === 'project');
+    $('view-monitor').classList.toggle('active', view === 'monitor');
+    $('monitor-view').hidden = view !== 'monitor';
+    ctx.panels.monitorPanel.setVisible(view === 'monitor');
+    renderDetail();
+}
+
+function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    api.setSetting('theme', theme);
+}
+
 function wireEvents() {
     $('btn-add').addEventListener('click', async () => {
         const name = prompt('Project name:');
@@ -157,9 +175,23 @@ function wireEvents() {
     $('btn-stop').addEventListener('click', () => api.stopServer(state.selected));
     $('btn-restart').addEventListener('click', () => api.restartServer(state.selected));
 
+    $('view-project').addEventListener('click', () => switchView('project'));
+    $('view-monitor').addEventListener('click', () => switchView('monitor'));
+
+    $('btn-theme').addEventListener('click', () => {
+        const cur = document.documentElement.dataset.theme || 'dark';
+        applyTheme(THEME_CYCLE[(THEME_CYCLE.indexOf(cur) + 1) % THEME_CYCLE.length]);
+    });
+    $('btn-settings').addEventListener('click', () => console.log('settings task 7'));
+    $('btn-quit').addEventListener('click', async () => {
+        if (confirm('Quit Local Dev Manager? All servers will be stopped.')) await api.quit();
+    });
+
     // Eventos push desde Go
     events().EventsOn('projects:changed', async () => refreshProjects());
     events().EventsOn('config:error', (payload) => alert(payload.message));
+    events().EventsOn('notify', ({ level, title, message }) =>
+        console.log('[notify]', level, title, message));
     events().EventsOn('server:log', (payload) =>
         appendLog(payload.index, payload.line, payload.isError));
     events().EventsOn('server:state', () => refreshStatus());
@@ -179,7 +211,8 @@ const ctx = {
 const playwrightPanel = mountPlaywright(ctx);
 const scriptsPanel = mountScripts(ctx);
 const gitPanel = mountGit(ctx);
-ctx.panels = { playwrightPanel, scriptsPanel, gitPanel };
+const monitorPanel = mountMonitor(ctx);
+ctx.panels = { playwrightPanel, scriptsPanel, gitPanel, monitorPanel };
 
 function switchTab(name) {
     document.querySelectorAll('.tab').forEach((b) =>
@@ -193,6 +226,10 @@ document.querySelectorAll('.tab').forEach((btn) =>
 async function boot() {
     wireEvents();
     await refreshProjects(false);
+    try {
+        const s = await api.getSettings();
+        if (s && s.theme) document.documentElement.dataset.theme = s.theme;
+    } catch { /* defaults */ }
 }
 
 boot();

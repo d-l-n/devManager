@@ -6,8 +6,20 @@ export function AddProject(arg1) {
   return window['go']['main']['App']['AddProject'](arg1);
 }
 
+export function GetEvidence(arg1) {
+  return window['go']['main']['App']['GetEvidence'](arg1);
+}
+
+export function GetEvidenceThumbnail(arg1) {
+  return window['go']['main']['App']['GetEvidenceThumbnail'](arg1);
+}
+
 export function GetGitStatus(arg1) {
   return window['go']['main']['App']['GetGitStatus'](arg1);
+}
+
+export function GetMonitorData() {
+  return window['go']['main']['App']['GetMonitorData']();
 }
 
 export function GetPlaywrightStatus(arg1) {
@@ -30,12 +42,56 @@ export function GetServerStatus(arg1) {
   return window['go']['main']['App']['GetServerStatus'](arg1);
 }
 
+export function GetSettings() {
+  return window['go']['main']['App']['GetSettings']();
+}
+
 export function GitAction(arg1, arg2) {
   return window['go']['main']['App']['GitAction'](arg1, arg2);
 }
 
+export function KillTree(arg1) {
+  return window['go']['main']['App']['KillTree'](arg1);
+}
+
+export function OpenContainingFolder(arg1) {
+  return window['go']['main']['App']['OpenContainingFolder'](arg1);
+}
+
+export function OpenExternally(arg1) {
+  return window['go']['main']['App']['OpenExternally'](arg1);
+}
+
+export function OpenHTMLReport(arg1) {
+  return window['go']['main']['App']['OpenHTMLReport'](arg1);
+}
+
+export function OpenInExplorer(arg1) {
+  return window['go']['main']['App']['OpenInExplorer'](arg1);
+}
+
+export function OpenOpenCode(arg1) {
+  return window['go']['main']['App']['OpenOpenCode'](arg1);
+}
+
+export function OpenTerminal(arg1) {
+  return window['go']['main']['App']['OpenTerminal'](arg1);
+}
+
+export function OpenTraceViewer(arg1, arg2) {
+  return window['go']['main']['App']['OpenTraceViewer'](arg1, arg2);
+}
+
+export function OpenVSCode(arg1) {
+  return window['go']['main']['App']['OpenVSCode'](arg1);
+}
+
 export function RemoveProject(arg1) {
   return window['go']['main']['App']['RemoveProject'](arg1);
+}
+
+export function RestartApp() {
+  return window['go']['main']['App']['RestartApp']();
 }
 
 export function RestartServer(arg1) {
@@ -56,6 +112,10 @@ export function RunTests(arg1) {
 
 export function RunUI(arg1) {
   return window['go']['main']['App']['RunUI'](arg1);
+}
+
+export function SetSetting(arg1, arg2) {
+  return window['go']['main']['App']['SetSetting'](arg1, arg2);
 }
 
 export function ShowReport(arg1) {

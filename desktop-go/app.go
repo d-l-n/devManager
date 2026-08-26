@@ -950,6 +950,14 @@ func parseStrictBool(v string) (bool, error) {
 	}
 }
 
+// ---- Quit ----
+
+// Quit cierra la app real (confirm lo hace el frontend); shutdown() detiene
+// servidores y managers vía OnBeforeClose/shutdown.
+func (a *App) Quit() {
+	runtime.Quit(a.ctx)
+}
+
 // ---- Restart app ----
 
 // RestartApp para todos los runners, relanza el propio exe detached y sale

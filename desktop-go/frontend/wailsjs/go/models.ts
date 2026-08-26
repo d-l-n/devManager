@@ -1,3 +1,24 @@
+export namespace config {
+	
+	export class Settings {
+	    theme: string;
+	    monitor_polling: boolean;
+	    toasts_enabled: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new Settings(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.theme = source["theme"];
+	        this.monitor_polling = source["monitor_polling"];
+	        this.toasts_enabled = source["toasts_enabled"];
+	    }
+	}
+
+}
+
 export namespace detection {
 	
 	export class Script {
@@ -12,6 +33,31 @@ export namespace detection {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
 	        this.command = source["command"];
+	    }
+	}
+
+}
+
+export namespace evidence {
+	
+	export class File {
+	    path: string;
+	    relPath: string;
+	    kind: string;
+	    testDir: string;
+	    mtime: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new File(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.relPath = source["relPath"];
+	        this.kind = source["kind"];
+	        this.testDir = source["testDir"];
+	        this.mtime = source["mtime"];
 	    }
 	}
 
@@ -84,6 +130,94 @@ export namespace git {
 
 export namespace main {
 	
+	export class ResRow {
+	    name: string;
+	    pid: number;
+	    children: number;
+	    cpu: number;
+	    rss: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ResRow(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.pid = source["pid"];
+	        this.children = source["children"];
+	        this.cpu = source["cpu"];
+	        this.rss = source["rss"];
+	    }
+	}
+	export class PortRow {
+	    index: number;
+	    name: string;
+	    port: number;
+	    state: string;
+	    ownerName: string;
+	    ownerPID: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PortRow(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.index = source["index"];
+	        this.name = source["name"];
+	        this.port = source["port"];
+	        this.state = source["state"];
+	        this.ownerName = source["ownerName"];
+	        this.ownerPID = source["ownerPID"];
+	    }
+	}
+	export class MonitorData {
+	    portRows: PortRow[];
+	    resRows: ResRow[];
+	
+	    static createFrom(source: any = {}) {
+	        return new MonitorData(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.portRows = this.convertValues(source["portRows"], PortRow);
+	        this.resRows = this.convertValues(source["resRows"], ResRow);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class NotifyResult {
+	    ok: boolean;
+	    message: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new NotifyResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.ok = source["ok"];
+	        this.message = source["message"];
+	    }
+	}
 	export class PlaywrightStatus {
 	    state: string;
 	
@@ -96,6 +230,8 @@ export namespace main {
 	        this.state = source["state"];
 	    }
 	}
+	
+	
 	export class ScriptStatus {
 	    running: boolean;
 	    activeName: string;

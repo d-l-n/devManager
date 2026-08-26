@@ -26,6 +26,22 @@ export const api = {
     // Git
     getGitStatus: (i) => app().GetGitStatus(i),
     gitAction: (i, action) => app().GitAction(i, action),
+    // Monitor
+    getMonitorData: () => app().GetMonitorData(),
+    killTree: (pid) => app().KillTree(pid),
+    // Evidence / externals
+    openHTMLReport: (i) => app().OpenHTMLReport(i),
+    openExternally: (path) => app().OpenExternally(path),
+    openContainingFolder: (path) => app().OpenContainingFolder(path),
+    openInExplorer: (i) => app().OpenInExplorer(i),
+    openTerminal: (i) => app().OpenTerminal(i),
+    openVSCode: (i) => app().OpenVSCode(i),
+    openOpenCode: (i) => app().OpenOpenCode(i),
+    // Settings
+    getSettings: () => app().GetSettings(),
+    setSetting: (key, value) => app().SetSetting(key, value),
+    // App
+    quit: () => app().Quit(),
 };
 
 export const events = () => window.runtime;
