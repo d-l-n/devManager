@@ -15,6 +15,10 @@ var assets embed.FS
 func main() {
 	app := NewApp()
 
+	// Tray spike: pump dedicado; stop al salir de main.
+	stopTray := runTray(app.onTrayReady)
+	defer stopTray()
+
 	err := wails.Run(&options.App{
 		Title:     "Local Dev Manager",
 		Width:     1280,
@@ -24,8 +28,9 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		OnStartup:  app.startup,
-		OnShutdown: app.shutdown,
+		OnStartup:     app.startup,
+		OnShutdown:    app.shutdown,
+		OnBeforeClose: app.beforeClose,
 		Bind: []interface{}{
 			app,
 		},

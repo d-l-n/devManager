@@ -3,6 +3,7 @@ module desktop-go
 go 1.25.0
 
 require (
+	github.com/energye/systray v1.0.3
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/wailsapp/wails/v2 v2.15.0
 )

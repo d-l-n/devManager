@@ -51,6 +51,9 @@ type App struct {
 
 	settingsPath string
 	settings     config.Settings
+
+	trayOK    bool // spike tray: Register completó onTrayReady
+	forceExit bool // quit real desde tray/atajo: OnBeforeClose no debe ocultar
 }
 
 func NewApp() *App {
@@ -88,6 +91,22 @@ func (a *App) startup(ctx context.Context) {
 	a.mu.Lock()
 	a.settings = config.LoadSettings(a.settingsPath)
 	a.mu.Unlock()
+
+	// Spike tray (Fase 3 §5.1): el pump se lanza desde main() vía runTray;
+	// onTrayReady marca trayOK y OnBeforeClose oculta salvo forceExit.
+}
+
+// beforeClose replica closeEvent del Python: ocultar a bandeja salvo salida real.
+func (a *App) beforeClose(ctx context.Context) bool {
+	a.mu.Lock()
+	trayOK := a.trayOK
+	force := a.forceExit
+	a.mu.Unlock()
+	if trayOK && !force {
+		runtime.WindowHide(ctx)
+		return true // impide el cierre real
+	}
+	return false
 }
 
 // stopAllRunners detiene servidores, playwright, scripts y el trace viewer.
