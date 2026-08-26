@@ -53,6 +53,7 @@ function renderList() {
             renderList();
             renderDetail();
         });
+        li.addEventListener('dblclick', () => editProject(i));
         ul.appendChild(li);
     });
     updateDots();
@@ -145,21 +146,64 @@ function switchView(view) {
     renderDetail();
 }
 
-function wireEvents() {
-    $('btn-add').addEventListener('click', async () => {
-        const name = prompt('Project name:');
-        if (!name) return;
-        const path = prompt('Project path:');
-        if (!path) return;
-        const errs = await api.addProject({
-            name, path,
-            server: { enabled: true, command: 'npm run dev', port: 5173, url: 'http://localhost:5173', startup_timeout: 15000 },
-            playwright: { enabled: false, command: '', ui_command: '', debug_command: '', report_command: '' },
-            pinned: false,
-        });
-        if (errs && errs.length) alert(errs.join('\n'));
-        await refreshProjects();
+async function addProjectFlow() {
+    const name = prompt('Project name:');
+    if (!name) return;
+    const path = prompt('Project path:');
+    if (!path) return;
+    const errs = await api.addProject({
+        name, path,
+        server: { enabled: true, command: 'npm run dev', port: 5173, url: 'http://localhost:5173', startup_timeout: 15000 },
+        playwright: { enabled: false, command: '', ui_command: '', debug_command: '', report_command: '' },
+        pinned: false,
     });
+    if (errs && errs.length) alert(errs.join('\n'));
+    await refreshProjects();
+}
+
+async function editProject(index) {
+    if (index < 0 || index >= state.projects.length) return;
+    const p = state.projects[index];
+    const name = prompt('Project name:', p.name);
+    if (name === null) return;
+    const path = prompt('Project path:', p.path);
+    if (path === null) return;
+    if (name === p.name && path === p.path) return;
+    const errs = await api.updateProject(index, {
+        ...p,
+        name,
+        path,
+        server: p.server,
+        playwright: p.playwright,
+        pinned: p.pinned,
+    });
+    if (errs && errs.length) alert(errs.join('\n'));
+    await refreshProjects();
+}
+
+function hasSelection() {
+    return state.selected >= 0 && state.selected < state.projects.length;
+}
+
+async function startOrRestartSelected() {
+    if (!hasSelection()) return;
+    const st = await api.getServerStatus(state.selected);
+    if (st.state === 'running') await api.restartServer(state.selected);
+    else await api.startServer(state.selected);
+}
+
+async function quitApp() {
+    if (confirm('Quit Local Dev Manager? All servers will be stopped.')) await api.quit();
+}
+
+async function restartAppFlow() {
+    if (confirm('Restart Local Dev Manager?\n\nAll running servers and scripts will be stopped.')) {
+        await api.restartApp();
+    }
+}
+
+function wireEvents() {
+    $('btn-add').addEventListener('click', addProjectFlow);
 
     $('search').addEventListener('input', renderList);
     $('errors-only').addEventListener('change', (e) => {
@@ -183,9 +227,7 @@ function wireEvents() {
         applyTheme(THEME_CYCLE[(THEME_CYCLE.indexOf(cur) + 1) % THEME_CYCLE.length]);
     });
     $('btn-settings').addEventListener('click', () => settingsDialog.open());
-    $('btn-quit').addEventListener('click', async () => {
-        if (confirm('Quit Local Dev Manager? All servers will be stopped.')) await api.quit();
-    });
+    $('btn-quit').addEventListener('click', quitApp);
 
     // Eventos push desde Go
     events().EventsOn('projects:changed', async () => refreshProjects());
@@ -199,6 +241,111 @@ function wireEvents() {
     events().EventsOn('server:ready', () => refreshStatus());
 
     setInterval(refreshStatus, 1000); // uptime ticker
+}
+
+function isEditableTarget(e) {
+    const t = e.target;
+    if (!(t instanceof HTMLElement)) return false;
+    if (t.isContentEditable) return true;
+    return ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName);
+}
+
+function wireKeyboardShortcuts() {
+    window.addEventListener('keydown', (e) => {
+        const mod = e.ctrlKey || e.metaKey;
+        const key = typeof e.key === 'string' ? e.key.toLowerCase() : '';
+
+        // Settings modal ya registra Ctrl+, en settings.js: no duplicar.
+        if (mod && key === ',') return;
+
+        // Único atajo que funciona dentro de inputs: robar el foco para buscar.
+        if (mod && !e.shiftKey && !e.altKey && key === 'f') {
+            e.preventDefault();
+            $('search').focus();
+            return;
+        }
+        if (isEditableTarget(e)) return;
+
+        const sel = state.selected;
+        if (!mod && !e.altKey && key === 'f5') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                if (hasSelection()) api.stopServer(sel);
+            } else {
+                startOrRestartSelected();
+            }
+            return;
+        }
+        if (!mod && key === 'delete') {
+            if (!hasSelection()) return;
+            const p = state.projects[sel];
+            if (confirm(`Remove project '${p.name}' from the manager?\n\nLocal files will not be deleted.`)) {
+                api.removeProject(sel).then(() => refreshProjects());
+            }
+            return;
+        }
+        if (!mod) return; // resto requiere modificador
+
+        if (e.shiftKey) {
+            switch (key) {
+                case 'c':
+                    e.preventDefault();
+                    if (hasSelection()) api.openVSCode(sel);
+                    break;
+                case 'o':
+                    e.preventDefault();
+                    if (hasSelection()) api.openOpenCode(sel);
+                    break;
+                case 'r':
+                    e.preventDefault();
+                    restartAppFlow();
+                    break;
+            }
+            return;
+        }
+
+        if (e.altKey) {
+            if (key === 't' && hasSelection()) {
+                e.preventDefault();
+                api.openTerminal(sel);
+            }
+            return;
+        }
+
+        switch (key) {
+            case 't':
+                e.preventDefault();
+                if (hasSelection()) api.runTests(sel);
+                break;
+            case 'l':
+                e.preventDefault();
+                if (hasSelection()) {
+                    state.logs.set(sel, []);
+                    $('log-output').innerHTML = '';
+                }
+                break;
+            case 'n':
+                e.preventDefault();
+                addProjectFlow();
+                break;
+            case 'e':
+                e.preventDefault();
+                editProject(sel);
+                break;
+            case 'o':
+                e.preventDefault();
+                if (hasSelection()) api.openInExplorer(sel);
+                break;
+            case '`':
+                e.preventDefault();
+                if (hasSelection()) api.openTerminal(sel);
+                break;
+            case 'q':
+                e.preventDefault();
+                quitApp();
+                break;
+        }
+    });
 }
 
 const ctx = {
@@ -229,6 +376,7 @@ document.querySelectorAll('.tab').forEach((btn) =>
 
 async function boot() {
     wireEvents();
+    wireKeyboardShortcuts();
     await refreshProjects(false);
     await settingsDialog.init(); // carga settings: tema + gate de toasts
 }

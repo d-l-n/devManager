@@ -44,6 +44,7 @@ export const api = {
     getSettings: () => app().GetSettings(),
     setSetting: (key, value) => app().SetSetting(key, value),
     // App
+    restartApp: () => app().RestartApp(),
     quit: () => app().Quit(),
 };
 
