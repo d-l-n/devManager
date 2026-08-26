@@ -2,6 +2,7 @@ import { api, events } from './api.js';
 import { mount as mountPlaywright } from './panels/playwright.js';
 import { mount as mountScripts } from './panels/scripts.js';
 import { mount as mountGit } from './panels/git.js';
+import { mount as mountEvidence } from './panels/evidence.js';
 import { mount as mountMonitor, THEME_CYCLE } from './panels/monitor.js';
 
 const $ = (id) => document.getElementById(id);
@@ -76,6 +77,7 @@ function renderDetail() {
     ctx.panels.playwrightPanel.onProjectChanged(p);
     ctx.panels.scriptsPanel.onProjectChanged(p);
     ctx.panels.gitPanel.onProjectChanged(p);
+    ctx.panels.evidencePanel.onProjectChanged(p);
 }
 
 let uptimeTimer = null;
@@ -211,8 +213,9 @@ const ctx = {
 const playwrightPanel = mountPlaywright(ctx);
 const scriptsPanel = mountScripts(ctx);
 const gitPanel = mountGit(ctx);
+const evidencePanel = mountEvidence(ctx);
 const monitorPanel = mountMonitor(ctx);
-ctx.panels = { playwrightPanel, scriptsPanel, gitPanel, monitorPanel };
+ctx.panels = { playwrightPanel, scriptsPanel, gitPanel, evidencePanel, monitorPanel };
 
 function switchTab(name) {
     document.querySelectorAll('.tab').forEach((b) =>

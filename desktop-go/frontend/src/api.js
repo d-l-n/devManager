@@ -30,6 +30,9 @@ export const api = {
     getMonitorData: () => app().GetMonitorData(),
     killTree: (pid) => app().KillTree(pid),
     // Evidence / externals
+    getEvidence: (i) => app().GetEvidence(i),
+    getEvidenceThumbnail: (path) => app().GetEvidenceThumbnail(path),
+    openTraceViewer: (i, path) => app().OpenTraceViewer(i, path),
     openHTMLReport: (i) => app().OpenHTMLReport(i),
     openExternally: (path) => app().OpenExternally(path),
     openContainingFolder: (path) => app().OpenContainingFolder(path),

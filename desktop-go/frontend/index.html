@@ -48,6 +48,7 @@
                 <button class="tab" data-tab="playwright">Playwright</button>
                 <button class="tab" data-tab="scripts">Scripts</button>
                 <button class="tab" data-tab="git">Git</button>
+                <button class="tab" data-tab="evidence">Evidence</button>
             </nav>
             <section id="panel-logs" class="panel active">
                 <div class="log-toolbar">
@@ -123,6 +124,27 @@
                 <div id="git-result" class="result-strip" hidden></div>
                 <div id="git-empty" class="dim center padded">
                     Not a git repository.<br>Open a project folder containing a .git directory.
+                </div>
+            </section>
+
+            <section id="panel-evidence" class="panel">
+                <header id="ev-toolbar">
+                    <button id="ev-refresh" class="btn btn-accent">Refresh</button>
+                    <button id="ev-report" class="btn btn-primary" disabled>Open HTML Report</button>
+                    <span class="ev-spacer"></span>
+                    <span id="ev-count" class="dim"></span>
+                </header>
+                <div id="ev-split" hidden>
+                    <div id="ev-gallery">
+                        <div id="ev-grid"></div>
+                    </div>
+                    <div id="ev-preview">
+                        <img id="ev-preview-img" alt="" hidden>
+                        <span id="ev-preview-placeholder" class="dim">Select an image to preview</span>
+                    </div>
+                </div>
+                <div id="ev-empty" class="dim center padded" hidden>
+                    No evidence found.<br>Run Playwright tests to generate screenshots, videos and traces.
                 </div>
             </section>
         </section>

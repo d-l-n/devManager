@@ -243,3 +243,57 @@ body {
 .cpu-fill { height: 100%; border-radius: 4px; transition: width .25s ease, background .25s ease; }
 .mon-usage { width: 170px; min-width: 170px; text-align: right; white-space: pre; }
 .mon-row .btn-danger { padding: 4px 14px; font-size: 12px; }
+
+/* ---- Fase 3: tab Evidence ---- */
+#ev-toolbar {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+}
+.ev-spacer { flex: 1; }
+#ev-count { font-size: 12px; }
+#ev-split { flex: 1; min-height: 240px; display: flex; gap: 12px; }
+#ev-split[hidden] { display: none; }
+#ev-gallery {
+    flex: 3; min-width: 0; overflow-y: auto;
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px;
+}
+#ev-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+    gap: 10px;
+}
+.ev-card {
+    background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px; cursor: pointer; text-align: center;
+    min-width: 0;
+}
+.ev-card:hover, .ev-card.selected { border-color: var(--accent); }
+.ev-thumb {
+    height: 160px; display: flex; align-items: center; justify-content: center;
+    background: var(--bg-panel); border-radius: 6px; overflow: hidden;
+    font-size: 36px;
+}
+.ev-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.ev-thumb.trace { color: var(--warn); }
+.ev-caption {
+    margin-top: 6px; font-size: 11px; color: var(--fg-dim);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#ev-preview {
+    flex: 2; min-width: 280px;
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+}
+#ev-preview-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.ev-context {
+    position: fixed; z-index: 1000; min-width: 190px; padding: 4px;
+    background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 8px; box-shadow: 0 10px 28px rgba(0, 0, 0, .45);
+}
+.ev-context button {
+    display: block; width: 100%; text-align: left;
+    background: none; border: none; color: var(--fg);
+    font-size: 13px; padding: 7px 12px; border-radius: 5px; cursor: pointer;
+}
+.ev-context button:hover { background: var(--bg); }
