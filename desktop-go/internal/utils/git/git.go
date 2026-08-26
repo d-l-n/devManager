@@ -22,6 +22,15 @@ func hideCmd(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: createNoWindow}
 }
 
+// HiddenCommand devuelve un exec.Cmd configurado para correr oculto
+// (uso del App layer para Pull/Fetch/Stash con streaming).
+func HiddenCommand(dir string, args []string) *exec.Cmd {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	hideCmd(cmd)
+	return cmd
+}
+
 // IsRepo replica is_git_repo: existe <path>/.git (directorio o archivo worktree).
 func IsRepo(projectPath string) bool {
 	if projectPath == "" {
