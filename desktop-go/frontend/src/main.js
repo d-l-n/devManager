@@ -3,7 +3,10 @@ import { mount as mountPlaywright } from './panels/playwright.js';
 import { mount as mountScripts } from './panels/scripts.js';
 import { mount as mountGit } from './panels/git.js';
 import { mount as mountEvidence } from './panels/evidence.js';
-import { mount as mountMonitor, THEME_CYCLE } from './panels/monitor.js';
+import { mount as mountMonitor } from './panels/monitor.js';
+import { applyTheme, THEME_CYCLE } from './theme.js';
+import { showToast } from './widgets/toast.js';
+import { mountSettings } from './dialogs/settings.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -142,11 +145,6 @@ function switchView(view) {
     renderDetail();
 }
 
-function applyTheme(theme) {
-    document.documentElement.dataset.theme = theme;
-    api.setSetting('theme', theme);
-}
-
 function wireEvents() {
     $('btn-add').addEventListener('click', async () => {
         const name = prompt('Project name:');
@@ -184,16 +182,17 @@ function wireEvents() {
         const cur = document.documentElement.dataset.theme || 'dark';
         applyTheme(THEME_CYCLE[(THEME_CYCLE.indexOf(cur) + 1) % THEME_CYCLE.length]);
     });
-    $('btn-settings').addEventListener('click', () => console.log('settings task 7'));
+    $('btn-settings').addEventListener('click', () => settingsDialog.open());
     $('btn-quit').addEventListener('click', async () => {
         if (confirm('Quit Local Dev Manager? All servers will be stopped.')) await api.quit();
     });
 
     // Eventos push desde Go
     events().EventsOn('projects:changed', async () => refreshProjects());
-    events().EventsOn('config:error', (payload) => alert(payload.message));
-    events().EventsOn('notify', ({ level, title, message }) =>
-        console.log('[notify]', level, title, message));
+    events().EventsOn('config:error', (payload) =>
+        showToast('Configuration', payload.message, 'warning'));
+    events().EventsOn('notify', ({ title, message, level }) =>
+        showToast(title, message, level));
     events().EventsOn('server:log', (payload) =>
         appendLog(payload.index, payload.line, payload.isError));
     events().EventsOn('server:state', () => refreshStatus());
@@ -217,6 +216,8 @@ const evidencePanel = mountEvidence(ctx);
 const monitorPanel = mountMonitor(ctx);
 ctx.panels = { playwrightPanel, scriptsPanel, gitPanel, evidencePanel, monitorPanel };
 
+const settingsDialog = mountSettings();
+
 function switchTab(name) {
     document.querySelectorAll('.tab').forEach((b) =>
         b.classList.toggle('active', b.dataset.tab === name));
@@ -229,10 +230,7 @@ document.querySelectorAll('.tab').forEach((btn) =>
 async function boot() {
     wireEvents();
     await refreshProjects(false);
-    try {
-        const s = await api.getSettings();
-        if (s && s.theme) document.documentElement.dataset.theme = s.theme;
-    } catch { /* defaults */ }
+    await settingsDialog.init(); // carga settings: tema + gate de toasts
 }
 
 boot();

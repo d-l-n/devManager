@@ -1,15 +1,66 @@
-/* Tema base Fase 1 (dark). Light/OLED completos llegan en Fase 3 vía clases. */
-:root {
-    --bg: #1e1f22;
-    --bg-panel: #26282c;
-    --bg-input: #313338;
-    --fg: #e4e6eb;
-    --fg-dim: #9aa0a8;
-    --accent: #4f9cf9;
-    --ok: #3fb96f;
-    --warn: #e5b45b;
-    --err: #e5534b;
-    --border: #3a3d42;
+/* Paletas Fase 3 portadas de app/ui/theme.py. Alias:
+   bg_base→--bg · bg_surface/bg_card→--bg-panel · bg_elevated→--bg-input
+   text_primary→--fg · text_muted→--fg-dim · primary→--accent
+   success→--ok · warning→--warn · danger→--err */
+:root,
+:root[data-theme="dark"] {
+    /* DARK (default) */
+    --bg: #0c0e17;              /* bg_base */
+    --bg-panel: #141724;        /* bg_surface */
+    --bg-card: #1a1d2e;         /* bg_card */
+    --bg-input: #22263d;        /* bg_elevated */
+    --bg-active: #2b304c;
+    --border: #252a3f;
+    --border-focus: #6366f1;
+    --accent: #6366f1;          /* primary */
+    --primary-hover: #4f46e5;
+    --ok: #10b981;              /* success */
+    --warn: #f59e0b;            /* warning */
+    --err: #ef4444;             /* danger */
+    --info: #3b82f6;
+    --fg: #f8fafc;              /* text_primary */
+    --text-secondary: #94a3b8;
+    --fg-dim: #64748b;          /* text_muted */
+}
+
+:root[data-theme="oled"] {
+    /* OLED */
+    --bg: #000000;              /* bg_base */
+    --bg-panel: #0b0d13;        /* bg_surface */
+    --bg-card: #12151f;         /* bg_card */
+    --bg-input: #181c29;        /* bg_elevated */
+    --bg-active: #232940;
+    --border: #2a3049;
+    --border-focus: #818cf8;
+    --accent: #818cf8;          /* primary */
+    --primary-hover: #a5b0fc;
+    --ok: #34d399;              /* success */
+    --warn: #fbbf24;            /* warning */
+    --err: #f87171;             /* danger */
+    --info: #60a5fa;
+    --fg: #ffffff;              /* text_primary */
+    --text-secondary: #9fb0c4;
+    --fg-dim: #7e8aa0;          /* muted */
+}
+
+:root[data-theme="light"] {
+    /* LIGHT */
+    --bg: #f4f6f9;              /* bg_base */
+    --bg-panel: #ffffff;        /* bg_surface */
+    --bg-card: #ffffff;         /* bg_card */
+    --bg-input: #ffffff;        /* bg_elevated */
+    --bg-active: #eef2ff;
+    --border: #e2e8f0;
+    --border-focus: #4f46e5;
+    --accent: #4f46e5;          /* primary */
+    --primary-hover: #4338ca;
+    --ok: #047857;              /* success */
+    --warn: #b45309;            /* warning */
+    --err: #dc2626;             /* danger */
+    --info: #2563eb;
+    --fg: #0f172a;              /* text_primary */
+    --text-secondary: #334155;
+    --fg-dim: #64748b;          /* muted */
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #app { height: 100%; }
@@ -297,3 +348,51 @@ body {
     font-size: 13px; padding: 7px 12px; border-radius: 5px; cursor: pointer;
 }
 .ev-context button:hover { background: var(--bg); }
+
+/* ---- Fase 3: toasts apilables ---- */
+#toast-container {
+    position: fixed; right: 16px; bottom: 16px; z-index: 2000;
+    display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
+}
+.toast {
+    width: 340px; max-width: 340px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--info);
+    border-radius: 8px; padding: 10px 12px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .45);
+    cursor: pointer; user-select: none;
+    opacity: 1; transition: opacity .22s ease, transform .22s ease;
+}
+.toast.closing { opacity: 0; transform: translateX(12px); }
+.toast-title { font-weight: 700; font-size: 13px; }
+.toast-msg {
+    margin-top: 2px; font-size: 12px; color: var(--fg-dim);
+    white-space: normal; word-break: break-word;
+}
+
+/* ---- Fase 3: dialog Settings ---- */
+.settings-overlay {
+    position: fixed; inset: 0; z-index: 1500;
+    background: rgba(0, 0, 0, .5);
+    display: flex; align-items: center; justify-content: center;
+}
+.settings-overlay[hidden] { display: none; }
+.settings-card {
+    width: 420px; max-width: calc(100vw - 32px);
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, .55);
+}
+.settings-title { font-weight: 700; font-size: 15px; margin-bottom: 12px; }
+.settings-section { margin-bottom: 14px; }
+.settings-section-title {
+    color: var(--fg-dim); font-weight: 600; font-size: 12px;
+    text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px;
+}
+.settings-option {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 0; cursor: pointer; user-select: none;
+}
+.settings-footer { display: flex; justify-content: flex-end; margin-top: 6px; }

@@ -1,5 +1,4 @@
 const POLL_MS = 3000;
-const THEME_CYCLE = ['light', 'dark', 'oled'];
 
 export function mount(ctx) {
     const { $, api, events } = ctx;
@@ -159,5 +158,3 @@ export function mount(ctx) {
         },
     };
 }
-
-export { THEME_CYCLE };
