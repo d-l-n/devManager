@@ -1,0 +1,172 @@
+// Dialog Settings persistente (Task 7). Patrón widgets: mount(ctx) → {open, close, init}.
+// Cambios aplican en vivo vía setSetting; el eco settings:changed solo toca estado local.
+import { api, events } from '../api.js';
+import { applyTheme, isValidTheme } from '../theme.js';
+import { setToastsEnabled } from '../widgets/toast.js';
+
+const normBool = (v) => v === true || v === 'true';
+
+function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+}
+
+function optionRow(labelText, input) {
+    const label = el('label', 'settings-option');
+    label.appendChild(input);
+    label.appendChild(el('span', '', labelText));
+    return label;
+}
+
+export function mountSettings() {
+    const state = {
+        theme: 'dark',
+        monitor_polling: true,
+        toasts_enabled: true,
+    };
+    let isOpen = false;
+
+    // ---- DOM ----
+    const overlay = el('div', 'settings-overlay');
+    overlay.hidden = true;
+
+    const card = el('div', 'settings-card');
+
+    card.appendChild(el('div', 'settings-title', 'Settings'));
+
+    const secAppearance = el('div', 'settings-section');
+    secAppearance.appendChild(el('div', 'settings-section-title', 'Appearance'));
+    const themeRadios = ['light', 'dark', 'oled', 'auto'].map((value) => {
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'settings-theme';
+        radio.value = value;
+        const label = value === 'auto' ? 'Auto (System)' : value[0].toUpperCase() + value.slice(1);
+        const row = optionRow(label, radio);
+        secAppearance.appendChild(row);
+        return radio;
+    });
+    card.appendChild(secAppearance);
+
+    const secNotifications = el('div', 'settings-section');
+    secNotifications.appendChild(el('div', 'settings-section-title', 'Notifications'));
+    const cbToasts = document.createElement('input');
+    cbToasts.type = 'checkbox';
+    cbToasts.id = 'settings-toasts';
+    secNotifications.appendChild(optionRow('Enable toast notifications', cbToasts));
+    card.appendChild(secNotifications);
+
+    const secMonitor = el('div', 'settings-section');
+    secMonitor.appendChild(el('div', 'settings-section-title', 'Monitor'));
+    const cbPolling = document.createElement('input');
+    cbPolling.type = 'checkbox';
+    cbPolling.id = 'settings-polling';
+    secMonitor.appendChild(optionRow('Enable resource polling', cbPolling));
+    card.appendChild(secMonitor);
+
+    const footer = el('div', 'settings-footer');
+    const btnClose = el('button', 'btn btn-accent', 'Close');
+    footer.appendChild(btnClose);
+    card.appendChild(footer);
+
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+
+    // ---- Comportamiento ----
+    function syncUI() {
+        themeRadios.forEach((r) => { r.checked = r.value === state.theme; });
+        cbToasts.checked = state.toasts_enabled;
+        cbPolling.checked = state.monitor_polling;
+    }
+
+    function open() {
+        isOpen = true;
+        syncUI();
+        overlay.hidden = false;
+    }
+
+    function close() {
+        isOpen = false;
+        overlay.hidden = true;
+    }
+
+    themeRadios.forEach((radio) =>
+        radio.addEventListener('change', async () => {
+            if (radio.checked) await applyTheme(radio.value); // valida + aplica + persiste
+        }));
+    cbToasts.addEventListener('change', () =>
+        api.setSetting('toasts_enabled', String(cbToasts.checked)));
+    cbPolling.addEventListener('change', () =>
+        api.setSetting('monitor_polling', String(cbPolling.checked)));
+    btnClose.addEventListener('click', close);
+    overlay.addEventListener('mousedown', (e) => {
+        if (e.target === overlay) close();
+    });
+
+    // Atajo propio de este task (los atajos completos llegan en Task 8).
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === ',') {
+            e.preventDefault();
+            isOpen ? close() : open();
+        } else if (e.key === 'Escape' && isOpen) {
+            close();
+        }
+    });
+
+    // Eco desde Go: actualizar estado local SIN re-persistir (evitar bucle).
+    events().EventsOn('settings:changed', async ({ key, value }) => {
+        if (key === 'theme') {
+            if (!isValidTheme(value)) return;
+            state.theme = value;
+            
+            // Si es auto, obtener y aplicar el tema efectivo
+            if (value === 'auto') {
+                try {
+                    const effectiveTheme = await api.getEffectiveTheme();
+                    document.documentElement.dataset.theme = effectiveTheme;
+                } catch {
+                    document.documentElement.dataset.theme = 'dark';
+                }
+            } else {
+                document.documentElement.dataset.theme = value;
+            }
+        } else if (key === 'toasts_enabled') {
+            state.toasts_enabled = normBool(value);
+            setToastsEnabled(state.toasts_enabled);
+        } else if (key === 'monitor_polling') {
+            state.monitor_polling = normBool(value);
+        } else {
+            return;
+        }
+        syncUI();
+    });
+
+    async function init() {
+        try {
+            const s = await api.getSettings();
+            if (s) {
+                if (isValidTheme(s.theme)) state.theme = s.theme;
+                if (typeof s.monitor_polling === 'boolean') state.monitor_polling = s.monitor_polling;
+                if (typeof s.toasts_enabled === 'boolean') state.toasts_enabled = s.toasts_enabled;
+            }
+        } catch { /* defaults */ }
+        
+        // Para el tema auto, necesitamos obtener el tema efectivo
+        let displayTheme = state.theme;
+        if (state.theme === 'auto') {
+            try {
+                displayTheme = await api.getEffectiveTheme();
+            } catch {
+                displayTheme = 'dark';
+            }
+        }
+        
+        document.documentElement.dataset.theme = displayTheme;
+        setToastsEnabled(state.toasts_enabled);
+        syncUI();
+    }
+
+    return { open, close, init, isOpen: () => isOpen, getState: () => ({ ...state }) };
+}

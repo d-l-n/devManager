@@ -1,12 +1,50 @@
-.venv/
-__pycache__/
-*.pyc
-*.pyo
-.pytest_cache/
+# Go
+devmanager-app/build/
+devmanager-app/bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go modules
+devmanager-app/vendor/
+
+# Go test cache
+devmanager-app/*.test
+
+# Go coverage
+devmanager-app/*.out
+
+# IDE
 .vscode/
 .idea/
-dist/
-build/
-*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Local configuration (keep template)
 projects.json
-docs/superpowers/
+!projects.json.example
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Node.js (for frontend development)
+devmanager-app/frontend/node_modules/
+devmanager-app/frontend/dist/
+devmanager-app/frontend/.nyc_output/
+devmanager-app/frontend/coverage/
+
+# Environment files
+.env
+.env.local
+.env.*.local
