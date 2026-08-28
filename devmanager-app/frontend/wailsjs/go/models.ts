@@ -2,6 +2,7 @@ export namespace config {
 	
 	export class Settings {
 	    theme: string;
+	    style: string;
 	    monitor_polling: boolean;
 	    toasts_enabled: boolean;
 	
@@ -12,6 +13,7 @@ export namespace config {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.theme = source["theme"];
+	        this.style = source["style"];
 	        this.monitor_polling = source["monitor_polling"];
 	        this.toasts_enabled = source["toasts_enabled"];
 	    }
