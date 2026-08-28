@@ -130,7 +130,7 @@ export function mountBacklogItemDialog() {
             }
             close();
         } catch (error) {
-            alert(`Error saving backlog item: ${error.message}`);
+            window.messageDialog.alert({ title: 'Could not save backlog item', message: error.message, trigger: saveBtn });
         }
     });
 

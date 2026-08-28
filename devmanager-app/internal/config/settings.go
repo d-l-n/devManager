@@ -10,9 +10,12 @@ import (
 // en JSON (schema propio Go, keys snake_case — no es projects.json).
 type Settings struct {
 	Theme          string `json:"theme"`
+	Style          string `json:"style"`
 	MonitorPolling bool   `json:"monitor_polling"`
 	ToastsEnabled  bool   `json:"toasts_enabled"`
 }
+
+func validStyle(s string) bool { return s == "standard" || s == "brutalist" }
 
 // Temas válidos; cualquier otro valor sanea a "dark" (paridad tolerante).
 func validTheme(t string) bool {
@@ -26,7 +29,7 @@ func validTheme(t string) bool {
 // DefaultSettings replica los defaults efectivos de Python:
 // theme "dark", polling true, toasts true.
 func DefaultSettings() Settings {
-	return Settings{Theme: "dark", MonitorPolling: true, ToastsEnabled: true}
+	return Settings{Theme: "dark", Style: "standard", MonitorPolling: true, ToastsEnabled: true}
 }
 
 // LoadSettings lee el archivo; ausente/corrupto → defaults sin backup.
@@ -42,6 +45,7 @@ func LoadSettings(path string) Settings {
 	if !validTheme(s.Theme) {
 		s.Theme = "dark"
 	}
+	if !validStyle(s.Style) { s.Style = "standard" }
 	return s
 }
 

@@ -12,6 +12,7 @@ import { mountProjectDialog } from './dialogs/project.js';
 import { mountAppLogDialog } from './dialogs/applog.js';
 import { mountContextMenu } from './widgets/contextmenu.js';
 import { mountBacklogItemDialog } from './dialogs/backlog-item.js';
+import { mountMessageDialog } from './dialogs/message.js';
 import { hydrateIcons, icon, setIcon } from './icons.js';
 
 const $ = (id) => document.getElementById(id);
@@ -136,11 +137,7 @@ function showProjectContextMenu(index, p, x, y) {
         { label: p.pinned ? 'Unpin' : 'Pin', icon: p.pinned ? 'pinned' : 'pin', onClick: () => run(() => api.togglePin(index)) },
         { label: 'Edit Project', icon: 'edit', onClick: () => editProject(index) },
         { separator: true },
-        { label: 'Remove Project', icon: 'trash', danger: true, onClick: () => {
-            if (confirm(`Remove project '${p.name}' from the manager?\n\nLocal files will not be deleted.`)) {
-                run(() => api.removeProject(index));
-            }
-        } },
+        { label: 'Remove Project', icon: 'trash', danger: true, onClick: () => removeProjectFlow(index) },
     ];
     contextMenu.show(items, x, y);
 }
@@ -316,13 +313,20 @@ async function startOrRestartSelected() {
 }
 
 async function quitApp() {
-    if (confirm('Quit Local Dev Manager? All servers will be stopped.')) await api.quit();
+    if (await messageDialog.confirm({ title: 'Quit app', message: 'All servers will be stopped.', confirmLabel: 'Quit', destructive: true })) await api.quit();
 }
 
 async function restartAppFlow() {
-    if (confirm('Restart Local Dev Manager?\n\nAll running servers and scripts will be stopped.')) {
+    if (await messageDialog.confirm({ title: 'Restart app', message: 'All running servers and scripts will be stopped.', confirmLabel: 'Restart', destructive: true })) {
         await api.restartApp();
     }
+}
+
+async function removeProjectFlow(index, trigger) {
+    const p = state.projects[index];
+    if (!p) return;
+    const ok = await messageDialog.confirm({ title: 'Remove project', message: `Remove “${p.name}” from the manager? Local files will not be deleted.`, confirmLabel: 'Remove', destructive: true, trigger });
+    if (ok) { await api.removeProject(index); await refreshProjects(); }
 }
 
 function wireEvents() {
@@ -503,9 +507,7 @@ function wireKeyboardShortcuts() {
         if (!mod && key === 'delete') {
             if (!hasSelection()) return;
             const p = state.projects[sel];
-            if (confirm(`Remove project '${p.name}' from the manager?\n\nLocal files will not be deleted.`)) {
-                api.removeProject(sel).then(() => refreshProjects());
-            }
+            removeProjectFlow(sel);
             return;
         }
         if (!mod) return; // resto requiere modificador
@@ -601,6 +603,11 @@ const ctx = {
     selectedIndex: () => state.selected,
     appendLog,
 };
+
+const messageDialog = mountMessageDialog();
+document.body.appendChild(messageDialog.getElement());
+ctx.messageDialog = messageDialog;
+window.messageDialog = messageDialog;
 
 const playwrightPanel = mountPlaywright(ctx);
 const scriptsPanel = mountScripts(ctx);

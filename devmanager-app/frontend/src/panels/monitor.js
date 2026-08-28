@@ -58,7 +58,7 @@ export function mount(ctx) {
             kill.className = 'btn btn-danger';
             kill.textContent = 'Kill';
             kill.addEventListener('click', async () => {
-                if (!confirm(`Terminate process tree with PID ${row.ownerPID}? This cannot be undone`)) return;
+                if (!await ctx.messageDialog.confirm({ title: 'Terminate process', message: `Terminate process tree with PID ${row.ownerPID}? This cannot be undone.`, confirmLabel: 'Terminate', destructive: true, trigger: kill })) return;
                 await api.killTree(row.ownerPID);
                 refresh();
             });

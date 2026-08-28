@@ -81,6 +81,8 @@ body {
     display: flex; align-items: center; justify-content: space-between;
     padding: 12px;
 }
+.sidebar-brand { min-width: 0; display: flex; flex: 1; flex-direction: column; gap: 2px; }
+.sidebar-brand-row { display: flex; align-items: center; gap: 8px; }
 .app-logo { width: 28px; height: 28px; flex: none; }
 .app-title { flex: 1; font-weight: 650; font-size: 0.9375rem; letter-spacing: -0.01em; }
 .icon-btn {
@@ -432,6 +434,13 @@ body {
 .settings-option-label { color: var(--fg); }
 .settings-option-description { color: var(--fg-dim); font-size: 11px; line-height: 1.35; }
 .settings-footer { display: flex; justify-content: flex-end; margin-top: 6px; }
+.message-overlay { position: fixed; inset: 0; z-index: 1700; display: grid; place-items: center; padding: 16px; background: rgba(0,0,0,.55); }
+.message-overlay[hidden] { display: none; }
+.message-card { width: min(420px, 100%); background: var(--bg-panel); color: var(--fg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; box-shadow: 0 18px 48px rgba(0,0,0,.55); }
+.message-title { font-size: 17px; margin: 0 0 8px; }.message-text { color: var(--fg-dim); margin: 0; white-space: pre-line; }.message-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+:root[data-style="brutalist"] .btn, :root[data-style="brutalist"] .icon-btn, :root[data-style="brutalist"] .settings-card, :root[data-style="brutalist"] .dialog-card, :root[data-style="brutalist"] .message-card, :root[data-style="brutalist"] .text-input, :root[data-style="brutalist"] .context-menu { border-radius: 0; border: 2px solid var(--border); }
+:root[data-style="brutalist"] .settings-card, :root[data-style="brutalist"] .dialog-card, :root[data-style="brutalist"] .message-card, :root[data-style="brutalist"] .context-menu { box-shadow: 6px 6px 0 var(--border); }
+:root[data-style="brutalist"] .tab, :root[data-style="brutalist"] #project-list li.selected { border-radius: 0; }
 
 /* ---- Dialog de proyecto (Issue #10) ---- */
 .project-dialog-card {

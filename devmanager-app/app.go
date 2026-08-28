@@ -1250,6 +1250,14 @@ func (a *App) SetSetting(key, value string) []string {
 	s := a.GetSettings()
 	normalized := ""
 	switch key {
+	case "style":
+		switch value {
+		case "standard", "brutalist":
+			s.Style = value
+			normalized = value
+		default:
+			return []string{"Invalid style value (expected standard or brutalist)"}
+		}
 	case "theme":
 		switch value {
 		case "light", "dark", "oled", "system":

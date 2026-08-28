@@ -56,8 +56,8 @@ export function mount(ctx) {
         if (card) card.classList.add('selected');
     }
 
-    function openTrace(f) {
-        if (!confirm('Open Playwright Trace Viewer for this file?')) return;
+    async function openTrace(f) {
+        if (!await ctx.messageDialog.confirm({ title: 'Open Trace Viewer', message: 'Open Playwright Trace Viewer for this file?', confirmLabel: 'Open' })) return;
         api.openTraceViewer(ctx.selectedIndex(), f.path);
     }
 

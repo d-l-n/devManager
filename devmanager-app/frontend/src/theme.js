@@ -3,12 +3,19 @@ import { api } from './api.js';
 
 export const THEME_CYCLE = ['light', 'dark'];
 export const SETTINGS_THEMES = ['light', 'dark', 'oled', 'system'];
+export const SETTINGS_STYLES = ['standard', 'brutalist'];
 
 const systemThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
 let themePreference = 'dark';
 
 export function isValidTheme(theme) {
     return SETTINGS_THEMES.includes(theme);
+}
+export function isValidStyle(style) { return SETTINGS_STYLES.includes(style); }
+export function applyStyle(style, { persist = true } = {}) {
+    const value = isValidStyle(style) ? style : 'standard';
+    document.documentElement.dataset.style = value;
+    if (persist) api.setSetting('style', value);
 }
 
 export function currentTheme() {

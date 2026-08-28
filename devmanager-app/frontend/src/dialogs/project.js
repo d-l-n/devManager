@@ -221,8 +221,8 @@ export function mountProjectDialog(onSaved) {
 
     async function save() {
         const proj = collect();
-        if (!proj.name) return alert('Project name cannot be empty');
-        if (!proj.path) return alert('Project path cannot be empty');
+        if (!proj.name) return window.messageDialog.alert({ title: 'Project name required', message: 'Enter a name before saving the project.', trigger: btnOk });
+        if (!proj.path) return window.messageDialog.alert({ title: 'Project path required', message: 'Enter a path before saving the project.', trigger: btnOk });
 
         let errors = [];
         if (state.isEdit) {
@@ -230,7 +230,7 @@ export function mountProjectDialog(onSaved) {
         } else {
             errors = await api.addProject(proj);
         }
-        if (errors && errors.length) return alert(errors.join('\n'));
+        if (errors && errors.length) return window.messageDialog.alert({ title: 'Could not save project', message: errors.join('\n'), trigger: btnOk });
         close();
         if (onSaved) onSaved();
         return { saved: true };

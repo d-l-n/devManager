@@ -1,7 +1,7 @@
 // Dialog Settings persistente (Task 7). Patrón widgets: mount(ctx) → {open, close, init}.
 // Cambios aplican en vivo vía setSetting; el eco settings:changed solo toca estado local.
 import { api, events } from '../api.js';
-import { applyTheme, isValidTheme } from '../theme.js';
+import { applyTheme, applyStyle, isValidTheme, isValidStyle } from '../theme.js';
 import { setToastsEnabled } from '../widgets/toast.js';
 
 const normBool = (v) => v === true || v === 'true';
@@ -26,6 +26,7 @@ function optionRow(labelText, description, input) {
 export function mountSettings() {
     const state = {
         theme: 'dark',
+        style: 'standard',
         monitor_polling: true,
         toasts_enabled: true,
     };
@@ -59,6 +60,16 @@ export function mountSettings() {
     });
     card.appendChild(secAppearance);
 
+    const secStyle = el('div', 'settings-section');
+    secStyle.appendChild(el('div', 'settings-section-title', 'Interface style'));
+    const styleRadios = ['standard', 'brutalist'].map((value) => {
+        const radio = document.createElement('input');
+        radio.type = 'radio'; radio.name = 'settings-style'; radio.value = value;
+        secStyle.appendChild(optionRow(value === 'standard' ? 'Standard' : 'Brutalist', value === 'standard' ? 'Keep the current rounded interface.' : 'Use sharp edges and strong structural contrast.', radio));
+        return radio;
+    });
+    card.appendChild(secStyle);
+
     const secNotifications = el('div', 'settings-section');
     secNotifications.appendChild(el('div', 'settings-section-title', 'Notifications'));
     const cbToasts = document.createElement('input');
@@ -86,6 +97,7 @@ export function mountSettings() {
     // ---- Comportamiento ----
     function syncUI() {
         themeRadios.forEach((r) => { r.checked = r.value === state.theme; });
+        styleRadios.forEach((r) => { r.checked = r.value === state.style; });
         cbToasts.checked = state.toasts_enabled;
         cbPolling.checked = state.monitor_polling;
     }
@@ -105,6 +117,7 @@ export function mountSettings() {
         radio.addEventListener('change', () => {
             if (radio.checked) applyTheme(radio.value); // valida + aplica + persiste
         }));
+    styleRadios.forEach((radio) => radio.addEventListener('change', () => { if (radio.checked) applyStyle(radio.value); }));
     cbToasts.addEventListener('change', () =>
         api.setSetting('toasts_enabled', String(cbToasts.checked)));
     cbPolling.addEventListener('change', () =>
@@ -126,7 +139,11 @@ export function mountSettings() {
 
     // Eco desde Go: actualizar estado local SIN re-persistir (evitar bucle).
     events().EventsOn('settings:changed', ({ key, value }) => {
-        if (key === 'theme') {
+        if (key === 'style') {
+            if (!isValidStyle(value)) return;
+            state.style = value;
+            applyStyle(value, { persist: false });
+        } else if (key === 'theme') {
             if (!isValidTheme(value)) return;
             state.theme = value;
             applyTheme(value, { persist: false });
@@ -146,11 +163,13 @@ export function mountSettings() {
             const s = await api.getSettings();
             if (s) {
                 if (isValidTheme(s.theme)) state.theme = s.theme;
+                if (isValidStyle(s.style)) state.style = s.style;
                 if (typeof s.monitor_polling === 'boolean') state.monitor_polling = s.monitor_polling;
                 if (typeof s.toasts_enabled === 'boolean') state.toasts_enabled = s.toasts_enabled;
             }
         } catch { /* defaults */ }
         applyTheme(state.theme, { persist: false });
+        applyStyle(state.style, { persist: false });
         setToastsEnabled(state.toasts_enabled);
         syncUI();
     }

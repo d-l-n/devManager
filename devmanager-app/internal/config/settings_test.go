@@ -20,7 +20,7 @@ func TestSettingsRoundTrip(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "settings.json")
 
-	custom := Settings{Theme: "oled", MonitorPolling: false, ToastsEnabled: false}
+	custom := Settings{Theme: "oled", Style: "brutalist", MonitorPolling: false, ToastsEnabled: false}
 	if err := SaveSettings(path, custom); err != nil {
 		t.Fatalf("save falló: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestLoadSettingsInvalidTheme(t *testing.T) {
 func TestSettingsPersistAcrossInstances(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "sub", "settings.json")
 
-	first := Settings{Theme: "light", MonitorPolling: true, ToastsEnabled: false}
+	first := Settings{Theme: "light", Style: "standard", MonitorPolling: true, ToastsEnabled: false}
 	if err := SaveSettings(path, first); err != nil {
 		t.Fatalf("save falló: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestSaveSettingsFormat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "{\n  \"theme\": \"dark\",\n  \"monitor_polling\": true,\n  \"toasts_enabled\": true\n}"
+	want := "{\n  \"theme\": \"dark\",\n  \"style\": \"standard\",\n  \"monitor_polling\": true,\n  \"toasts_enabled\": true\n}"
 	if string(data) != want {
 		t.Errorf("formato MarshalIndent 2 espacios:\ngot:\n%s\nwant:\n%s", data, want)
 	}

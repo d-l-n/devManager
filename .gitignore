@@ -19,6 +19,7 @@ devmanager-app/*.out
 .vscode/
 .idea/
 .coda/
+.superpowers/
 
 # OS
 .DS_Store

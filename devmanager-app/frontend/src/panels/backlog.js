@@ -212,7 +212,7 @@ export function mount(ctx) {
         const i = ctx.selectedIndex();
         if (i < 0) return;
 
-        if (!confirm('Are you sure you want to delete this backlog item?')) return;
+        if (!await ctx.messageDialog.confirm({ title: 'Delete backlog item', message: 'This action cannot be undone.', confirmLabel: 'Delete', destructive: true })) return;
 
         try {
             await api.deleteBacklogItem(i, itemId);

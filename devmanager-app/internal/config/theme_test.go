@@ -7,3 +7,9 @@ func TestValidThemeAcceptsSystemPreference(t *testing.T) {
 		t.Fatal("system theme preference must be accepted")
 	}
 }
+
+func TestValidStyle(t *testing.T) {
+	if !validStyle("standard") || !validStyle("brutalist") || validStyle("rounded") {
+		t.Fatal("style validation mismatch")
+	}
+}
