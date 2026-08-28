@@ -53,3 +53,4 @@ devmanager-app/frontend/coverage/
 
 # Documentation
 docs/
+*.backup
