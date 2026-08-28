@@ -1,0 +1,101 @@
+name: Development Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  WAILS_VERSION: v2.15.0
+
+jobs:
+  build-dev:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+            arch: amd64
+            artifact_name: devmanager-dev-windows-amd64.exe
+          - os: macos-latest
+            platform: darwin
+            arch: amd64
+            artifact_name: devmanager-dev-macos-amd64
+          - os: ubuntu-latest
+            platform: linux
+            arch: amd64
+            artifact_name: devmanager-dev-linux-amd64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: devmanager-app/frontend/package-lock.json
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+
+      - name: Set up Wails dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
+      - name: Install frontend dependencies
+        working-directory: ./devmanager-app/frontend
+        run: npm ci
+
+      - name: Build frontend assets
+        working-directory: ./devmanager-app/frontend
+        run: npm run build
+
+      - name: Build Wails application (dev mode)
+        working-directory: ./devmanager-app
+        run: |
+          wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -debug
+        env:
+          CGO_ENABLED: 1
+
+      - name: Verify build output (dev)
+        working-directory: ./devmanager-app
+        run: |
+          echo "Build directory contents:"
+          ls -la build/bin/ || true
+          echo "Platform-specific directory:"
+          ls -la build/bin/${{ matrix.platform }}-${{ matrix.arch }}/ || true
+
+      - name: Prepare and upload artifact (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: powershell
+        run: |
+          $sourcePath = "devmanager-app/build/bin/${{ matrix.platform }}-${{ matrix.arch }}/devmanager.exe"
+          $destPath = "${{ matrix.artifact_name }}"
+          Copy-Item $sourcePath $destPath
+
+      - name: Prepare and upload artifact (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cd devmanager-app/build/bin/${{ matrix.platform }}-${{ matrix.arch }}/
+          chmod +x devmanager
+          cp devmanager ../../../../../${{ matrix.artifact_name }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}
+          retention-days: 7

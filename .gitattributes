@@ -1,0 +1,33 @@
+# Set the default behavior, in case people don't have core.autocrlf set.
+* text=auto eol=crlf
+
+# Explicitly declare text files you want to always be normalized and converted
+# to native line endings on checkout.
+*.py text eol=crlf
+*.ps1 text eol=crlf
+*.vbs text eol=crlf
+*.json text eol=crlf
+*.md text eol=crlf
+*.txt text eol=crlf
+*.js text eol=crlf
+*.ts text eol=crlf
+*.css text eol=crlf
+*.go text eol=crlf
+*.html text eol=crlf
+*.yml text eol=crlf
+*.yaml text eol=crlf
+
+# Denote all files that are truly binary and should not be modified.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+
+# Ensure UTF-8 encoding for specific file types
+*.py encoding=utf-8
+*.ps1 encoding=utf-8
+*.vbs encoding=utf-8
+*.json encoding=utf-8
+*.md encoding=utf-8
