@@ -76,6 +76,7 @@ body {
     background: var(--bg-panel);
     border-right: 1px solid var(--border);
     display: flex; flex-direction: column;
+    position: relative;
 }
 .sidebar-header {
     display: flex; align-items: center; justify-content: space-between;
@@ -260,6 +261,14 @@ body {
 .dim { color: var(--fg-dim); }
 .strong { font-weight: 600; font-size: 14px; }
 .center { text-align: center; }
+#projects-empty {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    padding: 0 20px;
+}
 .padded { padding: 24px 0; }
 .wrap { white-space: normal; word-break: break-word; }
 

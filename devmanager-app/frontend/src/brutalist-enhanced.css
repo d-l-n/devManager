@@ -1,0 +1,1072 @@
+/* Enhanced Brutalist Style - Modern Improvements */
+/* Maintains brutalist essence while improving usability and aesthetics */
+
+:root[data-style="brutalist"] {
+    /* Enhanced Brutalist Color Palette */
+    --brutalist-bg: #0a0a0a;
+    --brutalist-surface: #1a1a1a;
+    --brutalist-accent: #ff006e;
+    --brutalist-accent-hover: #ff4081;
+    --brutalist-text: #ffffff;
+    --brutalist-text-secondary: #b0b0b0;
+    --brutalist-border: #333333;
+    --brutalist-border-strong: #555555;
+    --brutalist-success: #00ff88;
+    --brutalist-warning: #ffaa00;
+    --brutalist-error: #ff3366;
+    --brutalist-info: #00ccff;
+    
+    /* Brutalist Typography */
+    --brutalist-font-primary: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    --brutalist-font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    --brutalist-weight-normal: 400;
+    --brutalist-weight-bold: 700;
+    --brutalist-weight-black: 900;
+    
+    /* Brutalist Spacing - More aggressive */
+    --brutalist-space-xs: 2px;
+    --brutalist-space-sm: 6px;
+    --brutalist-space-md: 12px;
+    --brutalist-space-lg: 20px;
+    --brutalist-space-xl: 32px;
+    --brutalist-space-2xl: 48px;
+    
+    /* Brutalist Shadows - Hard shadows */
+    --brutalist-shadow-sm: 4px 4px 0 var(--brutalist-border);
+    --brutalist-shadow-md: 6px 6px 0 var(--brutalist-border);
+    --brutalist-shadow-lg: 8px 8px 0 var(--brutalist-border);
+    --brutalist-shadow-xl: 12px 12px 0 var(--brutalist-border);
+    
+    /* Brutalist Transitions - Snappy */
+    --brutalist-transition-fast: 0.1s ease-out;
+    --brutalist-transition-normal: 0.2s ease-out;
+    --brutalist-transition-slow: 0.3s ease-out;
+}
+
+/* Base Brutalist Body */
+:root[data-style="brutalist"] body {
+    font-family: var(--brutalist-font-primary);
+    font-weight: var(--brutalist-weight-normal);
+    background: var(--brutalist-bg);
+    color: var(--brutalist-text);
+    line-height: 1.4;
+    letter-spacing: -0.02em;
+}
+
+/* Enhanced Brutalist Buttons */
+:root[data-style="brutalist"] .btn,
+:root[data-style="brutalist"] .icon-btn,
+:root[data-style="brutalist"] #btn-start,
+:root[data-style="brutalist"] #btn-stop,
+:root[data-style="brutalist"] #btn-restart,
+:root[data-style="brutalist"] #log-wrap,
+:root[data-style="brutalist"] #log-follow,
+:root[data-style="brutalist"] #log-copy,
+:root[data-style="brutalist"] #log-save,
+:root[data-style="brutalist"] #btn-clear-log,
+:root[data-style="brutalist"] #script-stop {
+    background: var(--brutalist-surface);
+    color: var(--brutalist-text);
+    border: 2px solid var(--brutalist-border);
+    border-radius: 0;
+    font-weight: var(--brutalist-weight-bold);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 10px 18px;
+    box-shadow: var(--brutalist-shadow-sm);
+    transition: all var(--brutalist-transition-fast);
+    position: relative;
+    overflow: hidden;
+}
+
+:root[data-style="brutalist"] .btn:hover:not(:disabled),
+:root[data-style="brutalist"] .icon-btn:hover:not(:disabled),
+:root[data-style="brutalist"] #btn-start:hover:not(:disabled),
+:root[data-style="brutalist"] #btn-stop:hover:not(:disabled),
+:root[data-style="brutalist"] #btn-restart:hover:not(:disabled),
+:root[data-style="brutalist"] #log-wrap:hover:not(:disabled),
+:root[data-style="brutalist"] #log-follow:hover:not(:disabled),
+:root[data-style="brutalist"] #log-copy:hover:not(:disabled),
+:root[data-style="brutalist"] #log-save:hover:not(:disabled),
+:root[data-style="brutalist"] #btn-clear-log:hover:not(:disabled),
+:root[data-style="brutalist"] #script-stop:hover:not(:disabled) {
+    background: var(--brutalist-accent) !important;
+    color: var(--brutalist-bg) !important;
+    border-color: var(--brutalist-accent) !important;
+    box-shadow: var(--brutalist-shadow-md) !important;
+    transform: translate(-2px, -2px) !important;
+}
+
+:root[data-style="brutalist"] .btn:active:not(:disabled),
+:root[data-style="brutalist"] .icon-btn:active:not(:disabled),
+:root[data-style="brutalist"] #btn-start:active:not(:disabled),
+:root[data-style="brutalist"] #btn-stop:active:not(:disabled),
+:root[data-style="brutalist"] #btn-restart:active:not(:disabled),
+:root[data-style="brutalist"] #log-wrap:active:not(:disabled),
+:root[data-style="brutalist"] #log-follow:active:not(:disabled),
+:root[data-style="brutalist"] #log-copy:active:not(:disabled),
+:root[data-style="brutalist"] #log-save:active:not(:disabled),
+:root[data-style="brutalist"] #btn-clear-log:active:not(:disabled),
+:root[data-style="brutalist"] #script-stop:active:not(:disabled) {
+    transform: translate(0, 0) !important;
+    box-shadow: 2px 2px 0 var(--brutalist-border) !important;
+}
+
+:root[data-style="brutalist"] .btn:disabled {
+    background: var(--brutalist-border);
+    color: var(--brutalist-text-secondary);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Enhanced Brutalist Specific Button States */
+:root[data-style="brutalist"] #log-follow.active,
+:root[data-style="brutalist"] #log-wrap.active {
+    background: var(--brutalist-accent);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-accent);
+    box-shadow: var(--brutalist-shadow-md);
+}
+
+:root[data-style="brutalist"] #btn-start {
+    background: var(--brutalist-success);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-success);
+}
+
+:root[data-style="brutalist"] #btn-stop {
+    background: var(--brutalist-error);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-error);
+}
+
+:root[data-style="brutalist"] #btn-restart {
+    background: var(--brutalist-warning);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-warning);
+}
+
+:root[data-style="brutalist"] #btn-clear-log {
+    background: var(--brutalist-error) !important;
+    color: var(--brutalist-bg) !important;
+    border: 2px solid var(--brutalist-error) !important;
+    border-radius: 0 !important;
+    font-weight: var(--brutalist-weight-bold) !important;
+    font-size: 13px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    padding: 10px 18px !important;
+    box-shadow: var(--brutalist-shadow-sm) !important;
+    transition: all var(--brutalist-transition-fast) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+/* Brutalist Button Variants */
+:root[data-style="brutalist"] .btn-primary {
+    background: var(--brutalist-accent);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-accent);
+}
+
+:root[data-style="brutalist"] .btn-success {
+    background: var(--brutalist-success);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-success);
+}
+
+:root[data-style="brutalist"] .btn-warning,
+:root[data-style="brutalist"] .btn-warn {
+    background: var(--brutalist-warning);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-warning);
+}
+
+:root[data-style="brutalist"] .btn-danger {
+    background: var(--brutalist-error);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-error);
+}
+
+:root[data-style="brutalist"] .btn-accent {
+    background: var(--brutalist-info);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-info);
+}
+
+/* Enhanced Brutalist Cards and Panels */
+:root[data-style="brutalist"] .settings-card,
+:root[data-style="brutalist"] .dialog-card,
+:root[data-style="brutalist"] .message-card,
+:root[data-style="brutalist"] .context-menu {
+    background: var(--brutalist-surface);
+    border: 2px solid var(--brutalist-border);
+    border-radius: 0;
+    box-shadow: var(--brutalist-shadow-lg);
+    padding: var(--brutalist-space-lg);
+}
+
+:root[data-style="brutalist"] .group,
+:root[data-style="brutalist"] .panel {
+    background: var(--brutalist-surface);
+    border: 2px solid var(--brutalist-border);
+    border-radius: 0;
+    box-shadow: var(--brutalist-shadow-sm);
+    padding: var(--brutalist-space-md);
+    margin-bottom: var(--brutalist-space-md);
+}
+
+/* Enhanced Brutalist Inputs */
+:root[data-style="brutalist"] .text-input,
+:root[data-style="brutalist"] .form-input,
+:root[data-style="brutalist"] .form-select,
+:root[data-style="brutalist"] .form-textarea {
+    background: var(--brutalist-bg);
+    color: var(--brutalist-text);
+    border: 2px solid var(--brutalist-border);
+    border-radius: 0;
+    padding: 10px 14px;
+    font-family: var(--brutalist-font-mono);
+    font-size: 13px;
+    transition: all var(--brutalist-transition-fast);
+}
+
+:root[data-style="brutalist"] .text-input:focus,
+:root[data-style="brutalist"] .form-input:focus,
+:root[data-style="brutalist"] .form-select:focus,
+:root[data-style="brutalist"] .form-textarea:focus {
+    border-color: var(--brutalist-accent);
+    box-shadow: 4px 4px 0 var(--brutalist-accent);
+    outline: none;
+}
+
+/* Enhanced Brutalist Tabs */
+:root[data-style="brutalist"] .tab {
+    background: none;
+    border: none;
+    border-bottom: 3px solid var(--brutalist-border);
+    color: var(--brutalist-text-secondary);
+    font-weight: var(--brutalist-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 20px;
+    transition: all var(--brutalist-transition-fast);
+}
+
+:root[data-style="brutalist"] .tab:hover {
+    color: var(--brutalist-text);
+    border-bottom-color: var(--brutalist-border-strong);
+}
+
+:root[data-style="brutalist"] .tab.active {
+    color: var(--brutalist-accent);
+    border-bottom-color: var(--brutalist-accent);
+    background: color-mix(in srgb, var(--brutalist-accent) 10%, transparent);
+}
+
+/* Enhanced Brutalist Project List */
+:root[data-style="brutalist"] #project-list li {
+    background: var(--brutalist-surface);
+    border: 2px solid var(--brutalist-border);
+    border-left: 4px solid transparent;
+    border-radius: 0;
+    padding: 12px 16px;
+    margin-bottom: var(--brutalist-space-sm);
+    font-weight: var(--brutalist-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    transition: all var(--brutalist-transition-fast);
+    box-shadow: var(--brutalist-shadow-sm);
+}
+
+:root[data-style="brutalist"] #project-list li:hover {
+    background: var(--brutalist-bg);
+    border-color: var(--brutalist-border-strong);
+    transform: translate(-2px, -2px);
+    box-shadow: var(--brutalist-shadow-md);
+}
+
+:root[data-style="brutalist"] #project-list li.selected {
+    background: var(--brutalist-accent);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-accent);
+    border-left-color: var(--brutalist-bg);
+}
+
+/* Enhanced Brutalist Badges */
+:root[data-style="brutalist"] .badge,
+:root[data-style="brutalist"] .mini-badge {
+    background: var(--brutalist-bg);
+    color: var(--brutalist-text);
+    border: 2px solid var(--brutalist-border);
+    border-radius: 0;
+    font-weight: var(--brutalist-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 8px;
+    font-size: 10px;
+    box-shadow: 2px 2px 0 var(--brutalist-border);
+}
+
+:root[data-style="brutalist"] .badge.running,
+:root[data-style="brutalist"] .badge.passed,
+:root[data-style="brutalist"] .badge.clean {
+    background: var(--brutalist-success);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-success);
+}
+
+:root[data-style="brutalist"] .badge.error,
+:root[data-style="brutalist"] .badge.failed {
+    background: var(--brutalist-error);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-error);
+}
+
+:root[data-style="brutalist"] .badge.starting,
+:root[data-style="brutalist"] .badge.stopping,
+:root[data-style="brutalist"] .badge.dirty {
+    background: var(--brutalist-warning);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-warning);
+}
+
+/* Enhanced Brutalist Status Indicators */
+:root[data-style="brutalist"] .proj-dot {
+    width: 10px;
+    height: 10px;
+    border: 2px solid var(--brutalist-border);
+    border-radius: 0;
+    background: var(--brutalist-bg);
+    transform: rotate(45deg);
+    box-shadow: 2px 2px 0 var(--brutalist-border);
+}
+
+:root[data-style="brutalist"] .proj-dot.running {
+    background: var(--brutalist-success);
+    border-color: var(--brutalist-success);
+}
+
+:root[data-style="brutalist"] .proj-dot.starting {
+    background: var(--brutalist-warning);
+    border-color: var(--brutalist-warning);
+}
+
+:root[data-style="brutalist"] .proj-dot.error {
+    background: var(--brutalist-error);
+    border-color: var(--brutalist-error);
+}
+
+/* Enhanced Brutalist Log Output */
+:root[data-style="brutalist"] #log-output {
+    background: var(--brutalist-bg);
+    border: 2px solid var(--brutalist-border);
+    border-radius: 0;
+    font-family: var(--brutalist-font-mono);
+    font-size: 12px;
+    line-height: 1.3;
+    padding: var(--brutalist-space-md);
+    box-shadow: inset 2px 2px 0 var(--brutalist-border);
+}
+
+:root[data-style="brutalist"] .log-line {
+    border-bottom: 1px solid var(--brutalist-border);
+    padding: 2px 0;
+}
+
+:root[data-style="brutalist"] .log-line:last-child {
+    border-bottom: none;
+}
+
+:root[data-style="brutalist"] .log-line.err {
+    background: color-mix(in srgb, var(--brutalist-error) 20%, transparent);
+    color: var(--brutalist-error);
+    font-weight: var(--brutalist-weight-bold);
+}
+
+/* Enhanced Brutalist Toast Notifications */
+:root[data-style="brutalist"] .toast {
+    background: var(--brutalist-surface);
+    border: 2px solid var(--brutalist-border);
+    border-left: 4px solid var(--brutalist-info);
+    border-radius: 0;
+    box-shadow: var(--brutalist-shadow-lg);
+    font-weight: var(--brutalist-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+:root[data-style="brutalist"] .toast-title {
+    font-size: 13px;
+    font-weight: var(--brutalist-weight-black);
+}
+
+/* Enhanced Brutalist Segmented Controls */
+:root[data-style="brutalist"] .seg {
+    background: var(--brutalist-bg);
+    border: 2px solid var(--brutalist-border);
+    border-radius: 0;
+    color: var(--brutalist-text-secondary);
+    font-weight: var(--brutalist-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 8px 16px;
+    transition: all var(--brutalist-transition-fast);
+}
+
+:root[data-style="brutalist"] .seg:hover {
+    color: var(--brutalist-text);
+    border-color: var(--brutalist-border-strong);
+}
+
+:root[data-style="brutalist"] .seg.active {
+    background: var(--brutalist-accent);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-accent);
+}
+
+/* Enhanced Brutalist Filter Chips */
+:root[data-style="brutalist"] .filter-chip {
+    background: var(--brutalist-bg);
+    border: 2px solid var(--brutalist-border);
+    border-radius: 0;
+    color: var(--brutalist-text-secondary);
+    font-weight: var(--brutalist-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 10px;
+    font-size: 11px;
+    transition: all var(--brutalist-transition-fast);
+}
+
+:root[data-style="brutalist"] .filter-chip:hover {
+    color: var(--brutalist-text);
+    border-color: var(--brutalist-border-strong);
+}
+
+:root[data-style="brutalist"] .filter-chip.active {
+    background: var(--brutalist-accent);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-accent);
+}
+
+/* Enhanced Brutalist Scrollbar */
+:root[data-style="brutalist"] ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+:root[data-style="brutalist"] ::-webkit-scrollbar-track {
+    background: var(--brutalist-bg);
+    border: 1px solid var(--brutalist-border);
+}
+
+:root[data-style="brutalist"] ::-webkit-scrollbar-thumb {
+    background: var(--brutalist-border-strong);
+    border: 2px solid var(--brutalist-border);
+    border-radius: 0;
+}
+
+:root[data-style="brutalist"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--brutalist-accent);
+    border-color: var(--brutalist-accent);
+}
+
+/* Enhanced Brutalist Animations */
+@keyframes brutalist-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+@keyframes brutalist-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+:root[data-style="brutalist"] .running {
+    animation: brutalist-pulse 2s infinite;
+}
+
+:root[data-style="brutalist"] .error {
+    animation: brutalist-shake 0.5s;
+}
+
+/* Enhanced Brutalist Focus States */
+:root[data-style="brutalist"] *:focus {
+    outline: 2px solid var(--brutalist-accent);
+    outline-offset: 2px;
+}
+
+:root[data-style="brutalist"] *:focus:not(:focus-visible) {
+    outline: none;
+}
+
+:root[data-style="brutalist"] *:focus-visible {
+    outline: 2px solid var(--brutalist-accent);
+    outline-offset: 2px;
+}
+
+/* Enhanced Brutalist Typography Hierarchy */
+:root[data-style="brutalist"] h1,
+:root[data-style="brutalist"] h2,
+:root[data-style="brutalist"] h3,
+:root[data-style="brutalist"] h4,
+:root[data-style="brutalist"] h5,
+:root[data-style="brutalist"] h6 {
+    font-weight: var(--brutalist-weight-black);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--brutalist-space-md);
+}
+
+:root[data-style="brutalist"] .group-title,
+:root[data-style="brutalist"] .settings-section-title {
+    font-weight: var(--brutalist-weight-black);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 11px;
+    color: var(--brutalist-text-secondary);
+    border-bottom: 2px solid var(--brutalist-border);
+    padding-bottom: var(--brutalist-space-sm);
+    margin-bottom: var(--brutalist-space-md);
+}
+
+/* Enhanced Brutalist Monospace Elements */
+:root[data-style="brutalist"] .mono,
+:root[data-style="brutalist"] code,
+:root[data-style="brutalist"] pre {
+    font-family: var(--brutalist-font-mono);
+    font-weight: var(--brutalist-weight-normal);
+    background: var(--brutalist-bg);
+    border: 1px solid var(--brutalist-border);
+    padding: 2px 4px;
+    font-size: 0.9em;
+}
+
+/* Enhanced Brutalist Links */
+:root[data-style="brutalist"] a {
+    color: var(--brutalist-accent);
+    text-decoration: none;
+    font-weight: var(--brutalist-weight-bold);
+    border-bottom: 2px solid transparent;
+    transition: all var(--brutalist-transition-fast);
+}
+
+:root[data-style="brutalist"] a:hover {
+    border-bottom-color: var(--brutalist-accent);
+    background: color-mix(in srgb, var(--brutalist-accent) 10%, transparent);
+}
+
+/* Enhanced Brutalist Tables */
+:root[data-style="brutalist"] table {
+    border: 2px solid var(--brutalist-border);
+    border-collapse: collapse;
+    width: 100%;
+}
+
+:root[data-style="brutalist"] th,
+:root[data-style="brutalist"] td {
+    border: 1px solid var(--brutalist-border);
+    padding: var(--brutalist-space-sm) var(--brutalist-space-md);
+    text-align: left;
+    font-weight: var(--brutalist-weight-bold);
+}
+
+:root[data-style="brutalist"] th {
+    background: var(--brutalist-surface);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 11px;
+}
+
+:root[data-style="brutalist"] tr:hover {
+    background: color-mix(in srgb, var(--brutalist-accent) 10%, transparent);
+}
+
+/* Enhanced Brutalist Progress Bars */
+:root[data-style="brutalist"] .cpu-bar,
+:root[data-style="brutalist"] progress {
+    background: var(--brutalist-bg);
+    border: 2px solid var(--brutalist-border);
+    border-radius: 0;
+    height: 12px;
+    overflow: hidden;
+}
+
+:root[data-style="brutalist"] .cpu-fill,
+:root[data-style="brutalist"] progress::-webkit-progress-value {
+    background: var(--brutalist-accent);
+    border-right: 2px solid var(--brutalist-border);
+}
+
+:root[data-style="brutalist"] progress::-moz-progress-bar {
+    background: var(--brutalist-accent);
+    border-right: 2px solid var(--brutalist-border);
+}
+
+/* Enhanced Brutalist Native Dialogs */
+:root[data-style="brutalist"] .dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(4px);
+}
+
+:root[data-style="brutalist"] .dialog-overlay[hidden] {
+    display: none;
+}
+
+:root[data-style="brutalist"] .dialog,
+:root[data-style="brutalist"] .dialog-card {
+    background: var(--brutalist-surface);
+    border: 3px solid var(--brutalist-border-strong);
+    border-radius: 0;
+    box-shadow: var(--brutalist-shadow-xl);
+    max-width: 500px;
+    width: 90%;
+    padding: 0;
+    position: relative;
+    animation: brutalist-dialog-appear 0.2s ease-out;
+}
+
+:root[data-style="brutalist"] .dialog-header {
+    background: var(--brutalist-accent);
+    color: var(--brutalist-bg);
+    padding: var(--brutalist-space-md) var(--brutalist-space-lg);
+    font-weight: var(--brutalist-weight-black);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 14px;
+    border-bottom: 2px solid var(--brutalist-border-strong);
+}
+
+:root[data-style="brutalist"] .dialog-body {
+    padding: var(--brutalist-space-lg);
+    color: var(--brutalist-text);
+    line-height: 1.4;
+    font-weight: var(--brutalist-weight-normal);
+}
+
+:root[data-style="brutalist"] .dialog-footer {
+    padding: var(--brutalist-space-md) var(--brutalist-space-lg);
+    background: var(--brutalist-bg);
+    border-top: 2px solid var(--brutalist-border);
+    display: flex;
+    gap: var(--brutalist-space-sm);
+    justify-content: flex-end;
+}
+
+:root[data-style="brutalist"] .dialog-destructive .dialog-header {
+    background: var(--brutalist-error);
+}
+
+:root[data-style="brutalist"] .dialog-btn {
+    background: var(--brutalist-surface);
+    color: var(--brutalist-text);
+    border: 2px solid var(--brutalist-border);
+    padding: 8px 16px;
+    font-weight: var(--brutalist-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all var(--brutalist-transition-fast);
+    box-shadow: var(--brutalist-shadow-sm);
+}
+
+:root[data-style="brutalist"] .dialog-btn:hover {
+    background: var(--brutalist-accent);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-accent);
+    transform: translate(-1px, -1px);
+    box-shadow: var(--brutalist-shadow-md);
+}
+
+:root[data-style="brutalist"] .dialog-btn:active {
+    transform: translate(0, 0);
+    box-shadow: 1px 1px 0 var(--brutalist-border);
+}
+
+:root[data-style="brutalist"] .dialog-btn.primary {
+    background: var(--brutalist-accent);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-accent);
+}
+
+:root[data-style="brutalist"] .dialog-btn.destructive {
+    background: var(--brutalist-error);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-error);
+}
+
+/* Enhanced Brutalist Dialog Animation */
+@keyframes brutalist-dialog-appear {
+    0% {
+        opacity: 0;
+        transform: scale(0.9) rotate(-1deg);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+    }
+}
+
+/* Enhanced Brutalist Typography - More Aggressive */
+:root[data-style="brutalist"] h1,
+:root[data-style="brutalist"] h2,
+:root[data-style="brutalist"] h3,
+:root[data-style="brutalist"] h4,
+:root[data-style="brutalist"] h5,
+:root[data-style="brutalist"] h6 {
+    font-weight: var(--brutalist-weight-black);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: var(--brutalist-space-lg);
+    line-height: 1.2;
+}
+
+:root[data-style="brutalist"] h1 {
+    font-size: 2.5em;
+    border-bottom: 4px solid var(--brutalist-accent);
+    padding-bottom: var(--brutalist-space-sm);
+}
+
+:root[data-style="brutalist"] h2 {
+    font-size: 2em;
+    border-bottom: 3px solid var(--brutalist-border-strong);
+    padding-bottom: var(--brutalist-space-sm);
+}
+
+/* Enhanced Brutalist Buttons - More Mechanical */
+:root[data-style="brutalist"] .btn:hover:not(:disabled) {
+    background: var(--brutalist-accent);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-accent);
+    box-shadow: var(--brutalist-shadow-lg);
+    transform: translate(-3px, -3px) rotate(-0.5deg);
+}
+
+:root[data-style="brutalist"] .btn:active:not(:disabled) {
+    transform: translate(1px, 1px) rotate(0.5deg);
+    box-shadow: 1px 1px 0 var(--brutalist-border);
+}
+
+/* Enhanced Brutalist Shadows - Harder and More Defined */
+:root[data-style="brutalist"] {
+    --brutalist-shadow-sm: 3px 3px 0 var(--brutalist-border-strong);
+    --brutalist-shadow-md: 6px 6px 0 var(--brutalist-border-strong);
+    --brutalist-shadow-lg: 9px 9px 0 var(--brutalist-border-strong);
+    --brutalist-shadow-xl: 15px 15px 0 var(--brutalist-border-strong);
+}
+
+/* Enhanced Brutalist Cards - More Prominent */
+:root[data-style="brutalist"] .settings-card,
+:root[data-style="brutalist"] .dialog-card,
+:root[data-style="brutalist"] .message-card,
+:root[data-style="brutalist"] .context-menu {
+    background: var(--brutalist-surface);
+    border: 3px solid var(--brutalist-border);
+    border-radius: 0;
+    box-shadow: var(--brutalist-shadow-lg);
+    padding: var(--brutalist-space-xl);
+    position: relative;
+    transition: all var(--brutalist-transition-normal);
+}
+
+:root[data-style="brutalist"] .settings-card:hover,
+:root[data-style="brutalist"] .dialog-card:hover {
+    border-color: var(--brutalist-border-strong);
+    transform: translate(-2px, -2px);
+    box-shadow: var(--brutalist-shadow-xl);
+}
+
+/* Enhanced Brutalist Inputs - More Industrial */
+:root[data-style="brutalist"] .text-input:focus,
+:root[data-style="brutalist"] .form-input:focus,
+:root[data-style="brutalist"] .form-select:focus,
+:root[data-style="brutalist"] .form-textarea:focus {
+    border-color: var(--brutalist-accent);
+    box-shadow: 6px 6px 0 var(--brutalist-accent);
+    outline: none;
+    transform: translate(-1px, -1px);
+}
+
+/* Enhanced Brutalist Animations - More Mechanical */
+@keyframes brutalist-pulse {
+    0%, 100% { 
+        opacity: 1; 
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 0.8; 
+        transform: scale(1.05);
+    }
+}
+
+@keyframes brutalist-shake {
+    0%, 100% { transform: translateX(0) rotate(0deg); }
+    10% { transform: translateX(-6px) rotate(-1deg); }
+    20% { transform: translateX(6px) rotate(1deg); }
+    30% { transform: translateX(-4px) rotate(-0.5deg); }
+    40% { transform: translateX(4px) rotate(0.5deg); }
+    50% { transform: translateX(-2px) rotate(-0.25deg); }
+    60% { transform: translateX(2px) rotate(0.25deg); }
+    70% { transform: translateX(-1px) rotate(-0.1deg); }
+    80% { transform: translateX(1px) rotate(0.1deg); }
+    90% { transform: translateX(-0.5px) rotate(-0.05deg); }
+}
+
+/* Enhanced Brutalist Status Indicators - More Geometric */
+:root[data-style="brutalist"] .proj-dot {
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--brutalist-border);
+    border-radius: 0;
+    background: var(--brutalist-bg);
+    transform: rotate(45deg);
+    box-shadow: 3px 3px 0 var(--brutalist-border);
+    transition: all var(--brutalist-transition-fast);
+}
+
+:root[data-style="brutalist"] .proj-dot:hover {
+    transform: rotate(45deg) scale(1.2);
+    box-shadow: 4px 4px 0 var(--brutalist-border-strong);
+}
+
+/* Enhanced Brutalist Links - More Prominent */
+:root[data-style="brutalist"] a {
+    color: var(--brutalist-accent);
+    text-decoration: none;
+    font-weight: var(--brutalist-weight-black);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 3px solid transparent;
+    transition: all var(--brutalist-transition-fast);
+    position: relative;
+}
+
+:root[data-style="brutalist"] a:hover {
+    border-bottom-color: var(--brutalist-accent);
+    background: color-mix(in srgb, var(--brutalist-accent) 15%, transparent);
+    transform: translateY(-1px);
+}
+
+/* Enhanced Brutalist Tables - More Structured */
+:root[data-style="brutalist"] table {
+    border: 3px solid var(--brutalist-border);
+    border-collapse: collapse;
+    width: 100%;
+    box-shadow: var(--brutalist-shadow-md);
+}
+
+:root[data-style="brutalist"] th,
+:root[data-style="brutalist"] td {
+    border: 2px solid var(--brutalist-border);
+    padding: var(--brutalist-space-md);
+    text-align: left;
+    font-weight: var(--brutalist-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+:root[data-style="brutalist"] th {
+    background: var(--brutalist-surface);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 11px;
+    font-weight: var(--brutalist-weight-black);
+    border-bottom: 3px solid var(--brutalist-border-strong);
+}
+
+:root[data-style="brutalist"] tr:hover {
+    background: color-mix(in srgb, var(--brutalist-accent) 15%, transparent);
+    transform: translateX(2px);
+}
+
+/* Enhanced Brutalist Icons - Perfect Centering */
+:root[data-style="brutalist"] .reicon-icon {
+    display: block;
+    flex: none;
+    width: 16px;
+    height: 16px;
+    transform: none !important;
+    margin: 0 auto;
+}
+
+:root[data-style="brutalist"] .icon-btn .reicon-icon {
+    width: 16px;
+    height: 16px;
+    transform: none !important;
+    margin: 0 auto;
+    display: block;
+}
+
+:root[data-style="brutalist"] .icon-btn:hover .reicon-icon,
+:root[data-style="brutalist"] .icon-btn:active .reicon-icon {
+    transform: none !important;
+    margin: 0 auto;
+    display: block;
+}
+
+/* Enhanced Brutalist Icon Buttons - Perfect Centering */
+:root[data-style="brutalist"] .icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 0;
+    width: auto;
+    height: auto;
+    min-width: 32px;
+    min-height: 32px;
+}
+
+:root[data-style="brutalist"] .icon-btn:hover:not(:disabled) {
+    background: var(--brutalist-accent);
+    color: var(--brutalist-bg);
+    border-color: var(--brutalist-accent);
+    box-shadow: var(--brutalist-shadow-lg);
+    transform: translate(-3px, -3px) rotate(-0.5deg);
+}
+
+:root[data-style="brutalist"] .icon-btn:active:not(:disabled) {
+    transform: translate(1px, 1px) rotate(0.5deg);
+    box-shadow: 1px 1px 0 var(--brutalist-border);
+}
+
+/* Ensure icon centering in all contexts */
+:root[data-style="brutalist"] .icon-btn > * {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+:root[data-style="brutalist"] .icon-btn svg {
+    display: block;
+    margin: 0 auto;
+}
+
+/* Enhanced Brutalist Backlog Item Dialog Components */
+:root[data-style="brutalist"] .dialog-header {
+    background: var(--brutalist-accent);
+    color: var(--brutalist-bg);
+    padding: var(--brutalist-space-md) var(--brutalist-space-lg);
+    font-weight: var(--brutalist-weight-black);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 14px;
+    border-bottom: 2px solid var(--brutalist-border-strong);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+:root[data-style="brutalist"] .dialog-title {
+    font-weight: var(--brutalist-weight-black);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 14px;
+    margin: 0;
+    color: var(--brutalist-bg);
+}
+
+:root[data-style="brutalist"] .dialog-close {
+    background: transparent;
+    border: 2px solid var(--brutalist-bg);
+    color: var(--brutalist-bg);
+    width: 24px;
+    height: 24px;
+    border-radius: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--brutalist-transition-fast);
+    box-shadow: var(--brutalist-shadow-sm);
+}
+
+:root[data-style="brutalist"] .dialog-close:hover {
+    background: var(--brutalist-bg);
+    color: var(--brutalist-accent);
+    transform: rotate(90deg);
+}
+
+:root[data-style="brutalist"] .dialog-form {
+    padding: var(--brutalist-space-lg);
+}
+
+:root[data-style="brutalist"] .form-row {
+    margin-bottom: var(--brutalist-space-lg);
+}
+
+:root[data-style="brutalist"] .form-label {
+    display: block;
+    font-weight: var(--brutalist-weight-black);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 11px;
+    color: var(--brutalist-text);
+    margin-bottom: var(--brutalist-space-sm);
+}
+
+:root[data-style="brutalist"] .form-input,
+:root[data-style="brutalist"] .form-select,
+:root[data-style="brutalist"] .form-textarea {
+    background: var(--brutalist-bg);
+    color: var(--brutalist-text);
+    border: 2px solid var(--brutalist-border);
+    border-radius: 0;
+    padding: 10px 14px;
+    font-family: var(--brutalist-font-mono);
+    font-size: 13px;
+    transition: all var(--brutalist-transition-fast);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+:root[data-style="brutalist"] .form-input:focus,
+:root[data-style="brutalist"] .form-select:focus,
+:root[data-style="brutalist"] .form-textarea:focus {
+    border-color: var(--brutalist-accent);
+    box-shadow: 6px 6px 0 var(--brutalist-accent);
+    outline: none;
+    transform: translate(-1px, -1px);
+}
+
+:root[data-style="brutalist"] .form-input.error {
+    border-color: var(--brutalist-error);
+    box-shadow: 4px 4px 0 var(--brutalist-error);
+}
+
+:root[data-style="brutalist"] .dialog-buttons {
+    display: flex;
+    gap: var(--brutalist-space-sm);
+    justify-content: flex-end;
+    padding-top: var(--brutalist-space-md);
+    border-top: 2px solid var(--brutalist-border);
+}
+
+:root[data-style="brutalist"] .btn-secondary {
+    background: var(--brutalist-surface);
+    color: var(--brutalist-text);
+    border: 2px solid var(--brutalist-border);
+}
+
+:root[data-style="brutalist"] .btn-secondary:hover {
+    background: var(--brutalist-bg);
+    color: var(--brutalist-text);
+    border-color: var(--brutalist-border-strong);
+    transform: translate(-2px, -2px);
+    box-shadow: var(--brutalist-shadow-md);
+}
