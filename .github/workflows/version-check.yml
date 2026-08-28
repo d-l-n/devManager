@@ -1,0 +1,169 @@
+name: Version Check
+
+on:
+  pull_request:
+    paths:
+      - 'devmanager-app/frontend/index.html'
+      - 'devmanager-app/frontend/package.json'
+      - 'devmanager-app/wails.json'
+      - 'CHANGELOG.md'
+  push:
+    branches:
+      - master
+    paths:
+      - 'devmanager-app/frontend/index.html'
+      - 'devmanager-app/frontend/package.json'
+      - 'devmanager-app/wails.json'
+      - 'CHANGELOG.md'
+
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check version consistency
+        run: |
+          # Get versions from files
+          HTML_VERSION=$(grep -o 'v[0-9]*\.[0-9]*\.[0-9]*' devmanager-app/frontend/index.html || echo "not found")
+          PACKAGE_VERSION=$(grep -o '"version": "[^"]*"' devmanager-app/frontend/package.json | cut -d'"' -f4 || echo "not found")
+          WAILS_VERSION=$(grep -o '"productVersion": "[^"]*"' devmanager-app/wails.json | cut -d'"' -f4 || echo "not found")
+          
+          echo "HTML version: $HTML_VERSION"
+          echo "Package version: $PACKAGE_VERSION"
+          echo "Wails version: $WAILS_VERSION"
+          
+          # Check if all versions are found
+          if [[ "$HTML_VERSION" == "not found" ]]; then
+            echo "❌ Version not found in index.html"
+            exit 1
+          fi
+          
+          if [[ "$PACKAGE_VERSION" == "not found" ]]; then
+            echo "❌ Version not found in package.json"
+            exit 1
+          fi
+          
+          if [[ "$WAILS_VERSION" == "not found" ]]; then
+            echo "❌ Version not found in wails.json"
+            exit 1
+          fi
+          
+          # Check if versions match
+          if [[ "$HTML_VERSION" != "v$PACKAGE_VERSION" ]]; then
+            echo "❌ HTML version ($HTML_VERSION) doesn't match package version ($PACKAGE_VERSION)"
+            exit 1
+          fi
+          
+          if [[ "$PACKAGE_VERSION" != "$WAILS_VERSION" ]]; then
+            echo "❌ Package version ($PACKAGE_VERSION) doesn't match wails version ($WAILS_VERSION)"
+            exit 1
+          fi
+          
+          echo "✅ All versions are consistent: $HTML_VERSION"
+
+      - name: Check changelog for version
+        run: |
+          PACKAGE_VERSION=$(grep -o '"version": "[^"]*"' devmanager-app/frontend/package.json | cut -d'"' -f4)
+          
+          if [[ -f "CHANGELOG.md" ]]; then
+            # Check if changelog has entry for current version
+            if grep -q "## \[$PACKAGE_VERSION\]" CHANGELOG.md; then
+              echo "✅ Changelog entry found for version $PACKAGE_VERSION"
+            else
+              echo "⚠️ No changelog entry found for version $PACKAGE_VERSION"
+              echo "Consider adding an entry to CHANGELOG.md"
+            fi
+          else
+            echo "⚠️ CHANGELOG.md not found"
+          fi
+
+      - name: Check for version bump in PR
+        if: github.event_name == 'pull_request'
+        run: |
+          # Get current version
+          CURRENT_VERSION=$(grep -o '"version": "[^"]*"' devmanager-app/frontend/package.json | cut -d'"' -f4)
+          
+          # Get version from master branch
+          git fetch origin master
+          git checkout origin/master -- devmanager-app/frontend/package.json
+          MASTER_VERSION=$(grep -o '"version": "[^"]*"' devmanager-app/frontend/package.json | cut -d'"' -f4)
+          
+          # Restore current version
+          git checkout HEAD -- devmanager-app/frontend/package.json
+          
+          echo "Current version: $CURRENT_VERSION"
+          echo "Master version: $MASTER_VERSION"
+          
+          if [[ "$CURRENT_VERSION" == "$MASTER_VERSION" ]]; then
+            echo "⚠️ Version has not been bumped in this PR"
+            echo "If this PR includes changes that should be released, consider bumping the version"
+          else
+            echo "✅ Version has been bumped from $MASTER_VERSION to $CURRENT_VERSION"
+          fi
+
+      - name: Validate semantic versioning
+        run: |
+          PACKAGE_VERSION=$(grep -o '"version": "[^"]*"' devmanager-app/frontend/package.json | cut -d'"' -f4)
+          
+          # Check if version follows semantic versioning
+          if [[ "$PACKAGE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "✅ Version $PACKAGE_VERSION follows semantic versioning"
+          elif [[ "$PACKAGE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta|rc)\.[0-9]+$ ]]; then
+            echo "✅ Version $PACKAGE_VERSION follows semantic versioning (prerelease)"
+          else
+            echo "❌ Version $PACKAGE_VERSION does not follow semantic versioning"
+            echo "Expected format: MAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH-PRERELEASE.VERSION"
+            exit 1
+          fi
+
+      - name: Comment on PR (if needed)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Get current version
+            const packageJson = JSON.parse(fs.readFileSync('devmanager-app/frontend/package.json', 'utf8'));
+            const currentVersion = packageJson.version;
+            
+            // Get version from master branch
+            const { execSync } = require('child_process');
+            execSync('git fetch origin master');
+            execSync('git checkout origin/master -- devmanager-app/frontend/package.json');
+            const masterPackageJson = JSON.parse(fs.readFileSync('devmanager-app/frontend/package.json', 'utf8'));
+            const masterVersion = masterPackageJson.version;
+            execSync('git checkout HEAD -- devmanager-app/frontend/package.json');
+            
+            let comment = '';
+            
+            if (currentVersion === masterVersion) {
+              comment = `## ⚠️ Version Check\n\nThe version has not been bumped in this PR.\n\n- **Current version:** ${currentVersion}\n- **Master version:** ${masterVersion}\n\nIf this PR includes changes that should be released, consider bumping the version using:\n\`\`\`bash\n./scripts/bump-version.sh patch "Description of changes"\n\`\`\``;
+            } else {
+              comment = `## ✅ Version Check\n\nThe version has been successfully bumped!\n\n- **Previous version:** ${masterVersion}\n- **New version:** ${currentVersion}\n\nRemember to update the CHANGELOG.md with details about this release.`;
+            }
+            
+            // Check if changelog entry exists
+            try {
+              const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+              if (changelog.includes(`## [${currentVersion}]`)) {
+                comment += '\n\n✅ Changelog entry found for this version.';
+              } else {
+                comment += '\n\n⚠️ No changelog entry found for this version. Consider adding one to CHANGELOG.md';
+              }
+            } catch (error) {
+              comment += '\n\n⚠️ CHANGELOG.md not found.';
+            }
+            
+            // Post comment
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

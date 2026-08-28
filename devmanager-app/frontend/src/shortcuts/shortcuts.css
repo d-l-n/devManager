@@ -1,0 +1,367 @@
+/**
+ * Keyboard Shortcuts Styles
+ */
+
+/* Modal styles for help and quick actions */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    font-family: var(--font-family, system-ui);
+}
+
+.modal-content {
+    background: var(--surface-color, #ffffff);
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    max-width: 600px;
+    max-height: 80vh;
+    width: 90%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: var(--text-color, #333333);
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-secondary, #666666);
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: var(--hover-bg, #f5f5f5);
+    color: var(--text-color, #333333);
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Shortcut table styles */
+.shortcut-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.shortcut-table tr {
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.shortcut-table tr:last-child {
+    border-bottom: none;
+}
+
+.shortcut-table td {
+    padding: 10px 0;
+    vertical-align: middle;
+}
+
+.shortcut-table td:first-child {
+    width: 30%;
+    font-weight: 500;
+}
+
+/* Keyboard key styling */
+kbd {
+    background: var(--kbd-bg, #f0f0f0);
+    border: 1px solid var(--kbd-border, #ccc);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: var(--font-mono, 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--kbd-color, #333);
+    box-shadow: 0 2px 0 var(--kbd-shadow, #ccc);
+    display: inline-block;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+/* Dark theme support */
+:root[data-theme="dark"] kbd {
+    background: var(--kbd-bg, #2d2d2d);
+    border-color: var(--kbd-border, #555);
+    color: var(--kbd-color, #fff);
+    box-shadow: 0 2px 0 var(--kbd-shadow, #000);
+}
+
+/* Brutalist theme support */
+:root[data-style="brutalist"] kbd {
+    background: var(--brutalist-surface);
+    border: 2px solid var(--brutalist-border);
+    border-radius: 0;
+    padding: 4px 8px;
+    font-weight: var(--brutalist-weight-bold);
+    color: var(--brutalist-text);
+    box-shadow: var(--brutalist-shadow-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+:root[data-style="brutalist"] .modal-content {
+    border-radius: 0;
+    border: 2px solid var(--brutalist-border);
+    box-shadow: var(--brutalist-shadow-lg);
+}
+
+:root[data-style="brutalist"] .modal-header {
+    border-bottom: 2px solid var(--brutalist-border);
+}
+
+:root[data-style="brutalist"] .shortcut-table tr {
+    border-bottom: 1px solid var(--brutalist-border);
+}
+
+/* Category headers */
+.modal-body h3 {
+    margin: 20px 0 10px 0;
+    color: var(--text-color, #333333);
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-bottom: 2px solid var(--accent-color, #007acc);
+    padding-bottom: 5px;
+}
+
+.modal-body h3:first-child {
+    margin-top: 0;
+}
+
+/* Command palette styles */
+.command-palette {
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    max-width: 90vw;
+    background: var(--surface-color, #ffffff);
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    z-index: 10001;
+    overflow: hidden;
+}
+
+.command-palette-input {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+    font-size: 1rem;
+    background: var(--surface-color, #ffffff);
+    color: var(--text-color, #333333);
+    outline: none;
+}
+
+.command-palette-results {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.command-palette-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background-color 0.2s ease;
+}
+
+.command-palette-item:hover,
+.command-palette-item.selected {
+    background: var(--hover-bg, #f5f5f5);
+}
+
+.command-palette-item kbd {
+    margin-left: auto;
+    font-size: 0.75rem;
+}
+
+/* Quick actions modal */
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.quick-action-item {
+    padding: 15px;
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.quick-action-item:hover {
+    background: var(--hover-bg, #f5f5f5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.quick-action-item kbd {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.75rem;
+}
+
+/* Search highlight */
+.search-highlight {
+    background: var(--highlight-bg, #ffeb3b);
+    color: var(--highlight-color, #000);
+    padding: 1px 2px;
+    border-radius: 2px;
+}
+
+/* Shortcut indicator in UI */
+.shortcut-indicator {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    margin-left: 5px;
+}
+
+/* Tooltip for shortcuts */
+.shortcut-tooltip {
+    position: relative;
+}
+
+.shortcut-tooltip::after {
+    content: attr(data-shortcut);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--tooltip-bg, #333);
+    color: var(--tooltip-color, #fff);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 1000;
+}
+
+.shortcut-tooltip:hover::after {
+    opacity: 1;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        max-height: 90vh;
+    }
+    
+    .command-palette {
+        width: 95vw;
+        top: 10%;
+    }
+    
+    .shortcut-table td:first-child {
+        width: 40%;
+    }
+    
+    kbd {
+        font-size: 0.75rem;
+        padding: 1px 4px;
+    }
+    
+    .quick-actions-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+    }
+}
+
+/* Animation for modal appearance */
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal-content {
+    animation: modalFadeIn 0.2s ease-out;
+}
+
+/* Focus styles for accessibility */
+.modal-close:focus,
+.command-palette-input:focus,
+.quick-action-item:focus {
+    outline: 2px solid var(--focus-color, #007acc);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    kbd {
+        border-width: 2px;
+        box-shadow: none;
+    }
+    
+    .modal-content {
+        border-width: 2px;
+    }
+    
+    .command-palette-item:hover,
+    .command-palette-item.selected {
+        border-width: 2px;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .modal-content {
+        animation: none;
+    }
+    
+    .quick-action-item:hover {
+        transform: none;
+    }
+    
+    .shortcut-tooltip::after {
+        transition: none;
+    }
+}
