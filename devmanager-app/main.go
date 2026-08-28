@@ -6,31 +6,39 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/windows"
 )
 
-//go:embed all:frontend/dist
+//go:embed all:frontend
 var assets embed.FS
 
 func main() {
-	// Create an instance of the app structure
 	app := NewApp()
 
-	// Create application with options
+	// Tray spike: pump dedicado; stop al salir de main.
+	stopTray := runTray(app.onTrayReady)
+	defer stopTray()
+
 	err := wails.Run(&options.App{
-		Title:  "devManager",
-		Width:  1200,
-		Height: 800,
+		Title:     "Local Dev Manager",
+		Width:     1280,
+		Height:    800,
+		MinWidth:  960,
+		MinHeight: 640,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
-		OnStartup:        app.startup,
-		OnDomReady:       app.domReady,
-		OnBeforeClose:    app.beforeClose,
-		OnShutdown:       app.shutdown,
+		OnStartup:     app.startup,
+		OnShutdown:    app.shutdown,
+		OnBeforeClose: app.beforeClose,
+		Bind: []interface{}{
+			app,
+		},
+		Windows: &windows.Options{
+			Theme: windows.Dark,
+		},
 	})
-
 	if err != nil {
-		panic("Error: " + err.Error())
+		println("Error:", err.Error())
 	}
 }

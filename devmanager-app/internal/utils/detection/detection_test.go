@@ -25,7 +25,7 @@ func TestExtractPortFromLog(t *testing.T) {
 }
 
 func TestExtractPortOutOfRangeRejected(t *testing.T) {
-	// La regex captura hasta 5 dígitos pero >65535 se rechaza.
+	// La regex captura hasta 5 d├¡gitos pero >65535 se rechaza.
 	if got := ExtractPortFromLog("http://localhost:99999/"); got != 0 {
 		t.Errorf("puerto >65535 debe devolver 0, got %d", got)
 	}

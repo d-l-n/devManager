@@ -51,7 +51,7 @@ func GetGitInfo(projectPath string) Status {
 	}
 	result.IsRepo = true
 
-	// 1. Lectura rápida de .git/HEAD.
+	// 1. Lectura r├ípida de .git/HEAD.
 	headContent, err := os.ReadFile(filepath.Join(projectPath, ".git", "HEAD"))
 	if err == nil {
 		content := strings.TrimSpace(string(headContent))
@@ -64,7 +64,7 @@ func GetGitInfo(projectPath string) Status {
 		}
 	}
 
-	// 2. Fallback y dirty status vía CLI.
+	// 2. Fallback y dirty status v├¡a CLI.
 	if result.Branch == "" {
 		if code, out, _ := RunGit(projectPath, []string{"rev-parse", "--abbrev-ref", "HEAD"}, 1500*time.Millisecond); code == 0 {
 			result.Branch = strings.TrimSpace(out)
@@ -113,7 +113,7 @@ type LastCommit struct {
 	DateRel string `json:"dateRel"`
 }
 
-// Status es el DTO que consume el frontend. Campos camelCase (convención
+// Status es el DTO que consume el frontend. Campos camelCase (convenci├│n
 // app-level); models.Project conserva snake_case porque es schema de archivo.
 type Status struct {
 	IsRepo      bool        `json:"isRepo"`
@@ -127,7 +127,7 @@ type Status struct {
 }
 
 // GetStatusFull replica get_git_status_full: extiende GetGitInfo con
-// ahead/behind y metadata del último commit.
+// ahead/behind y metadata del ├║ltimo commit.
 func GetStatusFull(projectPath string) Status {
 	result := GetGitInfo(projectPath)
 	result.Ahead = 0

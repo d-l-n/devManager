@@ -3,6 +3,8 @@ const GIT_ACTIONS = ['Pull', 'Fetch', 'Stash'];
 export function mount(ctx) {
     const { $, api, events } = ctx;
 
+    const busy = {}; // index -> hay op git en curso en ese proyecto
+
     function showResult(text, cls) {
         const el = $('git-result');
         el.textContent = text;
@@ -22,11 +24,11 @@ export function mount(ctx) {
         }
         $('git-branch').textContent = `Branch: ${status.branch || 'unknown'}`;
         const dirty = $('git-dirty-badge');
-        dirty.textContent = status.isDirty ? '● Uncommitted changes' : '● Clean';
+        dirty.textContent = status.isDirty ? 'ÔùÅ Uncommitted changes' : 'ÔùÅ Clean';
         dirty.className = `mini-badge ${status.isDirty ? 'dirty' : 'clean'}`;
         const sync = $('git-sync');
         if (status.hasUpstream) {
-            sync.textContent = `↑ ${status.ahead}   ↓ ${status.behind}`;
+            sync.textContent = `Ôåæ ${status.ahead}   Ôåô ${status.behind}`;
             sync.className = '';
         } else {
             sync.textContent = '(no upstream)';
@@ -34,8 +36,8 @@ export function mount(ctx) {
         }
         const lc = status.lastCommit;
         $('git-commit').textContent = lc
-            ? `Last commit: ${lc.hash} · ${lc.subject} · ${lc.dateRel}`
-            : 'Last commit: —';
+            ? `Last commit: ${lc.hash} ┬À ${lc.subject} ┬À ${lc.dateRel}`
+            : 'Last commit: ÔÇö';
     }
 
     async function refresh() {
@@ -51,7 +53,8 @@ export function mount(ctx) {
 
     GIT_ACTIONS.forEach((action) => {
         $(`git-${action.toLowerCase()}`).addEventListener('click', () => {
-            showResult(`Running: git ${action.toLowerCase()}…`, 'info');
+            busy[ctx.selectedIndex()] = true;
+            showResult(`Running: git ${action.toLowerCase()}ÔÇª`, 'info');
             setButtons(false);
             api.gitAction(ctx.selectedIndex(), action);
         });
@@ -61,10 +64,15 @@ export function mount(ctx) {
     events().EventsOn('git:output', ({ index, text, isError }) =>
         ctx.appendLog(index, text, isError));
     events().EventsOn('git:finished', ({ index, name, exitCode, cleanStash }) => {
-        if (index !== ctx.selectedIndex()) { refresh(); return; }
+        busy[index] = false;
+        if (index !== ctx.selectedIndex()) {
+            refresh();
+            setButtons(!busy[ctx.selectedIndex()]);
+            return;
+        }
         if (exitCode === 0) {
             if (cleanStash) {
-                showResult('Nothing to stash — working tree clean.', 'info');
+                showResult('Nothing to stash ÔÇö working tree clean.', 'info');
             } else {
                 showResult(`${name} completed successfully.`, 'ok');
             }
@@ -75,5 +83,12 @@ export function mount(ctx) {
         refresh();
     });
 
-    return { onProjectChanged: () => { $('git-result').hidden = true; refresh(); }, refresh };
+    return {
+        onProjectChanged: () => {
+            $('git-result').hidden = true;
+            refresh();
+            setButtons(!busy[ctx.selectedIndex()]);
+        },
+        refresh,
+    };
 }

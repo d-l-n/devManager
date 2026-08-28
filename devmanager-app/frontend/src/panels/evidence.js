@@ -23,7 +23,7 @@ export function mount(ctx) {
     let observer = null;
     let loadSeq = 0;
     let pending = [];   // [card, file] esperando batch de thumbnails
-    let inFlight = 0;   // thumbnails en curso (batch máx THUMB_BATCH)
+    let inFlight = 0;   // thumbnails en curso (batch m├íx THUMB_BATCH)
     let menuEl = null;
 
     function caption(relPath) {
@@ -127,7 +127,7 @@ export function mount(ctx) {
         }
     }
 
-    // ---- Menú contextual ----
+    // ---- Men├║ contextual ----
 
     function closeMenu() {
         if (!menuEl) return;
@@ -194,7 +194,7 @@ export function mount(ctx) {
         split.hidden = !has;
         empty.hidden = has;
         countLbl.textContent = `${files.length} artifact(s)`;
-        // Sin binding de existencia del report: aproximación con artifacts.
+        // Sin binding de existencia del report: aproximaci├│n con artifacts.
         reportBtn.disabled = !has;
         if (!has) return;
 

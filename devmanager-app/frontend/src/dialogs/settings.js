@@ -1,5 +1,5 @@
-// Dialog Settings persistente (Task 7). Patrón widgets: mount(ctx) → {open, close, init}.
-// Cambios aplican en vivo vía setSetting; el eco settings:changed solo toca estado local.
+// Dialog Settings persistente (Task 7). Patr├│n widgets: mount(ctx) ÔåÆ {open, close, init}.
+// Cambios aplican en vivo v├¡a setSetting; el eco settings:changed solo toca estado local.
 import { api, events } from '../api.js';
 import { applyTheme, isValidTheme } from '../theme.js';
 import { setToastsEnabled } from '../widgets/toast.js';
@@ -38,13 +38,12 @@ export function mountSettings() {
 
     const secAppearance = el('div', 'settings-section');
     secAppearance.appendChild(el('div', 'settings-section-title', 'Appearance'));
-    const themeRadios = ['light', 'dark', 'oled', 'auto'].map((value) => {
+    const themeRadios = ['light', 'dark', 'oled'].map((value) => {
         const radio = document.createElement('input');
         radio.type = 'radio';
         radio.name = 'settings-theme';
         radio.value = value;
-        const label = value === 'auto' ? 'Auto (System)' : value[0].toUpperCase() + value.slice(1);
-        const row = optionRow(label, radio);
+        const row = optionRow(value[0].toUpperCase() + value.slice(1), radio);
         secAppearance.appendChild(row);
         return radio;
     });
@@ -93,8 +92,8 @@ export function mountSettings() {
     }
 
     themeRadios.forEach((radio) =>
-        radio.addEventListener('change', async () => {
-            if (radio.checked) await applyTheme(radio.value); // valida + aplica + persiste
+        radio.addEventListener('change', () => {
+            if (radio.checked) applyTheme(radio.value); // valida + aplica + persiste
         }));
     cbToasts.addEventListener('change', () =>
         api.setSetting('toasts_enabled', String(cbToasts.checked)));
@@ -116,22 +115,10 @@ export function mountSettings() {
     });
 
     // Eco desde Go: actualizar estado local SIN re-persistir (evitar bucle).
-    events().EventsOn('settings:changed', async ({ key, value }) => {
+    events().EventsOn('settings:changed', ({ key, value }) => {
         if (key === 'theme') {
             if (!isValidTheme(value)) return;
             state.theme = value;
-            
-            // Si es auto, obtener y aplicar el tema efectivo
-            if (value === 'auto') {
-                try {
-                    const effectiveTheme = await api.getEffectiveTheme();
-                    document.documentElement.dataset.theme = effectiveTheme;
-                } catch {
-                    document.documentElement.dataset.theme = 'dark';
-                }
-            } else {
-                document.documentElement.dataset.theme = value;
-            }
         } else if (key === 'toasts_enabled') {
             state.toasts_enabled = normBool(value);
             setToastsEnabled(state.toasts_enabled);
@@ -152,18 +139,7 @@ export function mountSettings() {
                 if (typeof s.toasts_enabled === 'boolean') state.toasts_enabled = s.toasts_enabled;
             }
         } catch { /* defaults */ }
-        
-        // Para el tema auto, necesitamos obtener el tema efectivo
-        let displayTheme = state.theme;
-        if (state.theme === 'auto') {
-            try {
-                displayTheme = await api.getEffectiveTheme();
-            } catch {
-                displayTheme = 'dark';
-            }
-        }
-        
-        document.documentElement.dataset.theme = displayTheme;
+        document.documentElement.dataset.theme = state.theme;
         setToastsEnabled(state.toasts_enabled);
         syncUI();
     }

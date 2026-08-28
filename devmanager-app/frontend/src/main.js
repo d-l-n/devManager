@@ -3,201 +3,35 @@ import { mount as mountPlaywright } from './panels/playwright.js';
 import { mount as mountScripts } from './panels/scripts.js';
 import { mount as mountGit } from './panels/git.js';
 import { mount as mountEvidence } from './panels/evidence.js';
-import { mount as mountMonitor } from './panels/monitor.js';
 import { mount as mountBacklog } from './panels/backlog.js';
+import { mount as mountMonitor } from './panels/monitor.js';
 import { applyTheme, THEME_CYCLE } from './theme.js';
 import { showToast } from './widgets/toast.js';
 import { mountSettings } from './dialogs/settings.js';
+import { mountProjectDialog } from './dialogs/project.js';
+import { mountAppLogDialog } from './dialogs/applog.js';
+import { mountContextMenu } from './widgets/contextmenu.js';
 import { mountBacklogItemDialog } from './dialogs/backlog-item.js';
 
 const $ = (id) => document.getElementById(id);
+
+// Tope de l├¡neas guardadas por proyecto y de nodos del panel de logs (Task 20)
+const MAX_LOG_LINES = 2000;
 
 const state = {
     projects: [],
     selected: -1,
     logs: new Map(),      // index -> [{ts,line,isError}]
     errorsOnly: false,
+    logWrap: false,
+    logAutoScroll: true,
     view: 'project',
-    // Filtros de búsqueda
-    searchQuery: '',
-    statusFilter: 'all', // all, running, stopped, error
-    pinnedFilter: 'all', // all, pinned, unpinned
-    sortBy: 'name',      // name, path, status, pinned
-    sortOrder: 'asc',     // asc, desc
 };
 
 function timestamp() {
     const d = new Date();
     const p = (n) => String(n).padStart(2, '0');
     return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-}
-
-// Debounce function para búsqueda instantánea
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-// Búsqueda con debounce
-const debouncedSearch = debounce(() => {
-    renderList();
-}, 300);
-
-// Crear controles de filtro
-function createFilterControls() {
-    // Buscar el sidebar o contenedor de búsqueda
-    const searchContainer = document.querySelector('.search-container') || 
-                           document.querySelector('input[type="search"]').parentElement;
-    
-    if (!searchContainer) return;
-    
-    // Crear contenedor de filtros
-    const filterContainer = document.createElement('div');
-    filterContainer.className = 'filter-controls';
-    
-    // Filtro de estado
-    const statusFilter = document.createElement('select');
-    statusFilter.className = 'status-filter';
-    statusFilter.innerHTML = `
-        <option value="all">All Status</option>
-        <option value="running">Running</option>
-        <option value="stopped">Stopped</option>
-        <option value="error">Error</option>
-    `;
-    statusFilter.value = state.statusFilter;
-    statusFilter.addEventListener('change', (e) => {
-        state.statusFilter = e.target.value;
-        renderList();
-    });
-    
-    // Filtro de pineados
-    const pinnedFilter = document.createElement('select');
-    pinnedFilter.className = 'pinned-filter';
-    pinnedFilter.innerHTML = `
-        <option value="all">All Projects</option>
-        <option value="pinned">Pinned</option>
-        <option value="unpinned">Unpinned</option>
-    `;
-    pinnedFilter.value = state.pinnedFilter;
-    pinnedFilter.addEventListener('change', (e) => {
-        state.pinnedFilter = e.target.value;
-        renderList();
-    });
-    
-    // Ordenamiento
-    const sortContainer = document.createElement('div');
-    sortContainer.className = 'sort-container';
-    
-    const sortBy = document.createElement('select');
-    sortBy.className = 'sort-by';
-    sortBy.innerHTML = `
-        <option value="name">Sort by Name</option>
-        <option value="path">Sort by Path</option>
-        <option value="pinned">Sort by Pinned</option>
-    `;
-    sortBy.value = state.sortBy;
-    sortBy.addEventListener('change', (e) => {
-        state.sortBy = e.target.value;
-        renderList();
-    });
-    
-    const sortOrder = document.createElement('button');
-    sortOrder.className = 'sort-order';
-    sortOrder.innerHTML = state.sortOrder === 'asc' ? '↑' : '↓';
-    sortOrder.addEventListener('click', () => {
-        state.sortOrder = state.sortOrder === 'asc' ? 'desc' : 'asc';
-        sortOrder.innerHTML = state.sortOrder === 'asc' ? '↑' : '↓';
-        renderList();
-    });
-    
-    sortContainer.appendChild(sortBy);
-    sortContainer.appendChild(sortOrder);
-    
-    // Ensamblar controles
-    filterContainer.appendChild(statusFilter);
-    filterContainer.appendChild(pinnedFilter);
-    filterContainer.appendChild(sortContainer);
-    
-    // Insertar después del contenedor de búsqueda
-    searchContainer.parentNode.insertBefore(filterContainer, searchContainer.nextSibling);
-}
-
-// Atajos de teclado mejorados
-function setupKeyboardShortcuts() {
-    document.addEventListener('keydown', (e) => {
-        // Ctrl+K o Cmd+K para focus en búsqueda
-        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-            e.preventDefault();
-            const searchInput = document.querySelector('input[type="search"], #search');
-            if (searchInput) {
-                searchInput.focus();
-                searchInput.select();
-            }
-        }
-        
-        // Ctrl+F para focus en búsqueda (alternativa)
-        if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-            e.preventDefault();
-            const searchInput = document.querySelector('input[type="search"], #search');
-            if (searchInput) {
-                searchInput.focus();
-                searchInput.select();
-            }
-        }
-        
-        // Escape para limpiar búsqueda
-        if (e.key === 'Escape') {
-            const searchInput = document.querySelector('input[type="search"], #search');
-            if (searchInput && document.activeElement === searchInput) {
-                searchInput.value = '';
-                state.searchQuery = '';
-                renderList();
-                searchInput.blur();
-            }
-        }
-        
-        // Flechas para navegar la lista
-        if (e.key === 'ArrowDown' && !e.target.matches('input, textarea, select')) {
-            e.preventDefault();
-            navigateProjectList(1);
-        } else if (e.key === 'ArrowUp' && !e.target.matches('input, textarea, select')) {
-            e.preventDefault();
-            navigateProjectList(-1);
-        }
-        
-        // Enter para seleccionar proyecto
-        if (e.key === 'Enter' && !e.target.matches('input, textarea, select')) {
-            e.preventDefault();
-            if (state.selected >= 0) {
-                renderDetail();
-            }
-        }
-    });
-}
-
-// Navegación con flechas
-function navigateProjectList(direction) {
-    const filteredProjects = filterProjects();
-    if (filteredProjects.length === 0) return;
-    
-    const currentIndex = filteredProjects.findIndex(p => 
-        state.projects.indexOf(p) === state.selected
-    );
-    
-    let newIndex = currentIndex + direction;
-    if (newIndex < 0) newIndex = filteredProjects.length - 1;
-    if (newIndex >= filteredProjects.length) newIndex = 0;
-    
-    const newProject = filteredProjects[newIndex];
-    state.selected = state.projects.indexOf(newProject);
-    renderList();
 }
 
 async function refreshProjects(keepSelection = true) {
@@ -207,147 +41,91 @@ async function refreshProjects(keepSelection = true) {
     }
     renderList();
     renderDetail();
-    
-    // Hide welcome screen if projects exist
-    if (state.projects.length > 0) {
-        hideWelcomeScreen();
-    }
 }
 
-// Función de filtrado avanzado de proyectos
-async function filterProjects() {
-    let filtered = [...state.projects];
-    
-    // Filtro por búsqueda (nombre y path)
-    if (state.searchQuery) {
-        const query = state.searchQuery.toLowerCase();
-        filtered = filtered.filter(p => 
-            p.name.toLowerCase().includes(query) || 
-            p.path.toLowerCase().includes(query)
-        );
-    }
-    
-    // Filtro por estado (necesitamos obtener los estados asíncronamente)
-    if (state.statusFilter !== 'all') {
-        const projectsWithStatus = await Promise.all(
-            filtered.map(async (p) => {
-                const index = state.projects.indexOf(p);
-                const status = await api.getServerStatus(index);
-                return { ...p, status: status.state };
-            })
-        );
-        
-        filtered = projectsWithStatus.filter(p => p.status === state.statusFilter);
-    }
-    
-    // Filtro por pineados
-    if (state.pinnedFilter === 'pinned') {
-        filtered = filtered.filter(p => p.pinned);
-    } else if (state.pinnedFilter === 'unpinned') {
-        filtered = filtered.filter(p => !p.pinned);
-    }
-    
-    // Ordenamiento
-    filtered.sort((a, b) => {
-        let comparison = 0;
-        
-        switch (state.sortBy) {
-            case 'name':
-                comparison = a.name.localeCompare(b.name);
-                break;
-            case 'path':
-                comparison = a.path.localeCompare(b.path);
-                break;
-            case 'pinned':
-                comparison = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
-                break;
-            default:
-                comparison = a.name.localeCompare(b.name);
-        }
-        
-        return state.sortOrder === 'desc' ? -comparison : comparison;
-    });
-    
-    return filtered;
-}
-
-// Función para highlight de texto
-function highlightText(text, query) {
-    if (!query) return text;
-    
-    const regex = new RegExp(`(${query})`, 'gi');
-    return text.replace(regex, '<mark>$1</mark>');
-}
-
-async function renderList() {
+function renderList() {
     const ul = $('project-list');
     ul.innerHTML = '';
-    
-    const filteredProjects = await filterProjects();
-    const query = state.searchQuery;
-    
-    if (filteredProjects.length === 0) {
-        const emptyLi = document.createElement('li');
-        emptyLi.className = 'empty-state';
-        emptyLi.innerHTML = `
-            <div class="empty-icon">🔍</div>
-            <div class="empty-title">No projects found</div>
-            <div class="empty-subtitle">Try adjusting your search or filters</div>
-        `;
-        ul.appendChild(emptyLi);
-        return;
-    }
-    
-    filteredProjects.forEach((p, originalIndex) => {
-        const realIndex = state.projects.indexOf(p);
+    const q = $('search').value.toLowerCase();
+    // Fijados primero (orden estable: pinned antes que unpinned)
+    const order = state.projects
+        .map((_, i) => i)
+        .sort((a, b) => (state.projects[b].pinned ? 1 : 0) - (state.projects[a].pinned ? 1 : 0));
+    order.forEach((i) => {
+        const p = state.projects[i];
+        if (q && !p.name.toLowerCase().includes(q)) return;
         const li = document.createElement('li');
-        li.className = realIndex === state.selected ? 'selected' : '';
-        
-        // Status dot
+        const cls = [];
+        if (i === state.selected) cls.push('selected');
+        if (p.pinned) cls.push('pinned');
+        li.className = cls.join(' ');
         const dot = document.createElement('span');
         dot.className = 'proj-dot';
-        dot.dataset.index = realIndex;
+        dot.dataset.index = i;
         li.appendChild(dot);
-        
-        // Project info container
-        const info = document.createElement('div');
-        info.className = 'project-info';
-        
-        // Project name with highlight
-        const name = document.createElement('div');
-        name.className = 'project-name';
-        name.innerHTML = highlightText(p.name, query);
-        info.appendChild(name);
-        
-        // Project path with highlight
-        const path = document.createElement('div');
-        path.className = 'project-path';
-        path.innerHTML = highlightText(p.path, query);
-        info.appendChild(path);
-        
-        // Pinned indicator
-        if (p.pinned) {
-            const pin = document.createElement('span');
-            pin.className = 'pin-indicator';
-            pin.innerHTML = '📌';
-            info.appendChild(pin);
-        }
-        
-        li.appendChild(info);
-        
-        // Event listeners
+        const name = document.createElement('span');
+        name.textContent = p.name;
+        name.className = 'proj-name';
+        li.appendChild(name);
+        const st = document.createElement('span');
+        st.className = 'proj-state';
+        li.appendChild(st);
+        // Bot├│n de pin: alterna fijado sin propagar la selecci├│n
+        const pin = document.createElement('button');
+        pin.className = 'pin-btn';
+        pin.textContent = p.pinned ? '\u{1F4CC}' : '\u2606';
+        pin.title = 'Pin / unpin';
+        pin.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await api.togglePin(i);
+            refreshProjects();
+        });
+        pin.addEventListener('dblclick', (e) => e.stopPropagation());
+        li.appendChild(pin);
         li.addEventListener('click', () => {
-            state.selected = realIndex;
+            state.selected = i;
             renderList();
             renderDetail();
         });
-        
-        // li.addEventListener('dblclick', () => editProject(realIndex)); // Deshabilitado hasta que updateProject esté disponible
-        
+        li.addEventListener('dblclick', () => editProject(i));
+        li.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            state.selected = i;
+            showProjectContextMenu(i, p, e.clientX, e.clientY);
+        });
         ul.appendChild(li);
     });
-    
+    // Contador de proyectos en el sidebar
+    const count = $('project-count');
+    count.textContent = `${state.projects.length} project(s)`;
+    count.title = `${state.projects.length} project(s)`;
     updateDots();
+}
+
+// Menu contextual del proyecto (Issue #12): derecho sobre un item de la lista.
+function showProjectContextMenu(index, p, x, y) {
+    const run = (fn) => { fn().then(() => refreshProjects()); };
+    const items = [
+        { label: 'Restart Server', icon: '\u25B6', onClick: () => run(() => api.restartServer(index)) },
+        { label: 'Stop Server', icon: '\u25A0', onClick: () => run(() => api.stopServer(index)) },
+        { label: 'Open in Browser', icon: '\u{1F517}', onClick: () => api.openURL((p.server && p.server.url) || '') },
+        { separator: true },
+        { label: 'Open in Explorer', icon: '\u{1F4C2}', onClick: () => api.openInExplorer(index) },
+        { label: 'Open Terminal', icon: '\u{1F4BB}', onClick: () => api.openTerminal(index) },
+        { label: 'Open in VS Code', icon: '', onClick: () => api.openVSCode(index) },
+        { label: 'Open in OpenCode', icon: '', onClick: () => api.openOpenCode(index) },
+        { separator: true },
+        { label: 'Run Tests', icon: '\u{1F3C3}', onClick: () => run(() => api.runTests(index)) },
+        { label: p.pinned ? 'Unpin' : 'Pin', icon: p.pinned ? '\u{1F4CC}' : '\u2606', onClick: () => run(() => api.togglePin(index)) },
+        { label: 'Edit Project', icon: '\u270E', onClick: () => editProject(index) },
+        { separator: true },
+        { label: 'Remove Project', icon: '\u2715', danger: true, onClick: () => {
+            if (confirm(`Remove project '${p.name}' from the manager?\n\nLocal files will not be deleted.`)) {
+                run(() => api.removeProject(index));
+            }
+        } },
+    ];
+    contextMenu.show(items, x, y);
 }
 
 function updateDots() {
@@ -355,6 +133,12 @@ function updateDots() {
         const i = parseInt(dot.dataset.index, 10);
         const status = await api.getServerStatus(i);
         dot.className = `proj-dot ${status.state}`;
+        const label = dot.closest('li') && dot.closest('li').querySelector('.proj-state');
+        if (label) {
+            const running = status.state === 'running';
+            label.textContent = running ? 'running' : '';
+            label.classList.toggle('running', running);
+        }
     });
 }
 
@@ -383,10 +167,10 @@ async function refreshStatus() {
     const badge = $('state-badge');
     badge.className = `badge ${status.state}`;
     badge.textContent = status.state;
-    ['start-server', 'restart-server'].forEach((id) => {
+    ['btn-start', 'btn-restart'].forEach((id) => {
         $(id).disabled = status.state === 'running' || status.state === 'starting';
     });
-    $('stop-server').disabled = status.state === 'stopped';
+    $('btn-stop').disabled = status.state === 'stopped';
 
     const up = $('uptime-label');
     if (status.uptimeSeconds > 0) {
@@ -395,12 +179,55 @@ async function refreshStatus() {
     } else {
         up.textContent = '';
     }
+
+    // Badge Server (Task 15): estado del servidor seleccionado
+    const bs = $('badge-server');
+    if (bs) {
+        bs.className = `badge ${status.state}`;
+        bs.textContent = `Server: ${status.state}`;
+    }
+
+    // Badge Playwright (Task 15): sin playwright ÔåÆ 'off'
+    try {
+        const ps = await api.getPlaywrightStatus(state.selected);
+        const pw = $('badge-pw');
+        if (pw) {
+            const st = ps && ps.state ? ps.state : 'off';
+            pw.className = `badge ${st}`;
+            pw.textContent = `Playwright: ${st}`;
+        }
+    } catch { /* sin playwright configurado */ }
+
+    // Badge Git (Task 15): limpio/sucio; 'ÔÇö' cuando no es repo
+    try {
+        const gs = await api.getGitStatus(state.selected);
+        const bg = $('badge-git');
+        if (bg && gs) {
+            if (gs.isRepo) {
+                bg.className = `badge ${gs.isDirty ? 'dirty' : 'clean'}`;
+                bg.textContent = `Git: ${gs.isDirty ? 'dirty' : 'clean'}`;
+            } else {
+                bg.className = 'badge';
+                bg.textContent = 'Git: ÔÇö';
+            }
+        }
+    } catch { /* no es repo git */ }
+
     updateDots();
+}
+
+// Texto plano de los logs del proyecto seleccionado (Copy/Save, Task 20)
+function logText() {
+    const lines = state.logs.get(state.selected) || [];
+    return lines.map((l) => `[${l.ts}] ${l.line}`).join('\n');
 }
 
 function appendLog(index, line, isError) {
     if (!state.logs.has(index)) state.logs.set(index, []);
-    state.logs.get(index).push({ ts: timestamp(), line, isError });
+    const arr = state.logs.get(index);
+    arr.push({ ts: timestamp(), line, isError });
+    // Cap de l├¡neas en memoria por proyecto (Task 20)
+    if (arr.length > MAX_LOG_LINES) state.logs.set(index, arr.slice(-MAX_LOG_LINES));
 
     if (index !== state.selected) return;
     if (state.errorsOnly && !isError) return;
@@ -417,7 +244,10 @@ function appendLogEntry(entry) {
     div.appendChild(ts);
     div.appendChild(document.createTextNode(entry.line));
     out.appendChild(div);
-    out.scrollTop = out.scrollHeight;
+    // Cap del DOM (~2000 nodos; descarta los m├ís viejos)
+    while (out.childElementCount > MAX_LOG_LINES) out.removeChild(out.firstChild);
+    // Sin follow: no forzar scroll al fondo
+    if (state.logAutoScroll) out.scrollTop = out.scrollHeight;
 }
 
 function reloadLogs() {
@@ -426,6 +256,7 @@ function reloadLogs() {
     (state.logs.get(state.selected) || [])
         .filter((e) => !state.errorsOnly || e.isError)
         .forEach(appendLogEntry);
+    if (state.logAutoScroll) out.scrollTop = out.scrollHeight;
 }
 
 function switchView(view) {
@@ -439,28 +270,13 @@ function switchView(view) {
 }
 
 async function addProjectFlow() {
-    showAddProjectModal();
+    projectDialog.openNew();
 }
 
-// async function editProject(index) {
-//     if (index < 0 || index >= state.projects.length) return;
-//     const p = state.projects[index];
-//     const name = prompt('Project name:', p.name);
-//     if (name === null) return;
-//     const path = prompt('Project path:', p.path);
-//     if (path === null) return;
-//     if (name === p.name && path === p.path) return;
-//     const errs = await api.updateProject(index, {
-//         ...p,
-//         name,
-//         path,
-//         server: p.server,
-//         playwright: p.playwright,
-//         pinned: p.pinned,
-//     });
-//     if (errs && errs.length) alert(errs.join('\n'));
-//     await refreshProjects();
-// }
+async function editProject(index) {
+    if (index < 0 || index >= state.projects.length) return;
+    projectDialog.openEdit(index, state.projects[index]);
+}
 
 function hasSelection() {
     return state.selected >= 0 && state.selected < state.projects.length;
@@ -484,34 +300,90 @@ async function restartAppFlow() {
 }
 
 function wireEvents() {
-    $('add-project').addEventListener('click', addProjectFlow);
+    $('btn-add').addEventListener('click', addProjectFlow);
+    $('btn-reload').addEventListener('click', () => api.reloadProjects());
 
-    $('search').addEventListener('input', (e) => {
-    state.searchQuery = e.target.value;
-    debouncedSearch();
-});
+    $('search').addEventListener('input', renderList);
     $('errors-only').addEventListener('change', (e) => {
         state.errorsOnly = e.target.checked;
         reloadLogs();
     });
-    $('clear-logs').addEventListener('click', () => {
+    $('btn-clear-log').addEventListener('click', () => {
         state.logs.set(state.selected, []);
         $('log-output').innerHTML = '';
     });
 
-    $('start-server').addEventListener('click', () => api.startServer(state.selected));
-    $('stop-server').addEventListener('click', () => api.stopServer(state.selected));
-    $('restart-server').addEventListener('click', () => api.restartServer(state.selected));
+    // Herramientas del panel de logs (Task 20)
+    $('log-wrap').addEventListener('click', () => {
+        state.logWrap = !state.logWrap;
+        $('log-output').classList.toggle('log-wrap', state.logWrap);
+        $('log-wrap').classList.toggle('active', state.logWrap);
+    });
+    $('log-follow').addEventListener('click', () => {
+        state.logAutoScroll = !state.logAutoScroll;
+        $('log-follow').classList.toggle('active', state.logAutoScroll);
+        if (state.logAutoScroll) {
+            const out = $('log-output');
+            out.scrollTop = out.scrollHeight;
+        }
+    });
+    $('log-copy').addEventListener('click', async () => {
+        const text = logText();
+        if (!text) return;
+        try {
+            await navigator.clipboard.writeText(text);
+        } catch {
+            // Fallback: textarea oculto + execCommand si Clipboard API no est├í
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+        }
+    });
+    $('log-save').addEventListener('click', () => {
+        const text = logText();
+        if (!text) return;
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'project-log.txt';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    });
 
-    // $('view-project').addEventListener('click', () => switchView('project')); // No existe en el HTML
-    // $('view-monitor').addEventListener('click', () => switchView('monitor')); // No existe en el HTML
+    $('btn-start').addEventListener('click', () => api.startServer(state.selected));
+    $('btn-stop').addEventListener('click', () => api.stopServer(state.selected));
+    $('btn-restart').addEventListener('click', () => api.restartServer(state.selected));
 
-    $('theme-toggle').addEventListener('click', () => {
+    $('view-project').addEventListener('click', () => switchView('project'));
+    $('view-monitor').addEventListener('click', () => switchView('monitor'));
+
+    // Auto-asignar puertos ├║nicos (Task 16)
+    $('btn-auto-ports').addEventListener('click', async () => {
+        const n = await api.autoAssignPorts();
+        showToast('Auto-Assign Ports',
+            n > 0 ? `Assigned unique ports to ${n} project(s)` : 'All projects already have unique ports',
+            n > 0 ? 'success' : 'info');
+        if (n > 0) refreshProjects();
+    });
+
+    $('btn-theme').addEventListener('click', () => {
         const cur = document.documentElement.dataset.theme || 'dark';
         applyTheme(THEME_CYCLE[(THEME_CYCLE.indexOf(cur) + 1) % THEME_CYCLE.length]);
     });
-    $('settings-btn').addEventListener('click', () => settingsDialog.open());
-    // $('btn-quit').addEventListener('click', quitApp); // No existe en el HTML
+    $('btn-settings').addEventListener('click', () => settingsDialog.open());
+    $('btn-applog').addEventListener('click', () => appLogDialog.open());
+    $('btn-quit').addEventListener('click', quitApp);
+
+    // Abre en el navegador la URL del proyecto seleccionado (Task 18)
+    $('btn-open-url').addEventListener('click', () => {
+        const p = state.projects[state.selected];
+        if (p && p.server && p.server.url) api.openURL(p.server.url);
+    });
 
     // Eventos push desde Go
     events().EventsOn('projects:changed', async () => refreshProjects());
@@ -523,6 +395,23 @@ function wireEvents() {
         appendLog(payload.index, payload.line, payload.isError));
     events().EventsOn('server:state', () => refreshStatus());
     events().EventsOn('server:ready', () => refreshStatus());
+
+    // Puerto detectado Ôëá configurado: actualizar la URL en estado y panel (Task 19)
+    events().EventsOn('server:port_detected', ({ index, url }) => {
+        const p = state.projects[index];
+        if (p && url && p.server) p.server.url = url;
+        if (index === state.selected && $('url-label')) {
+            if (url) $('url-label').textContent = url;
+            refreshStatus();
+        }
+    });
+    events().EventsOn('server:port_mismatch', ({ configured, detected, url }) => {
+        const parts = [];
+        if (configured != null) parts.push(`Configured ${configured}`);
+        if (detected != null) parts.push(`detected ${detected}`);
+        if (url) parts.push(`redirected to ${url}`);
+        showToast('Port Mismatch', parts.join(' '), 'warning');
+    });
 
     setInterval(refreshStatus, 1000); // uptime ticker
 }
@@ -542,7 +431,7 @@ function wireKeyboardShortcuts() {
         // Settings modal ya registra Ctrl+, en settings.js: no duplicar.
         if (mod && key === ',') return;
 
-        // Único atajo que funciona dentro de inputs: robar el foco para buscar.
+        // ├Ünico atajo que funciona dentro de inputs: robar el foco para buscar.
         if (mod && !e.shiftKey && !e.altKey && key === 'f') {
             e.preventDefault();
             $('search').focus();
@@ -584,11 +473,26 @@ function wireKeyboardShortcuts() {
                     e.preventDefault();
                     restartAppFlow();
                     break;
+                case 't':
+                    e.preventDefault();
+                    if (hasSelection()) api.openTerminal(sel);
+                    break;
             }
             return;
         }
 
         if (e.altKey) {
+            if (key === 'm') {
+                e.preventDefault();
+                switchView('monitor');
+                return;
+            }
+            if (key === 'l') {
+                e.preventDefault();
+                switchView('project');
+                switchTab('logs');
+                return;
+            }
             if (key === 't' && hasSelection()) {
                 e.preventDefault();
                 api.openTerminal(sel);
@@ -597,6 +501,10 @@ function wireKeyboardShortcuts() {
         }
 
         switch (key) {
+            case 'r':
+                e.preventDefault();
+                api.reloadProjects();
+                break;
             case 't':
                 e.preventDefault();
                 if (hasSelection()) api.runTests(sel);
@@ -614,7 +522,11 @@ function wireKeyboardShortcuts() {
                 break;
             case 'e':
                 e.preventDefault();
-                // editProject(sel); // Deshabilitado hasta que updateProject esté disponible
+                editProject(sel);
+                break;
+            case 'k':
+                e.preventDefault();
+                appLogDialog.open();
                 break;
             case 'o':
                 e.preventDefault();
@@ -649,13 +561,11 @@ const backlogPanel = mountBacklog(ctx);
 ctx.panels = { playwrightPanel, scriptsPanel, gitPanel, evidencePanel, monitorPanel, backlogPanel };
 
 const settingsDialog = mountSettings();
+const projectDialog = mountProjectDialog(async () => refreshProjects());
+const appLogDialog = mountAppLogDialog();
+const contextMenu = mountContextMenu();
 const backlogItemDialog = mountBacklogItemDialog();
-
-// Add dialogs to DOM
-document.body.appendChild(settingsDialog.getElement());
 document.body.appendChild(backlogItemDialog.getElement());
-
-// Make backlog dialog available globally
 window.backlogItemDialog = backlogItemDialog;
 
 function switchTab(name) {
@@ -667,172 +577,11 @@ function switchTab(name) {
 document.querySelectorAll('.tab').forEach((btn) =>
     btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 
-// Welcome Screen Functions
-function showWelcomeScreen() {
-    const welcomeScreen = $('welcome-screen');
-    if (welcomeScreen) {
-        welcomeScreen.hidden = false;
-        // Add event listeners for welcome screen buttons
-        wireWelcomeScreenEvents();
-    }
-}
-
-function hideWelcomeScreen() {
-    const welcomeScreen = $('welcome-screen');
-    if (welcomeScreen) {
-        welcomeScreen.hidden = true;
-    }
-}
-
-function wireWelcomeScreenEvents() {
-    const welcomeAddBtn = $('welcome-add-project');
-    const welcomeImportBtn = $('welcome-import');
-    const welcomeSkipBtn = $('welcome-skip');
-    
-    if (welcomeAddBtn && !welcomeAddBtn.hasAttribute('data-wired')) {
-        welcomeAddBtn.addEventListener('click', () => {
-            hideWelcomeScreen();
-            showAddProjectModal();
-        });
-        welcomeAddBtn.setAttribute('data-wired', 'true');
-    }
-    
-    if (welcomeImportBtn && !welcomeImportBtn.hasAttribute('data-wired')) {
-        welcomeImportBtn.addEventListener('click', async () => {
-            try {
-                const folderPath = await api.browseForFolder();
-                if (folderPath) {
-                    const importedProjects = await api.importProjects(folderPath);
-                    if (importedProjects && importedProjects.length > 0) {
-                        await refreshProjects();
-                        showToast(`Imported ${importedProjects.length} project(s) successfully!`, 'success');
-                    } else {
-                        showToast('No projects found in the selected folder', 'info');
-                    }
-                }
-            } catch (error) {
-                showToast('Failed to import projects: ' + error.message, 'error');
-            }
-        });
-        welcomeImportBtn.setAttribute('data-wired', 'true');
-    }
-    
-    if (welcomeSkipBtn && !welcomeSkipBtn.hasAttribute('data-wired')) {
-        welcomeSkipBtn.addEventListener('click', () => {
-            hideWelcomeScreen();
-        });
-        welcomeSkipBtn.setAttribute('data-wired', 'true');
-    }
-}
-
-// Modal Functions
-function showAddProjectModal() {
-    const modal = $('add-project-modal');
-    if (modal) {
-        modal.hidden = false;
-        // Clear previous values
-        $('project-name').value = '';
-        $('project-path').value = '';
-        // Wire modal events if not already wired
-        wireModalEvents();
-    }
-}
-
-function hideAddProjectModal() {
-    const modal = $('add-project-modal');
-    if (modal) {
-        modal.hidden = true;
-    }
-}
-
-function wireModalEvents() {
-    const cancelBtn = $('cancel-add-project');
-    const confirmBtn = $('confirm-add-project');
-    const closeBtn = $('modal-close');
-    const browseBtn = $('browse-path');
-    
-    if (cancelBtn && !cancelBtn.hasAttribute('data-wired')) {
-        cancelBtn.addEventListener('click', hideAddProjectModal);
-        cancelBtn.setAttribute('data-wired', 'true');
-    }
-    
-    if (closeBtn && !closeBtn.hasAttribute('data-wired')) {
-        closeBtn.addEventListener('click', hideAddProjectModal);
-        closeBtn.setAttribute('data-wired', 'true');
-    }
-    
-    if (confirmBtn && !confirmBtn.hasAttribute('data-wired')) {
-        confirmBtn.addEventListener('click', handleAddProject);
-        confirmBtn.setAttribute('data-wired', 'true');
-    }
-    
-    if (browseBtn && !browseBtn.hasAttribute('data-wired')) {
-        browseBtn.addEventListener('click', async () => {
-            try {
-                const path = await api.browseForFolder();
-                if (path) {
-                    $('project-path').value = path;
-                    // Auto-fill project name from folder name
-                    const folderName = path.split(/[\\/]/).pop();
-                    if (folderName && !$('project-name').value) {
-                        $('project-name').value = folderName;
-                    }
-                }
-            } catch (error) {
-                showToast('Failed to browse for folder', 'error');
-            }
-        });
-        browseBtn.setAttribute('data-wired', 'true');
-    }
-}
-
-async function handleAddProject() {
-    const nameInput = $('project-name');
-    const pathInput = $('project-path');
-    
-    const name = nameInput.value.trim();
-    const path = pathInput.value.trim();
-    
-    if (!name) {
-        showToast('Project name cannot be empty', 'error');
-        return;
-    }
-    
-    if (!path) {
-        showToast('Project path cannot be empty', 'error');
-        return;
-    }
-    
-    try {
-        const errs = await api.addProject(name, path);
-        if (errs && errs.length) {
-            showToast('Error adding project: ' + errs.join(', '), 'error');
-        } else {
-            await refreshProjects();
-            hideAddProjectModal();
-            showToast('Project added successfully!', 'success');
-        }
-    } catch (error) {
-        showToast('Failed to add project: ' + error.message, 'error');
-    }
-}
-
 async function boot() {
     wireEvents();
     wireKeyboardShortcuts();
-    setupKeyboardShortcuts(); // Nuevos atajos mejorados
     await refreshProjects(false);
     await settingsDialog.init(); // carga settings: tema + gate de toasts
-    
-    // Show welcome screen if no projects exist
-    if (state.projects.length === 0) {
-        showWelcomeScreen();
-    }
-    
-    // Crear controles de filtro después de que el DOM esté listo
-    setTimeout(() => {
-        createFilterControls();
-    }, 100);
 }
 
 boot();

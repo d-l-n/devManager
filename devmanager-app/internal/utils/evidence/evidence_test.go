@@ -99,7 +99,7 @@ func TestScanMaxItemsTrims(t *testing.T) {
 		t.Fatalf("recorte a 2 esperado, got %d", len(got))
 	}
 	if got[0].RelPath != "test-results/e/f.zip" || got[1].RelPath != "test-results/d/y.webm" {
-		t.Errorf("deben quedar los 2 más recientes, got %+v", got)
+		t.Errorf("deben quedar los 2 m├ís recientes, got %+v", got)
 	}
 }
 
@@ -109,7 +109,7 @@ func TestScanMissingDirReturnsEmpty(t *testing.T) {
 	}
 	empty := t.TempDir()
 	if got := Scan(empty, 200); len(got) != 0 {
-		t.Errorf("proyecto sin test-results debe dar vacío, got %+v", got)
+		t.Errorf("proyecto sin test-results debe dar vac├¡o, got %+v", got)
 	}
 }
 
@@ -129,11 +129,11 @@ func TestScanExtCaseInsensitive(t *testing.T) {
 
 	got := Scan(root, 200)
 	if len(got) != 4 {
-		t.Fatalf(".PNG/.JPG mayúscula debe clasificar, got %d: %+v", len(got), got)
+		t.Fatalf(".PNG/.JPG may├║scula debe clasificar, got %d: %+v", len(got), got)
 	}
 	first := got[0]
 	if first.Kind != "image" || first.RelPath != "test-results/g/UPPER.JPG" {
-		t.Errorf("extensión mayúscula mal clasificada: %+v", first)
+		t.Errorf("extensi├│n may├║scula mal clasificada: %+v", first)
 	}
 }
 
@@ -160,7 +160,7 @@ func TestFindHTMLReport(t *testing.T) {
 	root, _ := makeProject(t)
 
 	if got := FindHTMLReport(root); got != "" {
-		t.Errorf("sin report debe dar cadena vacía, got %q", got)
+		t.Errorf("sin report debe dar cadena vac├¡a, got %q", got)
 	}
 
 	reportPath := filepath.Join(root, "playwright-report", "index.html")

@@ -1,7 +1,7 @@
 /* Paletas Fase 3 portadas de app/ui/theme.py. Alias:
-   bg_base→--bg · bg_surface/bg_card→--bg-panel · bg_elevated→--bg-input
-   text_primary→--fg · text_muted→--fg-dim · primary→--accent
-   success→--ok · warning→--warn · danger→--err */
+   bg_baseÔåÆ--bg ┬À bg_surface/bg_cardÔåÆ--bg-panel ┬À bg_elevatedÔåÆ--bg-input
+   text_primaryÔåÆ--fg ┬À text_mutedÔåÆ--fg-dim ┬À primaryÔåÆ--accent
+   successÔåÆ--ok ┬À warningÔåÆ--warn ┬À dangerÔåÆ--err */
 :root,
 :root[data-theme="dark"] {
     /* DARK (default) */
@@ -104,10 +104,19 @@ body {
     background: var(--bg-input);
     border-left-color: var(--accent);
 }
-.proj-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--fg-dim); }
+.proj-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--fg-dim); flex-shrink: 0; }
 .proj-dot.running { background: var(--ok); }
 .proj-dot.starting { background: var(--warn); }
 .proj-dot.error { background: var(--err); }
+.proj-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proj-state { font-size: 11px; color: var(--fg-dim); }
+.proj-state.running { color: var(--ok); }
+.pin-btn {
+    background: none; border: none; cursor: pointer; padding: 0 2px;
+    color: var(--fg-dim); font-size: 12px; flex-shrink: 0;
+}
+.pin-btn:hover { color: var(--fg); }
+#project-list li.pinned .pin-btn { color: var(--warn); }
 
 #main-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 #app-bar {
@@ -153,6 +162,12 @@ body {
 .badge.running  { background: #3fb96f26; color: var(--ok); }
 .badge.stopping { background: #e5b45b26; color: var(--warn); }
 .badge.error    { background: #e5534b26; color: var(--err); }
+.badge.idle     { background: #ffffff14; color: var(--fg-dim); }
+.badge.off      { background: #ffffff14; color: var(--fg-dim); }
+.badge.passed   { background: #3fb96f26; color: var(--ok); }
+.badge.failed   { background: #e5534b26; color: var(--err); }
+.badge.clean    { background: #3fb96f26; color: var(--ok); }
+.badge.dirty    { background: #e5b45b26; color: var(--warn); }
 
 #tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); }
 .tab {
@@ -173,13 +188,18 @@ body {
     border: 1px solid var(--border); border-radius: 6px;
     padding: 4px 10px; cursor: pointer;
 }
+.log-toolbar button.active {
+    border-color: var(--accent);
+    color: var(--accent);
+}
 #log-output {
-    flex: 1; overflow-y: auto;
+    flex: 1; overflow: auto;
     background: var(--bg-panel); border: 1px solid var(--border);
     border-radius: 8px; padding: 10px;
     font-family: Consolas, monospace; font-size: 12px;
-    white-space: pre-wrap; word-break: break-all;
+    white-space: pre;
 }
+.log-wrap { white-space: normal; word-break: break-word; }
 .log-line { padding: 1px 0; }
 .log-line .ts { color: var(--fg-dim); margin-right: 6px; }
 .log-line.err { color: var(--err); }
@@ -397,412 +417,148 @@ body {
 }
 .settings-footer { display: flex; justify-content: flex-end; margin-top: 6px; }
 
-/* Enhanced Project List Styles */
-.filter-controls {
-    display: flex;
-    gap: 8px;
-    padding: 8px 0;
-    margin: 8px 0;
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    align-items: center;
-    flex-wrap: wrap;
+/* ---- Dialog de proyecto (Issue #10) ---- */
+.pf-label {
+    display: block; font-size: 12px; color: var(--fg-dim);
+    margin: 8px 0 4px; text-transform: capitalize;
+}
+.pf-path-row {
+    display: flex; align-items: flex-end; gap: 8px;
+}
+.pf-path-row .settings-option { flex: 1; }
+.pf-path-row > div { flex: 1; }
+.pf-path-row .pf-label { margin: 8px 0 4px; }
+.pf-path-row .text-input { width: 100%; box-sizing: border-box; }
+.pf-inline-btn { white-space: nowrap; height: 30px; }
+.pf-status {
+    color: var(--fg-dim); font-size: 12px;
+    margin: 8px 0 4px; min-height: 16px;
 }
 
-.status-filter, .pinned-filter, .sort-by {
-    background: var(--bg-input);
-    color: var(--fg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 12px;
-    min-width: 120px;
+/* ---- App Log global (Issue #14) ---- */
+.applog-toolbar {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px; flex-wrap: wrap;
+}
+.applog-toolbar .grow { flex: 1; }
+.applog-output {
+    font-family: var(--font-mono); font-size: 12px;
+    background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px;
+    height: 360px; overflow-y: auto; white-space: pre-wrap; word-break: break-word;
+}
+.applog-output .log-line.err { color: var(--err); }
+
+/* ---- Menu contextual de proyecto (Issue #12) ---- */
+.context-menu {
+    position: fixed; z-index: 1600; min-width: 220px;
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 4px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .5);
+}
+.context-menu[hidden] { display: none; }
+.context-menu-item {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; padding: 7px 10px; border-radius: 6px;
+    background: none; border: none; color: var(--fg);
+    font-size: 13px; text-align: left; cursor: pointer;
+}
+.context-menu-item:hover { background: var(--bg-input); }
+.context-menu-item.danger { color: var(--err); }
+.context-menu-sep {
+    height: 1px; background: var(--border); margin: 4px 6px;
 }
 
-.status-filter:focus, .pinned-filter:focus, .sort-by:focus {
-    outline: none;
-    border-color: var(--border-focus);
-    box-shadow: 0 0 0 2px var(--accent);
+/* ---- Backlog (feature) : panel + dialog ---- */
+.backlog-list {
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 4px 0; overflow-y: auto;
 }
-
-.sort-container {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-    margin-left: auto;
-}
-
-.sort-order {
-    background: var(--bg-input);
-    color: var(--fg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 12px;
-    min-width: 30px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.sort-order:hover {
-    background: var(--bg-active);
-    border-color: var(--accent);
-}
-
-.project-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    flex: 1;
-    min-width: 0;
-}
-
-.project-name {
-    font-weight: 500;
-    color: var(--fg);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.project-path {
-    font-size: 11px;
-    color: var(--fg-dim);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.pin-indicator {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    font-size: 12px;
-    opacity: 0.7;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--fg-dim);
-}
-
-.empty-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
-    opacity: 0.5;
-}
-
-.empty-title {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--fg);
-}
-
-.empty-subtitle {
-    font-size: 14px;
-    color: var(--fg-dim);
-}
-
-mark {
-    background: var(--accent);
-    color: var(--bg);
-    padding: 1px 2px;
-    border-radius: 2px;
-    font-weight: 600;
-}
-
-/* Enhanced list item styles */
-#project-list li {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
-}
-
-#project-list li:hover {
-    background: var(--bg-active);
-}
-
-#project-list li.selected {
-    background: var(--accent);
-    color: var(--bg);
-}
-
-#project-list li.selected .project-path,
-#project-list li.selected .pin-indicator {
-    color: var(--bg);
-    opacity: 0.8;
-}
-
-/* Backlog Styles */
-.backlog-container {
-    padding: 1rem;
-    min-height: 200px;
-}
-
 .backlog-item {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    margin-bottom: 0.75rem;
-    padding: 1rem;
-    cursor: move;
-    transition: all 0.2s ease;
+    border-left: 3px solid var(--fg-dim);
+    border-radius: 8px; padding: 10px 12px; cursor: grab;
 }
-
-.backlog-item:hover {
-    border-color: var(--border-focus);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.backlog-item.dragging {
-    opacity: 0.5;
-    transform: rotate(2deg);
-}
-
+.backlog-item.dragging { opacity: .5; }
+.backlog-item.status-in-progress { border-left-color: var(--accent); }
+.backlog-item.status-done { border-left-color: var(--ok); opacity: .7; }
 .backlog-item-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
 }
-
 .backlog-item-title {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 600;
-    color: var(--fg);
-    flex: 1;
+    display: flex; align-items: center; gap: 8px; min-width: 0;
 }
-
-.status-icon {
-    font-size: 1.2rem;
-    color: var(--fg-dim);
+.backlog-item-title .title-text {
+    font-weight: 600; font-size: 13px; overflow-wrap: anywhere;
 }
-
-.backlog-item.status-todo .status-icon {
-    color: var(--fg-dim);
+.backlog-item-title .status-icon { color: var(--text-secondary); }
+.backlog-item-title .priority-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex: none;
 }
-
-.backlog-item.status-in-progress .status-icon {
-    color: var(--warn);
-}
-
-.backlog-item.status-done .status-icon {
-    color: var(--ok);
-}
-
-.title-text {
-    flex: 1;
-}
-
-.priority-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--fg-dim);
-}
-
 .backlog-item-actions {
-    display: flex;
-    gap: 0.5rem;
-    opacity: 0;
-    transition: opacity 0.2s ease;
+    display: flex; gap: 6px; flex: none;
 }
-
-.backlog-item:hover .backlog-item-actions {
-    opacity: 1;
-}
-
 .backlog-item-description {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    margin-bottom: 0.75rem;
-    line-height: 1.4;
+    color: var(--text-secondary); font-size: 12px;
+    margin-top: 6px; overflow-wrap: anywhere;
 }
-
 .backlog-item-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-size: 0.8rem;
+    display: flex; align-items: center; gap: 8px; margin-top: 8px;
 }
-
-.status-badge,
-.priority-badge {
-    padding: 0.2rem 0.5rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    text-transform: uppercase;
+.backlog-item-meta .status-badge,
+.backlog-item-meta .priority-badge {
+    font-size: 11px; padding: 1px 7px; border-radius: 999px;
+    background: var(--bg-input); color: var(--text-secondary);
 }
-
-.status-badge {
-    background: var(--bg-input);
-    color: var(--fg-dim);
-}
-
-.status-badge.status-todo {
-    background: var(--bg-input);
-    color: var(--fg-dim);
-}
-
-.status-badge.status-in-progress {
-    background: var(--warn);
-    color: var(--bg);
-}
-
-.status-badge.status-done {
-    background: var(--ok);
-    color: var(--bg);
-}
-
-.priority-badge.priority-low {
-    background: var(--bg-input);
-    color: var(--fg-dim);
-}
-
-.priority-badge.priority-medium {
-    background: var(--warn);
-    color: var(--bg);
-}
-
-.priority-badge.priority-high {
-    background: var(--err);
-    color: var(--bg);
-}
-
-.backlog-item .date {
-    color: var(--fg-dim);
-    margin-left: auto;
-}
-
-.empty-state {
-    text-align: center;
-    color: var(--fg-dim);
-    font-style: italic;
-    padding: 2rem;
-}
-
-/* Dialog styles for backlog item */
-.dialog-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-
-.dialog-card {
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 0;
-    min-width: 400px;
-    max-width: 600px;
-    max-height: 80vh;
-    overflow-y: auto;
-}
-
-.dialog-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    border-bottom: 1px solid var(--border);
-}
-
-.dialog-title {
-    margin: 0;
-    color: var(--fg);
-}
-
-.dialog-close {
-    background: none;
-    border: none;
-    color: var(--fg-dim);
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 0;
-    width: 2rem;
-    height: 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.dialog-close:hover {
-    color: var(--fg);
-}
-
-.dialog-form {
-    padding: 1rem;
-}
-
-.form-row {
-    margin-bottom: 1rem;
-}
-
-.form-label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: var(--fg);
-    font-weight: 500;
-}
-
-.form-input,
-.form-select,
-.form-textarea {
-    width: 100%;
-    padding: 0.5rem;
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--fg);
-    font-family: inherit;
-}
-
-.form-input:focus,
-.form-select:focus,
-.form-textarea:focus {
-    outline: none;
-    border-color: var(--border-focus);
-}
-
-.form-input.error {
-    border-color: var(--err);
-}
-
-.dialog-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    padding: 1rem;
-    border-top: 1px solid var(--border);
-}
-
+.backlog-item-meta .status-badge.status-done { color: var(--ok); }
+.backlog-item-meta .priority-badge.priority-high { color: var(--err); }
+.backlog-item-meta .priority-badge.priority-medium { color: var(--accent); }
+.backlog-item-meta .date { color: var(--fg-dim); font-size: 11px; margin-left: auto; }
 .btn-small {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.8rem;
+    font-size: 11px; padding: 3px 8px;
+    background: var(--bg-input); color: var(--fg);
+    border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
 }
+.btn-small:hover { background: var(--bg-active); }
+.btn-small.btn-danger { color: var(--err); }
 
-.btn-danger {
-    background: var(--err);
-    color: var(--bg);
+/* Dialog de item de backlog (mismo patrón que settings-overlay/card) */
+.dialog-overlay {
+    position: fixed; inset: 0; z-index: 1500;
+    background: rgba(0, 0, 0, .5);
+    display: flex; align-items: center; justify-content: center;
 }
+.dialog-overlay[hidden] { display: none; }
+.dialog-card {
+    width: 460px; max-width: calc(100vw - 32px);
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, .55);
+}
+.dialog-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+}
+.dialog-title { font-weight: 700; font-size: 15px; }
+.dialog-close {
+    background: none; border: none; color: var(--fg-dim);
+    font-size: 20px; line-height: 1; cursor: pointer;
+}
+.dialog-close:hover { color: var(--fg); }
+.dialog-form .form-row { margin-bottom: 10px; }
+.form-label {
+    display: block; font-size: 12px; color: var(--fg-dim);
+    margin-bottom: 4px; text-transform: capitalize;
+}
+.form-input, .form-select, .form-textarea {
+    width: 100%; box-sizing: border-box;
+    background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--fg);
+    padding: 7px 9px; font-size: 13px;
+}
+.form-textarea { resize: vertical; }
+.form-input.error { border-color: var(--err); }
+.dialog-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 
-.btn-danger:hover {
-    background: var(--err);
-    opacity: 0.9;
-}
+

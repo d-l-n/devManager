@@ -1,8 +1,8 @@
-// Package sysmon porta app/process/monitor.py: dueños de puerto,
-// uso CPU/RAM por árbol de procesos y kill_tree vía taskkill.
+// Package sysmon porta app/process/monitor.py: due├▒os de puerto,
+// uso CPU/RAM por ├írbol de procesos y kill_tree v├¡a taskkill.
 //
 // Paridad CPU%: los objetos *process.Process se cachean por pid para que
-// la baseline interna persista entre polls. El primer poll reporta ≈0;
+// la baseline interna persista entre polls. El primer poll reporta Ôëê0;
 // valores reales desde el segundo (cadencia 3s en MonitorPanel).
 package sysmon
 
@@ -46,7 +46,7 @@ var (
 )
 
 // getCachedProcess devuelve el proceso cacheado o lo crea primando la
-// baseline de CPU. Evicción de pids muertos al llegar al máximo.
+// baseline de CPU. Evicci├│n de pids muertos al llegar al m├íximo.
 func getCachedProcess(pid int) *process.Process {
 	procMu.Lock()
 	defer procMu.Unlock()
@@ -66,7 +66,7 @@ func getCachedProcess(pid int) *process.Process {
 	if err != nil {
 		return nil
 	}
-	_, _ = proc.Percent(0) // prime baseline (primera lectura ≈0, paridad psutil)
+	_, _ = proc.Percent(0) // prime baseline (primera lectura Ôëê0, paridad psutil)
 	entry := &procEntry{proc: proc, last: time.Now()}
 	procCache[pid] = entry
 	return proc
@@ -120,7 +120,7 @@ func childrenRecursive(root *process.Process) []*process.Process {
 	return out
 }
 
-// GetProcessTreeUsage agrega CPU%/RSS del árbol. CPU válida desde 2º poll.
+// GetProcessTreeUsage agrega CPU%/RSS del ├írbol. CPU v├ílida desde 2┬║ poll.
 func GetProcessTreeUsage(pid int) *ProcessUsage {
 	if pid <= 0 {
 		return nil
@@ -156,14 +156,110 @@ func GetProcessTreeUsage(pid int) *ProcessUsage {
 	}
 }
 
-// KillTree mata el proceso y sus hijos con taskkill /T /F.
+// Constantes del poll de supervivencia tras el kill (paridad wait_procs 3s).
+const (
+	killPollTimeout  = 3 * time.Second
+	killPollInterval = 100 * time.Millisecond
+)
+
+// killParams inyecta las primitivas de kill_tree para testear sin procesos reales.
+type killParams struct {
+	// preCheck emula el paso 2 de kill_tree: mensaje de error si el ra├¡z no
+	// existe o est├í sin acceso; "" si alcanzable.
+	preCheck func(pid int) string
+	// tree devuelve los pids del ├írbol a matar (ra├¡z + hijos recursivos).
+	tree func(pid int) []int
+	// kill ejecuta la matanza del ├írbol.
+	kill func(pid int) error
+	// aliveReporta si el proceso pid sigue vivo tras el kill.
+	alive func(pid int) bool
+	// pollTimeout/pollInterval gobiernan la verificaci├│n post-kill.
+	pollTimeout  time.Duration
+	pollInterval time.Duration
+}
+
+// KillTree mata el proceso y su ├írbol con taskkill /T /F y verifica que no
+// queden supervivientes (paridad monitor.kill_tree).
 func KillTree(pid int) (bool, string) {
+	return killTreeVerified(pid, killParams{
+		preCheck:     preCheckRoot,
+		tree:         killTreePids,
+		kill:         runTaskkill,
+		alive:        pidAlive,
+		pollTimeout:  killPollTimeout,
+		pollInterval: killPollInterval,
+	})
+}
+
+// killTreeVerified implementa kill_tree con primitivas inyectables.
+func killTreeVerified(pid int, p killParams) (bool, string) {
 	if pid <= 0 {
 		return false, "invalid pid"
 	}
-	cmd := exec.Command("taskkill", "/T", "/F", "/PID", strconv.Itoa(pid))
-	if err := cmd.Run(); err != nil {
-		return false, err.Error()
+	timeout := p.pollTimeout
+	if timeout <= 0 {
+		timeout = killPollTimeout
 	}
-	return true, fmt.Sprintf("Terminated process tree %d", pid)
+	interval := p.pollInterval
+	if interval <= 0 {
+		interval = killPollInterval
+	}
+	if msg := p.preCheck(pid); msg != "" {
+		return false, msg
+	}
+	tree := p.tree(pid)
+	if err := p.kill(pid); err != nil {
+		return false, fmt.Sprintf("Failed killing root pid %d: %v", pid, err)
+	}
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if !p.alive(pid) {
+			return true, fmt.Sprintf("Terminated %d process(es)", len(tree))
+		}
+		time.Sleep(interval)
+	}
+	var survivors int
+	for _, tp := range tree {
+		if p.alive(tp) {
+			survivors++
+		}
+	}
+	return false, fmt.Sprintf("%d process(es) survived termination", survivors)
+}
+
+// preCheckRoot emula el paso 2 de kill_tree: ra├¡z inexistente o sin acceso.
+func preCheckRoot(pid int) string {
+	if _, err := process.NewProcess(int32(pid)); err != nil {
+		exists, _ := process.PidExists(int32(pid))
+		if exists {
+			return fmt.Sprintf("Access denied killing pid %d", pid)
+		}
+		return fmt.Sprintf("No such process (pid %d)", pid)
+	}
+	return ""
+}
+
+// killTreePids devuelve los pids a matar: ra├¡z + hijos recursivos.
+func killTreePids(pid int) []int {
+	root, err := process.NewProcess(int32(pid))
+	if err != nil {
+		return nil
+	}
+	pids := []int{int(root.Pid)}
+	for _, c := range childrenRecursive(root) {
+		pids = append(pids, int(c.Pid))
+	}
+	return pids
+}
+
+// runTaskkill ejecuta taskkill /T /F sobre el ├írbol.
+func runTaskkill(pid int) error {
+	cmd := exec.Command("taskkill", "/T", "/F", "/PID", strconv.Itoa(pid))
+	return cmd.Run()
+}
+
+// pidAlive reporta si el proceso sigue existiendo (paridad pid_exists).
+func pidAlive(pid int) bool {
+	exists, _ := process.PidExists(int32(pid))
+	return exists
 }

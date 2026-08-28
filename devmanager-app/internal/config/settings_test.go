@@ -22,7 +22,7 @@ func TestSettingsRoundTrip(t *testing.T) {
 
 	custom := Settings{Theme: "oled", MonitorPolling: false, ToastsEnabled: false}
 	if err := SaveSettings(path, custom); err != nil {
-		t.Fatalf("save falló: %v", err)
+		t.Fatalf("save fall├│: %v", err)
 	}
 	got := LoadSettings(path)
 	if got != custom {
@@ -55,7 +55,7 @@ func TestLoadSettingsInvalidTheme(t *testing.T) {
 	}
 	got := LoadSettings(path)
 	if got.Theme != "dark" {
-		t.Errorf("tema inválido debe sanear a dark, got %q", got.Theme)
+		t.Errorf("tema inv├ílido debe sanear a dark, got %q", got.Theme)
 	}
 }
 
@@ -64,7 +64,7 @@ func TestSettingsPersistAcrossInstances(t *testing.T) {
 
 	first := Settings{Theme: "light", MonitorPolling: true, ToastsEnabled: false}
 	if err := SaveSettings(path, first); err != nil {
-		t.Fatalf("save falló: %v", err)
+		t.Fatalf("save fall├│: %v", err)
 	}
 	second := LoadSettings(path)
 	if second != first {
@@ -75,14 +75,14 @@ func TestSettingsPersistAcrossInstances(t *testing.T) {
 func TestSaveSettingsCreatesParentDirs(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "a", "b", "settings.json")
 	if err := SaveSettings(path, DefaultSettings()); err != nil {
-		t.Fatalf("save con dirs anidados falló: %v", err)
+		t.Fatalf("save con dirs anidados fall├│: %v", err)
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(data) == 0 {
-		t.Error("archivo no debe quedar vacío")
+		t.Error("archivo no debe quedar vac├¡o")
 	}
 }
 

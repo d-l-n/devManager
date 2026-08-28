@@ -30,7 +30,7 @@ func waitFor(t *testing.T, timeout time.Duration, cond func() bool) {
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	t.Fatal("condición no alcanzada en timeout")
+	t.Fatal("condici├│n no alcanzada en timeout")
 }
 
 func TestRunnerLifecycle(t *testing.T) {
@@ -55,7 +55,7 @@ func TestRunnerLifecycle(t *testing.T) {
 		t.Fatalf("start: %v", err)
 	}
 	if !r.IsRunning() {
-		t.Fatal("debería estar running tras Start")
+		t.Fatal("deber├¡a estar running tras Start")
 	}
 	if r.PID() <= 0 {
 		t.Fatal("PID debe ser positivo")
@@ -93,7 +93,7 @@ func TestRunnerNormalExit(t *testing.T) {
 	select {
 	case <-finished:
 	case <-time.After(5 * time.Second):
-		t.Fatal("proceso trivial debió terminar")
+		t.Fatal("proceso trivial debi├│ terminar")
 	}
 	if status != "NormalExit" || code != 0 {
 		t.Errorf("exit limpio esperado NormalExit/0, got %s/%d", status, code)

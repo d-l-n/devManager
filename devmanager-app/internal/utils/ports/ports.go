@@ -28,8 +28,8 @@ var (
 	vitePrefix  = regexp.MustCompile(`^(?:npx\s+)?vite\b`)
 )
 
-// BuildServerCommand replica build_server_command línea a línea:
-// añade el flag de puerto si el comando no lo trae ya.
+// BuildServerCommand replica build_server_command l├¡nea a l├¡nea:
+// a├▒ade el flag de puerto si el comando no lo trae ya.
 func BuildServerCommand(command string, port int) string {
 	if command == "" || port <= 0 {
 		return command

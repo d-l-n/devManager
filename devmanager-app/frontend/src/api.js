@@ -3,11 +3,10 @@ const app = () => window.go.main.App;
 
 export const api = {
     getProjects: () => app().GetProjects(),
-    addProject: (name, path) => app().AddProject(name, path),
-    removeProject: (id) => app().RemoveProject(id),
-    toggleProject: (id) => app().ToggleProject(id),
-    browseForFolder: () => app().BrowseForFolder(),
-    importProjects: (folderPath) => app().ImportProjects(folderPath),
+    addProject: (p) => app().AddProject(p),
+    updateProject: (i, p) => app().UpdateProject(i, p),
+    removeProject: (i) => app().RemoveProject(i),
+    togglePin: (i) => app().TogglePin(i),
     startServer: (i) => app().StartServer(i),
     stopServer: (i) => app().StopServer(i),
     restartServer: (i) => app().RestartServer(i),
@@ -41,19 +40,29 @@ export const api = {
     openTerminal: (i) => app().OpenTerminal(i),
     openVSCode: (i) => app().OpenVSCode(i),
     openOpenCode: (i) => app().OpenOpenCode(i),
+    // Detecci├│n de config de proyecto (Issue #11) + dialogo nativo
+    detectProjectConfig: (path) => app().DetectProjectConfig(path),
+    browseFolder: () => app().BrowseFolder(),
+    // App Log global (Issue #14)
+    getAppLog: () => app().GetAppLog(),
+    clearAppLog: () => app().ClearAppLog(),
     // Settings
     getSettings: () => app().GetSettings(),
     setSetting: (key, value) => app().SetSetting(key, value),
-    getEffectiveTheme: () => app().GetEffectiveTheme(),
-    // Backlog
+    // App
+    reloadProjects: () => app().ReloadProjects(),
+    autoAssignPorts: () => app().AutoAssignPorts(),
+    openURL: (url) => app().OpenURL(url),
+    restartApp: () => app().RestartApp(),
+    quit: () => app().Quit(),
+    // Backlog (feature)
+
+
     getBacklog: (i) => app().GetBacklog(i),
     addBacklogItem: (i, title, description, status, priority) => app().AddBacklogItem(i, title, description, status, priority),
     updateBacklogItem: (i, itemId, title, description, status, priority) => app().UpdateBacklogItem(i, itemId, title, description, status, priority),
     deleteBacklogItem: (i, itemId) => app().DeleteBacklogItem(i, itemId),
     moveBacklogItem: (i, itemId, newIndex) => app().MoveBacklogItem(i, itemId, newIndex),
-    // App
-    restartApp: () => app().RestartApp(),
-    quit: () => app().Quit(),
 };
 
 export const events = () => window.runtime;

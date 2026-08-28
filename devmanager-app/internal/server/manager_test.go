@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -49,6 +50,30 @@ func (r *recorder) hasState(s models.ServerState) bool {
 	return false
 }
 
+func (r *recorder) readyCount() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.ready
+}
+
+func (r *recorder) mismatchCount() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return len(r.mismatch)
+}
+
+func (r *recorder) countLogs(substr string) int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	n := 0
+	for _, l := range r.logs {
+		if strings.Contains(l, substr) {
+			n++
+		}
+	}
+	return n
+}
+
 func waitForState(t *testing.T, m *Manager, want models.ServerState, timeout time.Duration) {
 	t.Helper()
 	deadline := time.Now().Add(timeout)
@@ -59,6 +84,94 @@ func waitForState(t *testing.T, m *Manager, want models.ServerState, timeout tim
 		time.Sleep(2 * time.Millisecond)
 	}
 	t.Fatalf("estado %s no alcanzado en %v (actual %s)", want, timeout, m.State())
+}
+
+// proceso vivo: evita que OnFinished pase a Stopped antes de la detecci├│n.
+func newAliveProject(port int) models.Project {
+	p := newTestProject(port, 5000)
+	p.Server.Command = "cmd /c ping -n 30 127.0.0.1 >nul"
+	return p
+}
+
+// waitBloqueado bloquea hasta que el contexto se cancele (simula un server
+// que tarda m├ís que la simulaci├│n y que la espera aborta por ctx.Done).
+func waitBloqueado(ctx context.Context, timeout time.Duration) error {
+	<-ctx.Done()
+	return ctx.Err()
+}
+
+// TestLogDetectionCancelsPendingWait: la detecci├│n de puerto por log debe
+// cancelar la espera pendiente para que OnReady no se dispare dos veces
+// (bug #5).
+func TestLogDetectionCancelsPendingWait(t *testing.T) {
+	rec := &recorder{}
+	m := NewManager(newAliveProject(5173), rec.callbacks())
+	m.probePortFn = func(host string, port int) bool { return false }
+	m.waitPortFn = waitBloqueado
+	m.Start()
+
+	m.onRunnerOutput("Vite dev server running at http://localhost:5173", false)
+	waitForState(t, m, models.StateRunning, 5*time.Second)
+	// Da tiempo a la goroutine de espera para abortar por ctx.Done.
+	time.Sleep(150 * time.Millisecond)
+	if rec.readyCount() != 1 {
+		t.Errorf("OnReady debe dispararse exactamente una vez, got %d", rec.readyCount())
+	}
+	m.Stop()
+	waitForState(t, m, models.StateStopped, 5*time.Second)
+}
+
+// TestStderrDoesNotTriggerPortDetection: stderr nunca debe participar en la
+// detecci├│n de puerto ni en transiciones de estado (bug #6); stdout s├¡.
+func TestStderrDoesNotTriggerPortDetection(t *testing.T) {
+	rec := &recorder{}
+	m := NewManager(newAliveProject(5173), rec.callbacks())
+	m.probePortFn = func(host string, port int) bool { return false }
+	m.waitPortFn = waitBloqueado
+	m.Start()
+
+	// L├¡nea de stderr con puerto: solo log, sin OnReady ni RUNNING.
+	m.onRunnerError("[ERROR] App listening at http://localhost:5173")
+	if m.State() != models.StateStarting {
+		t.Fatalf("stderr no debe cambiar de estado, state=%s", m.State())
+	}
+	if rec.readyCount() != 0 {
+		t.Errorf("stderr no debe disparar OnReady, got %d", rec.readyCount())
+	}
+
+	// La misma l├¡nea por stdout s├¡ detecta el puerto.
+	m.onRunnerOutput("App listening at http://localhost:5173", false)
+	waitForState(t, m, models.StateRunning, 5*time.Second)
+	if rec.readyCount() != 1 {
+		t.Errorf("stdout debe disparar OnReady una vez, got %d", rec.readyCount())
+	}
+	m.Stop()
+	waitForState(t, m, models.StateStopped, 5*time.Second)
+}
+
+// TestPortMismatchNotifiesOnce: el aviso de puerto divergente debe emitirse
+// una sola vez, no en cada l├¡nea id├®ntica (bug #7).
+func TestPortMismatchNotifiesOnce(t *testing.T) {
+	rec := &recorder{}
+	m := NewManager(newAliveProject(5173), rec.callbacks())
+	m.probePortFn = func(host string, port int) bool { return false }
+	m.waitPortFn = waitBloqueado
+	m.Start()
+
+	m.onRunnerOutput("App listening at http://localhost:4173", false)
+	m.onRunnerOutput("App listening at http://localhost:4173", false)
+
+	if got := rec.mismatchCount(); got != 1 {
+		t.Errorf("OnPortMismatch debe emitirse una vez, got %d", got)
+	}
+	if got := rec.countLogs("[PORT MISMATCH]"); got != 1 {
+		t.Errorf("log [PORT MISMATCH] debe salir una vez, got %d", got)
+	}
+	if got := rec.countLogs("Active URL redirected to"); got != 1 {
+		t.Errorf("log de redirect debe salir una vez, got %d", got)
+	}
+	m.Stop()
+	waitForState(t, m, models.StateStopped, 5*time.Second)
 }
 
 func TestStartImmediateRunningWhenNoPort(t *testing.T) {
@@ -96,13 +209,13 @@ func TestStopRequestedSuppressesCrashError(t *testing.T) {
 		t.Error("taskkill tras Stop no debe reportar ERROR")
 	}
 	if m.FailureReason() != "" {
-		t.Errorf("failure_reason vacío tras stop, got %q", m.FailureReason())
+		t.Errorf("failure_reason vac├¡o tras stop, got %q", m.FailureReason())
 	}
 }
 
 func TestCrashEntersError(t *testing.T) {
 	p := newTestProject(0, 1000)
-	p.Server.Command = "cmd /c exit 3" // muere inmediatamente con código != 0
+	p.Server.Command = "cmd /c exit 3" // muere inmediatamente con c├│digo != 0
 	rec := &recorder{}
 	m := NewManager(p, rec.callbacks())
 	m.Start()

@@ -47,13 +47,13 @@ type Manager struct {
 	cancelWait   context.CancelFunc
 	restartTimer *time.Timer
 
-	// Inyección para tests. Defaults: ports.IsPortOpen / ports.WaitForPort.
+	// Inyecci├│n para tests. Defaults: ports.IsPortOpen / ports.WaitForPort.
 	probePortFn func(host string, port int) bool
 	waitPortFn  func(ctx context.Context, timeout time.Duration) error
 }
 
-// hostFromURL replica la extracción de host del Python:
-// 'http://localhost:5173' → 'localhost'.
+// hostFromURL replica la extracci├│n de host del Python:
+// 'http://localhost:5173' ÔåÆ 'localhost'.
 func hostFromURL(rawURL string) string {
 	host := rawURL
 	if host == "" {
@@ -106,7 +106,7 @@ func (m *Manager) FailureReason() string {
 	return m.failureReason
 }
 
-// PID expone el pid del proceso servidor si está corriendo (para monitor).
+// PID expone el pid del proceso servidor si est├í corriendo (para monitor).
 func (m *Manager) PID() int {
 	m.mu.Lock()
 	r := m.runner
@@ -240,7 +240,7 @@ func (m *Manager) Start() {
 
 	if portWasOccupied {
 		m.log(fmt.Sprintf(
-			"⚠️ [Port Notice] Configured port %d is already in use by another process. "+
+			"ÔÜá´©Å [Port Notice] Configured port %d is already in use by another process. "+
 				"The server may bind to a dynamic fallback port.", configuredPort), true)
 	}
 
@@ -267,7 +267,7 @@ func (m *Manager) Start() {
 
 	runner := process.NewRunner(process.RunnerCallbacks{
 		OnStdout:  func(line string) { m.onRunnerOutput(line, false) },
-		OnStderr:  func(line string) { m.onRunnerOutput("[ERROR] "+line, true) },
+		OnStderr:  func(line string) { m.onRunnerError("[ERROR] "+line) },
 		OnStarted: func() { m.onRunnerStarted(ctx, startupTimeout, waitFn) },
 		OnFinished: func(exitCode int, status string) {
 			cancel()
@@ -290,7 +290,7 @@ func (m *Manager) Start() {
 	}
 }
 
-// Stop replica ServerManager.stop(): marca intención ANTES de matar para que
+// Stop replica ServerManager.stop(): marca intenci├│n ANTES de matar para que
 // taskkill /F no se reporte como crash.
 func (m *Manager) Stop() {
 	m.mu.Lock()
@@ -341,7 +341,7 @@ func (m *Manager) Restart() {
 // onRunnerStarted replica _on_runner_started.
 func (m *Manager) onRunnerStarted(ctx context.Context, startupTimeout time.Duration, waitFn func(context.Context, time.Duration) error) {
 	m.mu.Lock()
-	m.stopRequested = false // launch real: un exit anómalo vuelve a ser significativo
+	m.stopRequested = false // launch real: un exit an├│malo vuelve a ser significativo
 	port := m.project.Server.Port
 	occupied := m.portWasOccupied
 	url := m.project.Server.URL
@@ -381,14 +381,24 @@ func (m *Manager) onRunnerStarted(ctx context.Context, startupTimeout time.Durat
 }
 
 func (m *Manager) onPortReady() {
+	if m.State() != models.StateStarting {
+		return // ya listo (detecci├│n por log): no disparar OnReady otra vez
+	}
 	m.enterRunning()
 	m.fireReady()
 	port := m.ActivePort()
 	m.log(fmt.Sprintf("Server is ready on port %d", port), false)
 }
 
-// onRunnerOutput replica _on_runner_output: log en vivo + detección dinámica
-// de puerto + transición STARTING→RUNNING por log.
+// onRunnerError replica _on_runner_error: solo registra el error en vivo.
+// NUNCA hace detecci├│n de puerto ni transiciones de estado (paridad Python:
+// error_ready ÔåÆ _on_runner_error, solo log [ERROR]).
+func (m *Manager) onRunnerError(line string) {
+	m.log(line, true)
+}
+
+// onRunnerOutput replica _on_runner_output: log en vivo + detecci├│n din├ímica
+// de puerto + transici├│n STARTINGÔåÆRUNNING por log.
 func (m *Manager) onRunnerOutput(line string, isError bool) {
 	m.log(line, isError)
 
@@ -406,6 +416,7 @@ func (m *Manager) onRunnerOutput(line string, isError bool) {
 
 	var emitDetected bool
 	var detectedURL string
+	mismatchNow := false
 
 	m.mu.Lock()
 	configuredPort := m.project.Server.Port
@@ -419,18 +430,18 @@ func (m *Manager) onRunnerOutput(line string, isError bool) {
 	if isDifferentFromConfig && !m.isMismatch {
 		m.isMismatch = true
 		emitDetected = true
+		mismatchNow = true
 	} else if hasChanged || detected == configuredPort {
 		emitDetected = true
 	}
-	mismatchNow := m.isMismatch && isDifferentFromConfig
 	m.mu.Unlock()
 
 	if mismatchNow {
 		if m.cb.OnPortMismatch != nil {
 			m.cb.OnPortMismatch(configuredPort, detected, detectedURL)
 		}
-		m.log(fmt.Sprintf("⚠️ [PORT MISMATCH] Server started on port %d, differing from configured port %d", detected, configuredPort), true)
-		m.log(fmt.Sprintf("🔗 Active URL redirected to: %s", detectedURL), false)
+		m.log(fmt.Sprintf("ÔÜá´©Å [PORT MISMATCH] Server started on port %d, differing from configured port %d", detected, configuredPort), true)
+		m.log(fmt.Sprintf("­ƒöù Active URL redirected to: %s", detectedURL), false)
 	} else if hasChanged {
 		m.log(fmt.Sprintf("[Auto-Detect] Server bound to active port %d", detected), false)
 	}
@@ -440,6 +451,15 @@ func (m *Manager) onRunnerOutput(line string, isError bool) {
 	}
 
 	if m.State() == models.StateStarting {
+		// Puerto detectado por log: cancela la espera pendiente para que la
+		// goroutine de onRunnerStarted no dispare onPortReady y OnReady otra
+		// vez (paridad Python: el PortChecker se detiene al detectar).
+		m.mu.Lock()
+		cancel := m.cancelWait
+		m.mu.Unlock()
+		if cancel != nil {
+			cancel()
+		}
 		m.enterRunning()
 		m.fireReady()
 	}

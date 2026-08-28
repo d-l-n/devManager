@@ -50,7 +50,7 @@ func (r *Runner) PID() int {
 	return 0
 }
 
-// Start ejecuta command vía cmd.exe /d /s /c (paridad QProcess Windows).
+// Start ejecuta command v├¡a cmd.exe /d /s /c (paridad QProcess Windows).
 func (r *Runner) Start(command, workingDir string, extraEnv map[string]string) error {
 	r.mu.Lock()
 	if r.cmd != nil && r.cmd.Process != nil && r.cmd.ProcessState == nil {
@@ -134,7 +134,7 @@ func scanLines(wg *sync.WaitGroup, f interface{ Read([]byte) (int, error) }, emi
 	}
 }
 
-// Stop replica ProcessRunner.stop(): taskkill /T /F al árbol y espera
+// Stop replica ProcessRunner.stop(): taskkill /T /F al ├írbol y espera
 // acotada (waitForFinished(5000)).
 func (r *Runner) Stop() {
 	r.mu.Lock()
