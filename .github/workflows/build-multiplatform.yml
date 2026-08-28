@@ -67,7 +67,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: '1.26'
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -94,6 +94,10 @@ jobs:
       - name: Install frontend dependencies
         working-directory: ./devmanager-app/frontend
         run: npm ci
+
+      - name: Build frontend assets
+        working-directory: ./devmanager-app/frontend
+        run: npm run build
 
       - name: Build Wails application
         working-directory: ./devmanager-app
