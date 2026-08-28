@@ -62,6 +62,7 @@ function renderList() {
     const ul = $('project-list');
     ul.innerHTML = '';
     const q = $('search').value.toLowerCase();
+    let visibleCount = 0;
     // Fijados primero (orden estable: pinned antes que unpinned)
     const order = state.projects
         .map((_, i) => i)
@@ -71,6 +72,8 @@ function renderList() {
         if (q && !p.name.toLowerCase().includes(q)) return;
         const serverState = state.serverStates.get(i) || 'stopped';
         if (state.projectFilter !== 'all' && serverState !== state.projectFilter) return;
+        
+        visibleCount++;
         const li = document.createElement('li');
         const cls = [];
         if (i === state.selected) cls.push('selected');
@@ -113,6 +116,27 @@ function renderList() {
         });
         ul.appendChild(li);
     });
+    
+    // Show/hide empty state message
+    const emptyMsg = $('projects-empty');
+    if (visibleCount === 0) {
+        emptyMsg.hidden = false;
+        // Customize message based on filter
+        if (state.projectFilter === 'running') {
+            emptyMsg.textContent = 'No running projects';
+        } else if (state.projectFilter === 'stopped') {
+            emptyMsg.textContent = 'No stopped projects';
+        } else if (q) {
+            emptyMsg.textContent = `No projects match "${q}"`;
+        } else if (state.projects.length === 0) {
+            emptyMsg.textContent = 'No projects yet. Add one to get started!';
+        } else {
+            emptyMsg.textContent = 'No projects found';
+        }
+    } else {
+        emptyMsg.hidden = true;
+    }
+    
     // Contador de proyectos en el sidebar
     const count = $('project-count');
     count.textContent = `${state.projects.length} project(s)`;

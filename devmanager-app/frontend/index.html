@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Local Dev Manager</title>
     <link rel="stylesheet" href="src/theme.css">
+    <link rel="stylesheet" href="src/brutalist-enhanced.css">
 </head>
 <body>
 <div id="app">
@@ -19,6 +20,9 @@
             <button class="filter-chip" data-filter="stopped">Stopped</button>
         </div>
         <ul id="project-list"></ul>
+        <div id="projects-empty" class="dim center padded" hidden>
+            No projects found matching the current filter
+        </div>
         <footer class="sidebar-footer" aria-label="Application version">v1.0.0</footer>
     </aside>
     <div id="main-area">
