@@ -164,6 +164,26 @@ func (m *Manager) TogglePin(index int) error {
 	return nil
 }
 
+// SaveDetectedPort persiste el puerto que el servidor informó en runtime y
+// reconstruye su URL localhost. Mantiene la configuración coherente para el
+// siguiente inicio sin aceptar una URL arbitraria desde el frontend.
+func (m *Manager) SaveDetectedPort(index, port int) error {
+	if index < 0 || index >= len(m.projects) {
+		return fmt.Errorf("index %d out of range", index)
+	}
+	if port < 1 || port > 65535 {
+		return fmt.Errorf("invalid port %d", port)
+	}
+	p := &m.projects[index]
+	p.Server.Port = port
+	p.Server.URL = fmt.Sprintf("http://localhost:%d", port)
+	if err := m.Save(); err != nil {
+		return err
+	}
+	m.emitChanged()
+	return nil
+}
+
 // ConfiguredPorts replica get_configured_ports: todos los port>0.
 func (m *Manager) ConfiguredPorts() []int {
 	var out []int

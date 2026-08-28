@@ -134,6 +134,10 @@ export function ReloadProjects() {
   return window['go']['main']['App']['ReloadProjects']();
 }
 
+export function SaveDetectedPort(arg1, arg2) {
+  return window['go']['main']['App']['SaveDetectedPort'](arg1, arg2);
+}
+
 export function RemoveProject(arg1) {
   return window['go']['main']['App']['RemoveProject'](arg1);
 }

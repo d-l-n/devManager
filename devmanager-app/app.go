@@ -58,15 +58,15 @@ type App struct {
 	trayOK    bool // spike tray: Register complet├│ onTrayReady
 	forceExit bool // quit real desde tray/atajo: OnBeforeClose no debe ocultar
 
-	appLog    *logger.Ring // App Log global (captura stdout/stderr, ring 3000)
-	restoreLog func()      // restaura os.Stdout/os.Stderr originales
+	appLog     *logger.Ring // App Log global (captura stdout/stderr, ring 3000)
+	restoreLog func()       // restaura os.Stdout/os.Stderr originales
 
 	// Notificaciones nativas (paridad _notify de Python): cooldown 3s de
 	// notificaciones de bandeja cuando la ventana est├í oculta + pendiente.
 	lastTrayNotify time.Time
 	pendingNotify  *pendingTrayNotify
 	notifyMu       sync.Mutex
-	windowHidden   bool // oculta a bandeja via beforeClose (paridad isVisible)
+	windowHidden   bool   // oculta a bandeja via beforeClose (paridad isVisible)
 	traySig        string // firma del men├║ de bandeja (evita rebuilds innecesarios)
 }
 
@@ -268,6 +268,23 @@ func (a *App) TogglePin(index int) {
 // habilitado; devuelve cu├íntos se modificaron (paridad count => toast).
 func (a *App) AutoAssignPorts() int {
 	return a.cfg.AutoAssignUniquePorts(5173)
+}
+
+// SaveDetectedPort confirma en projects.json el puerto detectado por el
+// servidor. También actualiza el manager vivo para que los siguientes flujos
+// usen el nuevo puerto sin reiniciar la aplicación.
+func (a *App) SaveDetectedPort(index, port int) []string {
+	if err := a.cfg.SaveDetectedPort(index, port); err != nil {
+		return []string{err.Error()}
+	}
+	projects := a.cfg.Projects()
+	a.mu.Lock()
+	sm := a.servers[index]
+	a.mu.Unlock()
+	if sm != nil && index < len(projects) {
+		sm.UpdateProject(projects[index])
+	}
+	return nil
 }
 
 // ReloadProjects replica config_manager.load(): relee projects.json desde

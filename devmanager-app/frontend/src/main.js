@@ -26,6 +26,9 @@ const state = {
     logWrap: false,
     logAutoScroll: true,
     view: 'project',
+    projectFilter: 'all',
+    serverStates: new Map(),
+    portMismatches: new Map(),
 };
 
 function timestamp() {
@@ -39,8 +42,18 @@ async function refreshProjects(keepSelection = true) {
     if (!keepSelection || state.selected >= state.projects.length) {
         state.selected = state.projects.length ? 0 : -1;
     }
+    await refreshServerStates();
     renderList();
     renderDetail();
+}
+
+async function refreshServerStates() {
+    const statuses = await Promise.all(state.projects.map(async (_, index) => {
+        try { return [index, await api.getServerStatus(index)]; } catch { return [index, null]; }
+    }));
+    statuses.forEach(([index, status]) => {
+        if (status && status.state) state.serverStates.set(index, status.state);
+    });
 }
 
 function renderList() {
@@ -54,6 +67,8 @@ function renderList() {
     order.forEach((i) => {
         const p = state.projects[i];
         if (q && !p.name.toLowerCase().includes(q)) return;
+        const serverState = state.serverStates.get(i) || 'stopped';
+        if (state.projectFilter !== 'all' && serverState !== state.projectFilter) return;
         const li = document.createElement('li');
         const cls = [];
         if (i === state.selected) cls.push('selected');
@@ -132,12 +147,17 @@ function updateDots() {
     document.querySelectorAll('.proj-dot').forEach(async (dot) => {
         const i = parseInt(dot.dataset.index, 10);
         const status = await api.getServerStatus(i);
+        const previous = state.serverStates.get(i);
+        state.serverStates.set(i, status.state);
         dot.className = `proj-dot ${status.state}`;
         const label = dot.closest('li') && dot.closest('li').querySelector('.proj-state');
         if (label) {
             const running = status.state === 'running';
             label.textContent = running ? 'running' : '';
             label.classList.toggle('running', running);
+        }
+        if (previous !== undefined && previous !== status.state && state.projectFilter !== 'all') {
+            renderList();
         }
     });
 }
@@ -180,12 +200,16 @@ async function refreshStatus() {
         up.textContent = '';
     }
 
-    // Badge Server (Task 15): estado del servidor seleccionado
+    // Badge Server: puerto activo/configurado y advertencia de desajuste.
     const bs = $('badge-server');
     if (bs) {
         bs.className = `badge ${status.state}`;
-        bs.textContent = `Server: ${status.state}`;
+        const port = status.activePort || state.projects[state.selected].server.port;
+        const mismatch = state.portMismatches.get(state.selected);
+        bs.textContent = `Server: :${port}${mismatch ? ' ⚠' : ''}`;
     }
+    const saveDetectedPort = $('btn-save-detected-port');
+    if (saveDetectedPort) saveDetectedPort.hidden = !state.portMismatches.has(state.selected);
 
     // Badge Playwright (Task 15): sin playwright ÔåÆ 'off'
     try {
@@ -198,14 +222,14 @@ async function refreshStatus() {
         }
     } catch { /* sin playwright configurado */ }
 
-    // Badge Git (Task 15): limpio/sucio; 'ÔÇö' cuando no es repo
+    // Badge Git: rama actual y estado del árbol; '—' cuando no es repo.
     try {
         const gs = await api.getGitStatus(state.selected);
         const bg = $('badge-git');
         if (bg && gs) {
             if (gs.isRepo) {
                 bg.className = `badge ${gs.isDirty ? 'dirty' : 'clean'}`;
-                bg.textContent = `Git: ${gs.isDirty ? 'dirty' : 'clean'}`;
+                bg.textContent = `Git: ${gs.branch || 'unknown'}${gs.isDirty ? ' • dirty' : ''}`;
             } else {
                 bg.className = 'badge';
                 bg.textContent = 'Git: ÔÇö';
@@ -304,6 +328,14 @@ function wireEvents() {
     $('btn-reload').addEventListener('click', () => api.reloadProjects());
 
     $('search').addEventListener('input', renderList);
+    document.querySelectorAll('.filter-chip').forEach((button) => {
+        button.addEventListener('click', () => {
+            state.projectFilter = button.dataset.filter;
+            document.querySelectorAll('.filter-chip').forEach((chip) =>
+                chip.classList.toggle('active', chip === button));
+            renderList();
+        });
+    });
     $('errors-only').addEventListener('change', (e) => {
         state.errorsOnly = e.target.checked;
         reloadLogs();
@@ -384,6 +416,18 @@ function wireEvents() {
         const p = state.projects[state.selected];
         if (p && p.server && p.server.url) api.openURL(p.server.url);
     });
+    $('btn-save-detected-port').addEventListener('click', async () => {
+        const mismatch = state.portMismatches.get(state.selected);
+        if (!mismatch) return;
+        const errors = await api.saveDetectedPort(state.selected, mismatch.detected);
+        if (errors && errors.length) {
+            showToast('Port Mismatch', errors.join('\n'), 'error');
+            return;
+        }
+        state.portMismatches.delete(state.selected);
+        await refreshProjects();
+        showToast('Server Port', `Saved detected port ${mismatch.detected}`, 'success');
+    });
 
     // Eventos push desde Go
     events().EventsOn('projects:changed', async () => refreshProjects());
@@ -397,20 +441,25 @@ function wireEvents() {
     events().EventsOn('server:ready', () => refreshStatus());
 
     // Puerto detectado Ôëá configurado: actualizar la URL en estado y panel (Task 19)
-    events().EventsOn('server:port_detected', ({ index, url }) => {
+    events().EventsOn('server:port_detected', ({ index, port, url }) => {
         const p = state.projects[index];
-        if (p && url && p.server) p.server.url = url;
+        if (p && p.server) {
+            if (url) p.server.url = url;
+            if (port) p.server.activePort = port;
+        }
         if (index === state.selected && $('url-label')) {
             if (url) $('url-label').textContent = url;
             refreshStatus();
         }
     });
-    events().EventsOn('server:port_mismatch', ({ configured, detected, url }) => {
+    events().EventsOn('server:port_mismatch', ({ index, configured, detected, url }) => {
+        state.portMismatches.set(index, { configured, detected, url });
         const parts = [];
         if (configured != null) parts.push(`Configured ${configured}`);
         if (detected != null) parts.push(`detected ${detected}`);
         if (url) parts.push(`redirected to ${url}`);
         showToast('Port Mismatch', parts.join(' '), 'warning');
+        if (index === state.selected) refreshStatus();
     });
 
     setInterval(refreshStatus, 1000); // uptime ticker
@@ -489,8 +538,7 @@ function wireKeyboardShortcuts() {
             }
             if (key === 'l') {
                 e.preventDefault();
-                switchView('project');
-                switchTab('logs');
+                appLogDialog.open();
                 return;
             }
             if (key === 't' && hasSelection()) {

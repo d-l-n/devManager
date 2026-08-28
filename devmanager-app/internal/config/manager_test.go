@@ -132,7 +132,7 @@ func TestIndexOutOfBoundsNoop(t *testing.T) {
 func TestNextAvailablePort(t *testing.T) {
 	path := tempPath(t)
 	m, _ := NewManager(path, Options{})
-	m.AddProject(sample("A")) // puerto 4000 configurado
+	m.AddProject(sample("A"))                                            // puerto 4000 configurado
 	m.probeFn = func(host string, port int) bool { return port <= 5174 } // 5173 y 5174 simulados ocupados
 
 	got := m.NextAvailablePort(5173)
@@ -156,5 +156,31 @@ func TestConfiguredPortsIncludesDisabled(t *testing.T) {
 	got := m.ConfiguredPorts()
 	if len(got) != 2 || got[0] != 4000 || got[1] != 9999 {
 		t.Errorf("ConfiguredPorts = %v", got)
+	}
+}
+
+func TestSaveDetectedPortPersists(t *testing.T) {
+	path := tempPath(t)
+	m, _ := NewManager(path, Options{})
+	m.AddProject(sample("A"))
+
+	if err := m.SaveDetectedPort(0, 4300); err != nil {
+		t.Fatalf("SaveDetectedPort: %v", err)
+	}
+	got := m.Projects()[0].Server
+	if got.Port != 4300 || got.URL != "http://localhost:4300" {
+		t.Errorf("server = %+v, want port/url for 4300", got)
+	}
+
+	m2, _ := NewManager(path, Options{})
+	got = m2.Projects()[0].Server
+	if got.Port != 4300 || got.URL != "http://localhost:4300" {
+		t.Errorf("persisted server = %+v, want port/url for 4300", got)
+	}
+	if err := m.SaveDetectedPort(4, 4300); err == nil {
+		t.Error("out-of-range index must fail")
+	}
+	if err := m.SaveDetectedPort(0, 0); err == nil {
+		t.Error("invalid port must fail")
 	}
 }

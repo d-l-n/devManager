@@ -52,6 +52,7 @@ export const api = {
     // App
     reloadProjects: () => app().ReloadProjects(),
     autoAssignPorts: () => app().AutoAssignPorts(),
+    saveDetectedPort: (i, port) => app().SaveDetectedPort(i, port),
     openURL: (url) => app().OpenURL(url),
     restartApp: () => app().RestartApp(),
     quit: () => app().Quit(),

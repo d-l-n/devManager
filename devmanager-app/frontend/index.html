@@ -14,6 +14,11 @@
             <button id="btn-add" class="icon-btn" title="Add Project">+</button>
         </div>
         <input id="search" type="text" placeholder="Search projects...">
+        <div id="project-filters" class="filter-chips" aria-label="Project status filters">
+            <button class="filter-chip active" data-filter="all">All</button>
+            <button class="filter-chip" data-filter="running">Running</button>
+            <button class="filter-chip" data-filter="stopped">Stopped</button>
+        </div>
         <ul id="project-list"></ul>
     </aside>
     <div id="main-area">
@@ -49,6 +54,7 @@
                 <span id="url-label"></span>
                 <span id="uptime-label"></span>
                 <button id="btn-open-url" class="icon-btn" title="Open in browser">&#128279;</button>
+                <button id="btn-save-detected-port" class="btn btn-warn" hidden>Save detected port</button>
             </div>
             <nav id="tabs">
                 <button class="tab active" data-tab="logs">Logs</button>

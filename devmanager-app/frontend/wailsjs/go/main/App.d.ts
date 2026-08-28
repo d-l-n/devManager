@@ -74,6 +74,8 @@ export function Quit():Promise<void>;
 
 export function ReloadProjects():Promise<void>;
 
+export function SaveDetectedPort(arg1:number,arg2:number):Promise<Array<string>>;
+
 export function RemoveProject(arg1:number):Promise<void>;
 
 export function RestartApp():Promise<void>;

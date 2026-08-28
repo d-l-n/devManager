@@ -25,7 +25,7 @@ Una aplicación de escritorio nativa para Windows desarrollada con Go y Wails v2
 - **App Log global:** Ventana independiente (`Ctrl+Alt+L` o botón del sidebar) con el log de la aplicación, separada del contexto de proyecto.
 - **Sidebar compacto:** Acciones Add/Edit/Remove como iconos en el header (`Ctrl+N`, `Ctrl+E`, tecla `Supr`) y doble clic para editar.
 - **Settings (Ctrl+,):** Preferencias persistentes de la aplicación (polling de recursos, toasts in-app).
-- **Temas Light / Dark / OLED / Auto:** Ciclo con `Ctrl+Shift+T` o desde el menú View; el modo OLED usa negro puro (`#000000`) con textos y acentos calibrados para mantener contraste WCAG AA (≥4.5:1). El modo "Auto" detecta y sigue automáticamente el tema del sistema operativo (Windows/macOS/Linux).
+- **Temas Light / Dark / OLED:** Ciclo con `Ctrl+Shift+T`; el modo OLED usa negro puro (`#000000`) con textos y acentos calibrados para mantener contraste WCAG AA (≥4.5:1).
 - **Iconografía Reicon:** Integración completa de iconos vectoriales SVG limpios basados en la librería open-source [Reicon](https://github.com/dqev/reicon) (trazo 1.5px, estilo outline y filled nativo para PySide6).
 - **Consola de logs en tiempo real:** Captura `stdout` y `stderr` con marcas de tiempo `[HH:MM:SS]`, scroll automático y diferenciación de errores.
 - **Seguridad en Windows:** Terminación segura de árboles de procesos externos mediante PID (`taskkill /T /F /PID <pid>`), sin afectar procesos de terceros.
@@ -60,40 +60,7 @@ La aplicación es multiplataforma. Elige tu sistema operativo:
   ```
 - **Para ejecutar:** `./build/bin/devmanager` (Linux) o `./build/bin/devmanager.app` (macOS)
 
-### Usando Make (todas las plataformas)
-```bash
-make help          # Ver todos los comandos disponibles
-make build         # Compilar para la plataforma actual
-make run           # Compilar y ejecutar
-make dev           # Modo desarrollo con hot-reload
-make test          # Ejecutar tests
-```
-
-### Universal Runner (Recomendado)
-
-Para una experiencia multiplataforma unificada, usa el **Universal Runner**:
-
-```bash
-# Construir el runner
-cd run
-go build -o ../run main.go
-cd ..
-
-# Instalar globalmente (opcional)
-# Windows: install.bat
-# Linux/macOS: ./install.sh
-
-# Usar el runner
-./run test         # Ejecutar tests
-./run build        # Construir aplicación
-./run dev          # Modo desarrollo
-./run clean        # Limpiar artefactos
-./run install      # Instalar dependencias
-```
-
-El Universal Runner detecta automáticamente tu plataforma y adapta la salida de colores según tu terminal.
-
-La aplicación es completamente nativa y no requiere dependencias de Python ni Node.js para funcionar.
+La aplicación compilada es nativa y no requiere Python ni Node.js en tiempo de ejecución.
 
 ---
 
@@ -104,8 +71,6 @@ Para ejecutar la suite de pruebas unitarias:
 ```bash
 cd devmanager-app
 go test ./internal/... -v
-# O usando Make:
-make test
 ```
 
 Para desarrollo en modo live-reload:
@@ -113,18 +78,6 @@ Para desarrollo en modo live-reload:
 ```bash
 cd devmanager-app
 wails dev
-# O usando Make:
-make dev
-```
-
-### Comandos de desarrollo útiles
-
-```bash
-make help          # Ver todos los comandos
-make check-deps    # Verificar dependencias
-make deps          # Instalar dependencias
-make clean         # Limpiar archivos de compilación
-make build-all     # Compilar para todas las plataformas
 ```
 
 ---
@@ -135,11 +88,6 @@ make build-all     # Compilar para todas las plataformas
 devManager/
 ├── README.md
 ├── projects.json              # Configuración de proyectos (compartido)
-├── projects.json.example      # Plantilla de configuración
-├── run-go.vbs                # Script de ejecución para Windows
-├── run.sh                    # Script de ejecución para Linux/macOS
-├── run.command                # Script ejecutable para macOS (doble clic)
-├── Makefile                  # Comandos de construcción y desarrollo
 ├── .gitignore
 │
 └── devmanager-app/                # Aplicación principal (Go + Wails v2)
