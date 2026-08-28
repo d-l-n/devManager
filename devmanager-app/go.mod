@@ -1,6 +1,6 @@
 module github.com/d-l-n/devmanager
 
-go 1.26.0
+go 1.25.0
 
 require (
 	github.com/energye/systray v1.0.3
@@ -44,5 +44,3 @@ require (
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/text v0.39.0 // indirect
 )
-
-// replace github.com/wailsapp/wails/v2 v2.15.0 => C:\Users\dylan\go\pkg\mod
