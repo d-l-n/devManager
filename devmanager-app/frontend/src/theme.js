@@ -1,20 +1,33 @@
-// Tema compartido: ciclo y aplicaci├│n con persistencia (Task 7).
+// Tema compartido: aplicación con persistencia y seguimiento del sistema.
 import { api } from './api.js';
 
-export const THEME_CYCLE = ['light', 'dark', 'oled'];
+export const THEME_CYCLE = ['light', 'dark'];
+export const SETTINGS_THEMES = ['light', 'dark', 'oled', 'system'];
+
+const systemThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+let themePreference = 'dark';
 
 export function isValidTheme(theme) {
-    return THEME_CYCLE.includes(theme);
+    return SETTINGS_THEMES.includes(theme);
 }
 
 export function currentTheme() {
     return document.documentElement.dataset.theme || 'dark';
 }
 
-// Valida Ôêê light|dark|oled, aplica data-theme y persiste.
-// El eco settings:changed de Go solo actualiza estado local (sin bucle).
-export function applyTheme(theme) {
-    const t = isValidTheme(theme) ? theme : 'dark';
-    document.documentElement.dataset.theme = t;
-    api.setSetting('theme', t);
+function resolvedTheme(theme) {
+    return theme === 'system' ? (systemThemeQuery.matches ? 'dark' : 'light') : theme;
 }
+
+// Valida light|dark|oled|system, aplica el tema resuelto y opcionalmente persiste.
+export function applyTheme(theme, { persist = true } = {}) {
+    themePreference = isValidTheme(theme) ? theme : 'dark';
+    document.documentElement.dataset.theme = resolvedTheme(themePreference);
+    if (persist) api.setSetting('theme', themePreference);
+}
+
+systemThemeQuery.addEventListener('change', () => {
+    if (themePreference === 'system') {
+        document.documentElement.dataset.theme = resolvedTheme(themePreference);
+    }
+});

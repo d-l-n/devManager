@@ -55,7 +55,7 @@ func TestIsRepo(t *testing.T) {
 		t.Error("ruta inexistente no debe ser repo")
 	}
 	if IsRepo("") {
-		t.Error("ruta vac├¡a no debe ser repo")
+		t.Error("ruta vacía no debe ser repo")
 	}
 }
 
@@ -69,7 +69,7 @@ func TestGetGitInfoCleanAndDirty(t *testing.T) {
 		t.Error("branch debe leerse de .git/HEAD")
 	}
 	if info.IsDirty {
-		t.Error("repo reci├®n commiteado debe estar clean")
+		t.Error("repo recién commiteado debe estar clean")
 	}
 	write(t, filepath.Join(repo, "a.txt"), "cambiado\n")
 	info = GetGitInfo(repo)
@@ -120,7 +120,7 @@ func TestGetStatusFullWithUpstream(t *testing.T) {
 		t.Errorf("last_commit mal parseado: %+v", st.LastCommit)
 	}
 
-	// Commit local sin push ÔåÆ ahead=1.
+	// Commit local sin push → ahead=1.
 	write(t, filepath.Join(work, "f.txt"), "2\n")
 	gexec(t, work, "add", ".")
 	gexec(t, work, "commit", "-m", "second")

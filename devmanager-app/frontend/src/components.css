@@ -96,9 +96,7 @@
   font-weight: 500;
 }
 
-.git-branch::before {
-  content: '🌿';
-}
+.git-branch::before { content: none; }
 
 .git-info {
   display: grid;

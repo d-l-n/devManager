@@ -51,7 +51,7 @@ func index(s, sub string) int {
 }
 
 // newPair crea playwright.Manager + server.Manager acoplados con proceso
-// de servidor REAL. DESVIACI├ôN vs plan: probePortFn/waitPortFn son campos
+// de servidor REAL. DESVIACIÓN vs plan: probePortFn/waitPortFn son campos
 // unexported de server.Manager y no son inyectables desde este paquete;
 // la puerta de ready se controla con el comando real del servidor.
 func newPair(t *testing.T, proj models.Project) (*Manager, *server.Manager, *rec) {
@@ -112,7 +112,7 @@ func waitFor(t *testing.T, timeout time.Duration, cond func() bool) {
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	t.Fatal("condici├│n no alcanzada en timeout")
+	t.Fatal("condición no alcanzada en timeout")
 }
 
 func TestEmptyCommandLogsAndStaysIdle(t *testing.T) {
@@ -190,7 +190,7 @@ func TestAutoStartWaitsForServerThenRuns(t *testing.T) {
 
 func TestCancelledWhenServerFailsToStart(t *testing.T) {
 	// Servidor real que nunca abre el puerto; StartupTimeout corto fuerza
-	// la transici├│n a ERROR (paridad del gate inyectado del plan).
+	// la transición a ERROR (paridad del gate inyectado del plan).
 	proj := baseProject(true, true, "cmd /c echo never")
 	proj.Server.Command = "ping -n 30 127.0.0.1 > nul"
 	proj.Server.StartupTimeout = 800
@@ -199,7 +199,7 @@ func TestCancelledWhenServerFailsToStart(t *testing.T) {
 	pm.RunTests()
 	waitForState(t, pm, StateError, 10*time.Second)
 	if !r.hasLog("Server failed to start or timed out. Playwright execution cancelled.") {
-		t.Errorf("log de cancelaci├│n ausente: %v", r.logs)
+		t.Errorf("log de cancelación ausente: %v", r.logs)
 	}
 	sm.Stop()
 }
@@ -245,7 +245,7 @@ func TestUpdateProjectChangesCommands(t *testing.T) {
 	pm, sm, _ := newPair(t, baseProject(false, true, "cmd /c echo v1"))
 	updated := baseProject(false, true, fmt.Sprintf("cmd /c echo v%d", 2))
 	pm.UpdateProject(updated)
-	// Sin aserci├│n directa: UpdateProject no debe panear ni cambiar estado.
+	// Sin aserción directa: UpdateProject no debe panear ni cambiar estado.
 	if pm.State() != StateIdle {
 		t.Errorf("tras update estado = %s, want idle", pm.State())
 	}

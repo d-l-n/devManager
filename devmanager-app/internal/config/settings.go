@@ -7,17 +7,17 @@ import (
 )
 
 // Settings porta app/config/settings.py: preferencias de app persistidas
-// en JSON (schema propio Go, keys snake_case ÔÇö no es projects.json).
+// en JSON (schema propio Go, keys snake_case — no es projects.json).
 type Settings struct {
 	Theme          string `json:"theme"`
 	MonitorPolling bool   `json:"monitor_polling"`
 	ToastsEnabled  bool   `json:"toasts_enabled"`
 }
 
-// Temas v├ílidos; cualquier otro valor sanea a "dark" (paridad tolerante).
+// Temas válidos; cualquier otro valor sanea a "dark" (paridad tolerante).
 func validTheme(t string) bool {
 	switch t {
-	case "light", "dark", "oled":
+	case "light", "dark", "oled", "system":
 		return true
 	}
 	return false
@@ -29,7 +29,7 @@ func DefaultSettings() Settings {
 	return Settings{Theme: "dark", MonitorPolling: true, ToastsEnabled: true}
 }
 
-// LoadSettings lee el archivo; ausente/corrupto ÔåÆ defaults sin backup.
+// LoadSettings lee el archivo; ausente/corrupto → defaults sin backup.
 func LoadSettings(path string) Settings {
 	s := DefaultSettings()
 	data, err := os.ReadFile(path)

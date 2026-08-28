@@ -162,10 +162,7 @@ body {
   gap: var(--space-sm);
 }
 
-.app-title::before {
-  content: "⚡";
-  font-size: 1.5rem;
-}
+.app-title::before { content: none; }
 
 /* Sidebar */
 #sidebar {

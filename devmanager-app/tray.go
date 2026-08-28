@@ -17,15 +17,15 @@ import (
 	"github.com/energye/systray"
 )
 
-// Tray (Fase 3, spec ┬º5.1): icono en bandeja conviviendo con Wails.
+// Tray (Fase 3, spec §5.1): icono en bandeja conviviendo con Wails.
 // RunWithExternalLoop devuelve (start, end): start es un pump de mensajes
 // (GetMessageW) que DEBE correr en su propio hilo con LockOSThread; end se
 // llama al cerrar la app. OnBeforeClose oculta la ventana salvo salida forzada
-// (paridad closeEvent Python). El men├║ se reconstruye din├ímicamente con
-// submen├║s por proyecto + notificaciones nativas cuando la ventana est├í oculta
+// (paridad closeEvent Python). El menú se reconstruye dinámicamente con
+// submenús por proyecto + notificaciones nativas cuando la ventana está oculta
 // (paridad DevManagerTray de Python).
 
-// trayIcon genera un .ICO v├ílido en memoria (ICONDIR + ICONDIRENTRY + PNG
+// trayIcon genera un .ICO válido en memoria (ICONDIR + ICONDIRENTRY + PNG
 // embebido, formato soportado desde Vista) porque LoadImage de Windows
 // rechaza PNG crudo.
 func trayIcon() []byte {
@@ -88,7 +88,7 @@ func (a *App) onTrayReady() {
 	systray.SetOnClick(func(menu systray.IMenu) { a.showMainWindow() })
 	systray.SetOnDClick(func(menu systray.IMenu) { a.showMainWindow() })
 
-	// Refresco peri├│dico del men├║ (solo si cambi├│ la firma de estados).
+	// Refresco periódico del menú (solo si cambió la firma de estados).
 	go func() {
 		ticker := time.NewTicker(2 * time.Second)
 		defer ticker.Stop()
@@ -104,12 +104,12 @@ func (a *App) onTrayReady() {
 	}()
 }
 
-// itoa convierte int a string para etiquetas del men├║.
+// itoa convierte int a string para etiquetas del menú.
 func itoa(n int) string { return strconv.Itoa(n) }
 
-// rebuildTrayMenu reconstruye el men├║ de bandeja con un submen├║ por proyecto
+// rebuildTrayMenu reconstruye el menú de bandeja con un submenú por proyecto
 // (Start/Stop Server + Open URL), acciones globales y salida. Read-only si la
-// firma de estados no cambi├│. Las llamadas a systray.* se pueden invocar desde
+// firma de estados no cambió. Las llamadas a systray.* se pueden invocar desde
 // cualquier goroutine (el lib las encola al pump).
 func (a *App) rebuildTrayMenu() {
 	a.mu.Lock()
@@ -120,7 +120,7 @@ func (a *App) rebuildTrayMenu() {
 	a.mu.Unlock()
 
 	// Conduce: el tray puede disparar onTrayReady antes de que startup
-	// inicialice cfg (p.ej. al regenerar bindings Wails). Sin cfg no hay men├║.
+	// inicialice cfg (p.ej. al regenerar bindings Wails). Sin cfg no hay menú.
 	if a.cfg == nil {
 		return
 	}

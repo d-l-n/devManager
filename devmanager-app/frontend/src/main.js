@@ -12,10 +12,11 @@ import { mountProjectDialog } from './dialogs/project.js';
 import { mountAppLogDialog } from './dialogs/applog.js';
 import { mountContextMenu } from './widgets/contextmenu.js';
 import { mountBacklogItemDialog } from './dialogs/backlog-item.js';
+import { hydrateIcons, icon, setIcon } from './icons.js';
 
 const $ = (id) => document.getElementById(id);
 
-// Tope de l├¡neas guardadas por proyecto y de nodos del panel de logs (Task 20)
+// Tope de líneas guardadas por proyecto y de nodos del panel de logs (Task 20)
 const MAX_LOG_LINES = 2000;
 
 const state = {
@@ -85,10 +86,11 @@ function renderList() {
         const st = document.createElement('span');
         st.className = 'proj-state';
         li.appendChild(st);
-        // Bot├│n de pin: alterna fijado sin propagar la selecci├│n
+        // Botón de pin: alterna fijado sin propagar la selección.
         const pin = document.createElement('button');
         pin.className = 'pin-btn';
-        pin.textContent = p.pinned ? '\u{1F4CC}' : '\u2606';
+        pin.setAttribute('aria-label', p.pinned ? 'Unpin project' : 'Pin project');
+        setIcon(pin, p.pinned ? 'pinned' : 'pin');
         pin.title = 'Pin / unpin';
         pin.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -121,20 +123,20 @@ function renderList() {
 function showProjectContextMenu(index, p, x, y) {
     const run = (fn) => { fn().then(() => refreshProjects()); };
     const items = [
-        { label: 'Restart Server', icon: '\u25B6', onClick: () => run(() => api.restartServer(index)) },
-        { label: 'Stop Server', icon: '\u25A0', onClick: () => run(() => api.stopServer(index)) },
-        { label: 'Open in Browser', icon: '\u{1F517}', onClick: () => api.openURL((p.server && p.server.url) || '') },
+        { label: 'Restart Server', icon: 'restart', onClick: () => run(() => api.restartServer(index)) },
+        { label: 'Stop Server', icon: 'stop', onClick: () => run(() => api.stopServer(index)) },
+        { label: 'Open in Browser', icon: 'browser', onClick: () => api.openURL((p.server && p.server.url) || '') },
         { separator: true },
-        { label: 'Open in Explorer', icon: '\u{1F4C2}', onClick: () => api.openInExplorer(index) },
-        { label: 'Open Terminal', icon: '\u{1F4BB}', onClick: () => api.openTerminal(index) },
-        { label: 'Open in VS Code', icon: '', onClick: () => api.openVSCode(index) },
-        { label: 'Open in OpenCode', icon: '', onClick: () => api.openOpenCode(index) },
+        { label: 'Open in Explorer', icon: 'folder', onClick: () => api.openInExplorer(index) },
+        { label: 'Open Terminal', icon: 'command', onClick: () => api.openTerminal(index) },
+        { label: 'Open in VS Code', icon: 'code', onClick: () => api.openVSCode(index) },
+        { label: 'Open in OpenCode', icon: 'code', onClick: () => api.openOpenCode(index) },
         { separator: true },
-        { label: 'Run Tests', icon: '\u{1F3C3}', onClick: () => run(() => api.runTests(index)) },
-        { label: p.pinned ? 'Unpin' : 'Pin', icon: p.pinned ? '\u{1F4CC}' : '\u2606', onClick: () => run(() => api.togglePin(index)) },
-        { label: 'Edit Project', icon: '\u270E', onClick: () => editProject(index) },
+        { label: 'Run Tests', icon: 'tests', onClick: () => run(() => api.runTests(index)) },
+        { label: p.pinned ? 'Unpin' : 'Pin', icon: p.pinned ? 'pinned' : 'pin', onClick: () => run(() => api.togglePin(index)) },
+        { label: 'Edit Project', icon: 'edit', onClick: () => editProject(index) },
         { separator: true },
-        { label: 'Remove Project', icon: '\u2715', danger: true, onClick: () => {
+        { label: 'Remove Project', icon: 'trash', danger: true, onClick: () => {
             if (confirm(`Remove project '${p.name}' from the manager?\n\nLocal files will not be deleted.`)) {
                 run(() => api.removeProject(index));
             }
@@ -206,12 +208,12 @@ async function refreshStatus() {
         bs.className = `badge ${status.state}`;
         const port = status.activePort || state.projects[state.selected].server.port;
         const mismatch = state.portMismatches.get(state.selected);
-        bs.textContent = `Server: :${port}${mismatch ? ' ⚠' : ''}`;
+        bs.textContent = `Server: :${port}${mismatch ? ' (port mismatch)' : ''}`;
     }
     const saveDetectedPort = $('btn-save-detected-port');
     if (saveDetectedPort) saveDetectedPort.hidden = !state.portMismatches.has(state.selected);
 
-    // Badge Playwright (Task 15): sin playwright ÔåÆ 'off'
+    // Badge Playwright (Task 15): sin Playwright, estado "off".
     try {
         const ps = await api.getPlaywrightStatus(state.selected);
         const pw = $('badge-pw');
@@ -232,7 +234,7 @@ async function refreshStatus() {
                 bg.textContent = `Git: ${gs.branch || 'unknown'}${gs.isDirty ? ' • dirty' : ''}`;
             } else {
                 bg.className = 'badge';
-                bg.textContent = 'Git: ÔÇö';
+                bg.textContent = 'Git: —';
             }
         }
     } catch { /* no es repo git */ }
@@ -250,7 +252,7 @@ function appendLog(index, line, isError) {
     if (!state.logs.has(index)) state.logs.set(index, []);
     const arr = state.logs.get(index);
     arr.push({ ts: timestamp(), line, isError });
-    // Cap de l├¡neas en memoria por proyecto (Task 20)
+    // Cap de líneas en memoria por proyecto (Task 20).
     if (arr.length > MAX_LOG_LINES) state.logs.set(index, arr.slice(-MAX_LOG_LINES));
 
     if (index !== state.selected) return;
@@ -268,7 +270,7 @@ function appendLogEntry(entry) {
     div.appendChild(ts);
     div.appendChild(document.createTextNode(entry.line));
     out.appendChild(div);
-    // Cap del DOM (~2000 nodos; descarta los m├ís viejos)
+    // Cap del DOM (~2000 nodos; descarta los más viejos).
     while (out.childElementCount > MAX_LOG_LINES) out.removeChild(out.firstChild);
     // Sin follow: no forzar scroll al fondo
     if (state.logAutoScroll) out.scrollTop = out.scrollHeight;
@@ -365,7 +367,7 @@ function wireEvents() {
         try {
             await navigator.clipboard.writeText(text);
         } catch {
-            // Fallback: textarea oculto + execCommand si Clipboard API no est├í
+            // Fallback: textarea oculto + execCommand si Clipboard API no está
             const ta = document.createElement('textarea');
             ta.value = text;
             ta.style.position = 'fixed';
@@ -394,7 +396,7 @@ function wireEvents() {
     $('view-project').addEventListener('click', () => switchView('project'));
     $('view-monitor').addEventListener('click', () => switchView('monitor'));
 
-    // Auto-asignar puertos ├║nicos (Task 16)
+    // Auto-asignar puertos únicos (Task 16)
     $('btn-auto-ports').addEventListener('click', async () => {
         const n = await api.autoAssignPorts();
         showToast('Auto-Assign Ports',
@@ -440,7 +442,7 @@ function wireEvents() {
     events().EventsOn('server:state', () => refreshStatus());
     events().EventsOn('server:ready', () => refreshStatus());
 
-    // Puerto detectado Ôëá configurado: actualizar la URL en estado y panel (Task 19)
+    // Puerto detectado distinto al configurado: actualizar la URL en estado y panel (Task 19).
     events().EventsOn('server:port_detected', ({ index, port, url }) => {
         const p = state.projects[index];
         if (p && p.server) {
@@ -480,7 +482,7 @@ function wireKeyboardShortcuts() {
         // Settings modal ya registra Ctrl+, en settings.js: no duplicar.
         if (mod && key === ',') return;
 
-        // ├Ünico atajo que funciona dentro de inputs: robar el foco para buscar.
+        // Único atajo que funciona dentro de inputs: robar el foco para buscar.
         if (mod && !e.shiftKey && !e.altKey && key === 'f') {
             e.preventDefault();
             $('search').focus();
@@ -615,6 +617,7 @@ const contextMenu = mountContextMenu();
 const backlogItemDialog = mountBacklogItemDialog();
 document.body.appendChild(backlogItemDialog.getElement());
 window.backlogItemDialog = backlogItemDialog;
+hydrateIcons();
 
 function switchTab(name) {
     document.querySelectorAll('.tab').forEach((b) =>

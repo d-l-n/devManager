@@ -74,7 +74,7 @@ func TestWriterSplitsLines(t *testing.T) {
 	fmt.Fprintln(os.Stdout, "hello world")
 	fmt.Fprintln(os.Stdout, "second line")
 	fmt.Fprintln(os.Stderr, "boom boom")
-	// Esperar a que el goroutine lector procese las l├¡neas.
+	// Esperar a que el goroutine lector procese las líneas.
 	deadline := time.Now().Add(2 * time.Second)
 	for r.Len() < 3 && time.Now().Before(deadline) {
 		time.Sleep(10 * time.Millisecond)
@@ -83,7 +83,7 @@ func TestWriterSplitsLines(t *testing.T) {
 		t.Fatalf("len = %d, want 3", r.Len())
 	}
 	h := r.History()
-	// B├║squeda por contenido: el orden stdout/stderr puede intercalarse.
+	// Búsqueda por contenido: el orden stdout/stderr puede intercalarse.
 	find := func(text string, isErr bool) bool {
 		for _, e := range h {
 			if e.Text == text && e.IsError == isErr {

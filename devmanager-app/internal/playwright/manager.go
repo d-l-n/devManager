@@ -1,8 +1,8 @@
 // Package playwright porta app/playwright/manager.py.
 //
-// Orquesta la ejecuci├│n de pruebas Playwright con auto-start del servidor:
-// si el servidor est├í habilitado y no RUNNING, guarda el comando pendiente,
-// arranca el servidor y espera su se├▒al ready (listener) para ejecutar.
+// Orquesta la ejecución de pruebas Playwright con auto-start del servidor:
+// si el servidor está habilitado y no RUNNING, guarda el comando pendiente,
+// arranca el servidor y espera su señal ready (listener) para ejecutar.
 package playwright
 
 import (
@@ -69,7 +69,7 @@ func NewManager(project models.Project, srv *server.Manager, cb Callbacks) *Mana
 		OnError:  func(desc string) { m.log("[ERROR] "+desc, true) },
 	})
 
-	// Observaci├│n del servidor (equivalente a connect(state_changed)/connect(ready)).
+	// Observación del servidor (equivalente a connect(state_changed)/connect(ready)).
 	srv.AddStateListener(m.onServerStateChanged)
 	srv.AddReadyListener(m.onServerReady)
 	return m
@@ -120,12 +120,12 @@ func (m *Manager) ShowReport() {
 	}
 	m.log("Executing report command: "+cmd, false)
 	if err := m.reportRunner.Start(cmd, m.project.Path, nil); err != nil {
-		// Runner ya notific├│ por OnError; aqu├¡ no cambia estado (paridad).
+		// Runner ya notificó por OnError; aquí no cambia estado (paridad).
 		_ = err
 	}
 }
 
-// Stop replica stop(): arma stopRequested SIEMPRE para que un finish tard├¡o
+// Stop replica stop(): arma stopRequested SIEMPRE para que un finish tardío
 // del runner moribundo no cuente como resultado de tests.
 func (m *Manager) Stop() {
 	m.mu.Lock()
@@ -219,7 +219,7 @@ func (m *Manager) runCommand(command string) {
 	}
 
 	if err := m.runner.Start(command, project.Path, extraEnv); err != nil {
-		// OnError ya registr├│ el fallo en el log (paridad process_error).
+		// OnError ya registró el fallo en el log (paridad process_error).
 		_ = err
 	}
 }
@@ -228,10 +228,10 @@ func (m *Manager) runCommand(command string) {
 //
 // DIVERGENCIA INTENCIONAL vs Python (#8): en Python, tras Stop() el runner
 // moribundo (taskkill => exit no-0) marca StateFailed y emite tests_finished,
-// lanzando notificaci├│n de tests fallidos aunque el usuario simplemente haya
-// cancelado. Aqu├¡ mantenemos un cierre limpio: si el usuario par├│, terminamos
-// en StateIdle y NO emitimos OnFinished/tests_finished. Decisi├│n expl├¡cita de
-// producto para evitar la notificaci├│n de fallo cosm├®tico.
+// lanzando notificación de tests fallidos aunque el usuario simplemente haya
+// cancelado. Aquí mantenemos un cierre limpio: si el usuario paró, terminamos
+// en StateIdle y NO emitimos OnFinished/tests_finished. Decisión explícita de
+// producto para evitar la notificación de fallo cosmético.
 func (m *Manager) onRunnerFinished(exitCode int, status string) {
 	m.mu.Lock()
 	stopped := m.stopRequested

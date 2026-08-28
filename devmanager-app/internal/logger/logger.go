@@ -9,29 +9,29 @@ import (
 	"time"
 )
 
-// Entry es una l├¡nea capturada: timestamp, texto y si es error (stderr).
+// Entry es una línea capturada: timestamp, texto y si es error (stderr).
 type Entry struct {
 	TS      string `json:"ts"`
 	Text    string `json:"text"`
 	IsError bool   `json:"isError"`
 }
 
-// Ring es un buffer circular de l├¡neas de log.
+// Ring es un buffer circular de líneas de log.
 type Ring struct {
 	mu     sync.Mutex
 	lines  []Entry
 	max    int
 	next   int
 	full   bool
-	onLine func(Entry) // callback por l├¡nea nueva; se invoca FUERA del lock
+	onLine func(Entry) // callback por línea nueva; se invoca FUERA del lock
 }
 
-// New crea un ring de hasta max l├¡neas.
+// New crea un ring de hasta max líneas.
 func New(max int) *Ring {
 	return &Ring{max: max, lines: make([]Entry, max)}
 }
 
-// SetOnLine registra un callback por cada l├¡nea nueva (para emitir eventos
+// SetOnLine registra un callback por cada línea nueva (para emitir eventos
 // al frontend). Se invoca SIN el lock tomado.
 func (r *Ring) SetOnLine(fn func(Entry)) {
 	r.mu.Lock()
@@ -67,7 +67,7 @@ func (r *Ring) Append(text string, isError bool) {
 	}
 }
 
-// History devuelve todas las l├¡neas capturadas en orden cronol├│gico.
+// History devuelve todas las líneas capturadas en orden cronológico.
 func (r *Ring) History() []Entry {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -88,7 +88,7 @@ func (r *Ring) History() []Entry {
 	return out
 }
 
-// Clear vac├¡a el ring.
+// Clear vacía el ring.
 func (r *Ring) Clear() {
 	r.mu.Lock()
 	r.lines = make([]Entry, r.max)
@@ -97,7 +97,7 @@ func (r *Ring) Clear() {
 	r.mu.Unlock()
 }
 
-// Len devuelve cu├íntas l├¡neas hay capturadas.
+// Len devuelve cuántas líneas hay capturadas.
 func (r *Ring) Len() int {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -109,7 +109,7 @@ func (r *Ring) Len() int {
 
 // Attach redirige os.Stdout y os.Stderr hacia el ring por medio de pipes
 // (mantiene el tipo *os.File de esos streams). El output original sigue
-// escribi├®ndose a la consola. Devuelve una funci├│n que restaura los streams.
+// escribiéndose a la consola. Devuelve una función que restaura los streams.
 func (r *Ring) Attach() func() {
 	origOut, origErr := os.Stdout, os.Stderr
 
@@ -125,7 +125,7 @@ func (r *Ring) Attach() func() {
 }
 
 // pipe crea un *os.File para redirigir un stream y un goroutine lector
-// que vuelca las l├¡neas al ring y al stream original.
+// que vuelca las líneas al ring y al stream original.
 func (r *Ring) pipe(orig *os.File, isError bool) *os.File {
 	pr, pw, err := os.Pipe()
 	if err != nil {

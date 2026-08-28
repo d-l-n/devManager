@@ -30,10 +30,10 @@ func TestLoadMissingCreatesEmpty(t *testing.T) {
 		t.Errorf("esperaba 0 proyectos, got %d", m.Count())
 	}
 	if _, err := os.Stat(path); err != nil {
-		t.Error("archivo vac├¡o debe crearse")
+		t.Error("archivo vacío debe crearse")
 	}
 	if !gotChanged {
-		t.Error("OnProjectsChanged debe dispararse en creaci├│n")
+		t.Error("OnProjectsChanged debe dispararse en creación")
 	}
 }
 
@@ -152,7 +152,7 @@ func TestConfiguredPortsIncludesDisabled(t *testing.T) {
 	m.AddProject(b)
 
 	// Paridad Python get_configured_ports: incluye TODOS los port>0,
-	// aunque el servidor est├® disabled.
+	// aunque el servidor esté disabled.
 	got := m.ConfiguredPorts()
 	if len(got) != 2 || got[0] != 4000 || got[1] != 9999 {
 		t.Errorf("ConfiguredPorts = %v", got)

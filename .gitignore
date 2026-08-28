@@ -18,6 +18,7 @@ devmanager-app/*.out
 # IDE
 .vscode/
 .idea/
+.coda/
 
 # OS
 .DS_Store

@@ -1,3 +1,5 @@
+import { icon } from '../icons.js';
+
 const POLL_MS = 3000;
 
 export function mount(ctx) {
@@ -30,17 +32,20 @@ export function mount(ctx) {
         if (row.state === 'ours') {
             const badge = document.createElement('span');
             badge.className = 'mini-badge primary';
-            badge.textContent = `\u25C9 Used by '${row.ownerName}'`;
+            badge.append(icon('pinned'));
+            badge.appendChild(document.createTextNode(`Used by '${row.ownerName}'`));
             el.appendChild(badge);
         } else if (row.state === 'foreign') {
             const badge = document.createElement('span');
             badge.className = 'mini-badge warn';
-            badge.textContent = `\u26A0 ${row.ownerName} (PID ${row.ownerPID})`;
+            badge.append(icon('alert'));
+            badge.appendChild(document.createTextNode(`${row.ownerName} (PID ${row.ownerPID})`));
             el.appendChild(badge);
         } else {
             const free = document.createElement('span');
             free.className = 'dim';
-            free.textContent = '\u2713 Free';
+            free.append(icon('check'));
+            free.appendChild(document.createTextNode('Free'));
             el.appendChild(free);
         }
 
@@ -80,7 +85,8 @@ export function mount(ctx) {
         bar.className = 'cpu-bar';
         const fill = document.createElement('div');
         fill.className = 'cpu-fill';
-        fill.style.width = `${Math.min(row.cpu, 100)}%`;
+        fill.style.transform = `scaleX(${Math.min(row.cpu, 100) / 100})`;
+        fill.style.transformOrigin = 'left center';
         fill.style.background = cpuColor(row.cpu);
         bar.appendChild(fill);
         el.appendChild(bar);

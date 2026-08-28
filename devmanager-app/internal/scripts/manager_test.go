@@ -75,7 +75,7 @@ func waitFor(t *testing.T, timeout time.Duration, cond func() bool) {
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	t.Fatal("condici├│n no alcanzada en timeout")
+	t.Fatal("condición no alcanzada en timeout")
 }
 
 func TestRunScriptSuccess(t *testing.T) {
@@ -87,11 +87,11 @@ func TestRunScriptSuccess(t *testing.T) {
 		defer r.mu.Unlock()
 		return len(r.finished) == 1 && r.finished[0].name == "build" && r.finished[0].code == 0
 	})
-	if !r.hasLog(`ÔÜí Starting script 'build': cmd /c exit 0`) {
+	if !r.hasLog(`Starting script 'build': cmd /c exit 0`) {
 		t.Errorf("log de arranque ausente: %v", r.logs)
 	}
-	if !r.hasLog(`Ô£ô Script 'build' finished (code 0)`) {
-		t.Errorf("log de ├®xito ausente: %v", r.logs)
+	if !r.hasLog(`Script 'build' finished (code 0)`) {
+		t.Errorf("log de éxito ausente: %v", r.logs)
 	}
 	if m.ActiveScriptName() != "" {
 		t.Errorf("active name debe limpiarse, got %q", m.ActiveScriptName())
@@ -102,7 +102,7 @@ func TestRunScriptFailure(t *testing.T) {
 	m, r := newMgr(t)
 	m.RunScript("lint", "cmd /c exit 3")
 	waitFor(t, 8*time.Second, func() bool { return !m.IsRunning() })
-	if !r.hasLog(`Ô£ò Script 'lint' exited with code 3 (CrashExit)`) {
+	if !r.hasLog(`Script 'lint' exited with code 3 (CrashExit)`) {
 		t.Errorf("log de fallo ausente: %v", r.logs)
 	}
 	r.mu.Lock()
@@ -119,7 +119,7 @@ func TestConcurrentRunRejected(t *testing.T) {
 	waitFor(t, 8*time.Second, func() bool { return m.IsRunning() })
 
 	m.RunScript("other", "cmd /c exit 0")
-	if !r.hasLog(`ÔÜá´©Å Cannot start 'other': script 'long' is already running.`) {
+	if !r.hasLog(`Cannot start 'other': script 'long' is already running.`) {
 		t.Errorf("warning concurrente ausente: %v", r.logs)
 	}
 	if m.ActiveScriptName() != "long" {

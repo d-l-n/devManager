@@ -1,4 +1,4 @@
-// Toasts apilables (Task 7): fixed bottom-right, m├íx 3, click-dismiss,
+// Toasts apilables (Task 7): fixed bottom-right, máx 3, click-dismiss,
 // auto-dismiss 4000ms con fade 220ms. Gate: settings.toasts_enabled.
 const MAX_VISIBLE = 3;
 const AUTO_DISMISS_MS = 4000;
@@ -37,14 +37,14 @@ export function showToast(title, message = '', level = 'info') {
     if (!enabled) return null;
     const host = ensureContainer();
 
-    // M├íx 3: el 4┬║ expulsa al m├ís viejo inmediatamente.
+    // Máx 3: el 4º expulsa al más viejo inmediatamente.
     while (host.children.length >= MAX_VISIBLE) {
         host.removeChild(host.firstElementChild);
     }
 
     const card = document.createElement('div');
     card.className = 'toast';
-    card.style.borderLeftColor = LEVEL_COLOR[level] || LEVEL_COLOR.info;
+    card.style.borderTopColor = LEVEL_COLOR[level] || LEVEL_COLOR.info;
 
     const t = document.createElement('div');
     t.className = 'toast-title';

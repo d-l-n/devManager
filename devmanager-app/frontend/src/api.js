@@ -40,7 +40,7 @@ export const api = {
     openTerminal: (i) => app().OpenTerminal(i),
     openVSCode: (i) => app().OpenVSCode(i),
     openOpenCode: (i) => app().OpenOpenCode(i),
-    // Detecci├│n de config de proyecto (Issue #11) + dialogo nativo
+    // Detección de config de proyecto (Issue #11) + diálogo nativo
     detectProjectConfig: (path) => app().DetectProjectConfig(path),
     browseFolder: () => app().BrowseFolder(),
     // App Log global (Issue #14)

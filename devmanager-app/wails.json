@@ -61,7 +61,7 @@
   "webviewUserDataPath": "",
   "webviewBrowserPath": "",
   "debug": false,
-  "singleInstanceLock": false,
+  "singleInstanceLock": true,
   "logLevel": "INFO",
   "logFile": "",
   "logWails": false,

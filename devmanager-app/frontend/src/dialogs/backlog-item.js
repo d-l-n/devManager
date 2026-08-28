@@ -1,5 +1,7 @@
-// Dialog for adding and editing backlog items
-// Follows the same pattern as settings.js: mount(ctx) → {open, close, init}
+import { setIcon } from '../icons.js';
+
+// Dialog for adding and editing backlog items.
+// Follows the same pattern as settings.js: mount(ctx) → {open, close, init}.
 
 function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -63,7 +65,10 @@ export function mountBacklogItemDialog() {
 
     const header = el('div', 'dialog-header');
     header.appendChild(el('h2', 'dialog-title', 'Backlog Item'));
-    const closeBtn = el('button', 'dialog-close', '×');
+    const closeBtn = el('button', 'dialog-close');
+    closeBtn.title = 'Close dialog';
+    closeBtn.setAttribute('aria-label', 'Close dialog');
+    setIcon(closeBtn, 'stop');
     closeBtn.addEventListener('click', close);
     header.appendChild(closeBtn);
     card.appendChild(header);

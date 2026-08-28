@@ -1,5 +1,5 @@
 // Package scripts porta app/scripts/manager.py: un proceso de script por
-// proyecto, con prefijo [nombre] en el log y stop con intenci├│n expl├¡cita.
+// proyecto, con prefijo [nombre] en el log y stop con intención explícita.
 package scripts
 
 import (
@@ -48,7 +48,7 @@ func (m *Manager) UpdateProject(p models.Project) {
 
 func (m *Manager) IsRunning() bool { return m.runner.IsRunning() }
 
-// ActiveScriptName replica active_script_name: vac├¡o cuando no corre.
+// ActiveScriptName replica active_script_name: vacío cuando no corre.
 func (m *Manager) ActiveScriptName() string {
 	if !m.IsRunning() {
 		return ""
@@ -64,7 +64,7 @@ func (m *Manager) RunScript(name, command string) {
 		m.mu.Lock()
 		active := m.activeName
 		m.mu.Unlock()
-		m.log("ÔÜá´©Å Cannot start '"+name+"': script '"+active+"' is already running.", true)
+		m.log("Cannot start '"+name+"': script '"+active+"' is already running.", true)
 		return
 	}
 
@@ -75,11 +75,11 @@ func (m *Manager) RunScript(name, command string) {
 	path := m.project.Path
 	m.mu.Unlock()
 
-	m.log("ÔÜí Starting script '"+name+"': "+command, false)
+	m.log("Starting script '"+name+"': "+command, false)
 	_ = m.runner.Start(command, path, nil)
 }
 
-// Stop replica stop(): marca intenci├│n ANTES de matar (taskkill => CrashExit
+// Stop replica stop(): marca intención ANTES de matar (taskkill => CrashExit
 // no cuenta como fallo del script).
 func (m *Manager) Stop() {
 	if !m.IsRunning() {
@@ -133,10 +133,10 @@ func (m *Manager) onRunnerStarted() {
 // onRunnerFinished replica _on_finished.
 //
 // DIVERGENCIA INTENCIONAL vs Python (#8): en Python _on_finished no distingue
-// stop; el runner moribundo (taskkill => exit no-0) pasa el c├│digo REAL a
-// script_finished, lanzando notificaci├│n de fallo aunque el usuario cancelara.
-// Aqu├¡, si hubo Stop(), reportamos script_finished(name, 0) ÔåÆ cierre limpio sin
-// notificaci├│n de fallo cosm├®tica. Decisi├│n expl├¡cita de producto.
+// stop; el runner moribundo (taskkill => exit no-0) pasa el código REAL a
+// script_finished, lanzando notificación de fallo aunque el usuario cancelara.
+// Aquí, si hubo Stop(), reportamos script_finished(name, 0) → cierre limpio sin
+// notificación de fallo cosmética. Decisión explícita de producto.
 func (m *Manager) onRunnerFinished(exitCode int, statusDesc string) {
 	m.mu.Lock()
 	finishedName := m.activeName
@@ -162,9 +162,9 @@ func (m *Manager) onRunnerFinished(exitCode int, statusDesc string) {
 	msg := ""
 	isErr := exitCode != 0
 	if exitCode == 0 {
-		msg = "Ô£ô Script '" + finishedName + "' finished (code 0)"
+		msg = "Script '" + finishedName + "' finished (code 0)"
 	} else {
-		msg = "Ô£ò Script '" + finishedName + "' exited with code " + strconv.Itoa(exitCode) + " (" + statusDesc + ")"
+		msg = "Script '" + finishedName + "' exited with code " + strconv.Itoa(exitCode) + " (" + statusDesc + ")"
 	}
 	m.log(msg, isErr)
 

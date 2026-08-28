@@ -48,30 +48,30 @@ type App struct {
 
 	traceRunner *process.Runner
 
-	gitBusy map[int]bool // un comando git a la vez POR proyecto (paridad QProcess ├║nico del panel)
+	gitBusy map[int]bool // un comando git a la vez POR proyecto (paridad QProcess único del panel)
 
 	configPath string
 
 	settingsPath string
 	settings     config.Settings
 
-	trayOK    bool // spike tray: Register complet├│ onTrayReady
+	trayOK    bool // spike tray: Register completó onTrayReady
 	forceExit bool // quit real desde tray/atajo: OnBeforeClose no debe ocultar
 
 	appLog     *logger.Ring // App Log global (captura stdout/stderr, ring 3000)
 	restoreLog func()       // restaura os.Stdout/os.Stderr originales
 
 	// Notificaciones nativas (paridad _notify de Python): cooldown 3s de
-	// notificaciones de bandeja cuando la ventana est├í oculta + pendiente.
+	// notificaciones de bandeja cuando la ventana está oculta + pendiente.
 	lastTrayNotify time.Time
 	pendingNotify  *pendingTrayNotify
 	notifyMu       sync.Mutex
 	windowHidden   bool   // oculta a bandeja via beforeClose (paridad isVisible)
-	traySig        string // firma del men├║ de bandeja (evita rebuilds innecesarios)
+	traySig        string // firma del menú de bandeja (evita rebuilds innecesarios)
 }
 
-// pendingTrayNotify guarda la ├║ltima notificaci├│n durante el cooldown;
-// se muestra al vencer ├®ste (paridad _flush_pending_tray_notify).
+// pendingTrayNotify guarda la última notificación durante el cooldown;
+// se muestra al vencer éste (paridad _flush_pending_tray_notify).
 type pendingTrayNotify struct {
 	title   string
 	message string
@@ -104,7 +104,7 @@ func (a *App) startup(ctx context.Context) {
 		},
 	})
 
-	// Settings persistentes en %APPDATA%\devManager\settings.json (spec ┬º4),
+	// Settings persistentes en %APPDATA%\devManager\settings.json (spec §4),
 	// independiente del CWD y del exe.
 	settingsDir, err := os.UserConfigDir()
 	if err != nil || settingsDir == "" {
@@ -115,8 +115,8 @@ func (a *App) startup(ctx context.Context) {
 	a.settings = config.LoadSettings(a.settingsPath)
 	a.mu.Unlock()
 
-	// App Log global (Task 14): ring de 3000 l├¡neas capturando stdout/stderr.
-	// El callback emite el evento; a.ctx ya est├í set. Null si Attach falla.
+	// App Log global (Task 14): ring de 3000 líneas capturando stdout/stderr.
+	// El callback emite el evento; a.ctx ya está set. Null si Attach falla.
 	a.appLog = logger.New(3000)
 	a.appLog.SetOnLine(func(e logger.Entry) {
 		if a.ctx != nil {
@@ -125,7 +125,7 @@ func (a *App) startup(ctx context.Context) {
 	})
 	a.restoreLog = a.appLog.Attach()
 
-	// Spike tray (Fase 3 ┬º5.1): el pump se lanza desde main() v├¡a runTray;
+	// Spike tray (Fase 3 §5.1): el pump se lanza desde main() vía runTray;
 	// onTrayReady marca trayOK y OnBeforeClose oculta salvo forceExit.
 }
 
@@ -245,7 +245,7 @@ func (a *App) RemoveProject(index int) {
 			return
 		}
 	}
-	// Paridad Python stopÔåÆremove: parar playwright/scripts antes de borrar.
+	// Paridad Python stop→remove: parar playwright/scripts antes de borrar.
 	a.mu.Lock()
 	pm := a.playwrightManagers[index]
 	scm := a.scriptManagers[index]
@@ -264,8 +264,8 @@ func (a *App) TogglePin(index int) {
 }
 
 // AutoAssignPorts replica _on_auto_assign_unique_ports: asigna puertos
-// secuenciales ├║nicos (desde 5173) a todos los proyectos con servidor
-// habilitado; devuelve cu├íntos se modificaron (paridad count => toast).
+// secuenciales únicos (desde 5173) a todos los proyectos con servidor
+// habilitado; devuelve cuántos se modificaron (paridad count => toast).
 func (a *App) AutoAssignPorts() int {
 	return a.cfg.AutoAssignUniquePorts(5173)
 }
@@ -289,7 +289,7 @@ func (a *App) SaveDetectedPort(index, port int) []string {
 
 // ReloadProjects replica config_manager.load(): relee projects.json desde
 // disco y re-emite projects:changed para que el frontend refresque la lista.
-// Los managers se reconstruyen bajo demanda v├¡a ensureManagers (paridad
+// Los managers se reconstruyen bajo demanda vía ensureManagers (paridad
 // _rebuild_managers de Python).
 func (a *App) ReloadProjects() {
 	a.cfg.Load()
@@ -354,7 +354,7 @@ func (a *App) currentProject(index int) models.Project {
 }
 
 // createServerManager extrae el cuerpo original de managerFor: crea el
-// server.Manager con callbacksÔåÆeventos Wails y lo guarda en el mapa.
+// server.Manager con callbacks→eventos Wails y lo guarda en el mapa.
 func (a *App) createServerManager(index int) *server.Manager {
 	projects := a.cfg.Projects()
 	if index < 0 || index >= len(projects) {
@@ -396,7 +396,7 @@ func (a *App) createServerManager(index int) *server.Manager {
 	return sm
 }
 
-// ensureManagers crea bajo demanda los tres managers del ├¡ndice (paridad
+// ensureManagers crea bajo demanda los tres managers del índice (paridad
 // _rebuild_managers de Python) y devuelve el triple. Los callbacks emiten
 // SIEMPRE fuera del lock (nunca EventsEmit con a.mu tomado).
 func (a *App) ensureManagers(index int) (*server.Manager, *playwright.Manager, *scripts.Manager) {
@@ -471,8 +471,8 @@ func (a *App) emitConfigError(message string) {
 	}
 }
 
-// emitNotify replica _notify del Python: ventana visible ÔåÆ toast in-app;
-// oculta/minimizada ÔåÆ notificaci├│n nativa de bandeja con cooldown de 3s.
+// emitNotify replica _notify del Python: ventana visible → toast in-app;
+// oculta/minimizada → notificación nativa de bandeja con cooldown de 3s.
 func (a *App) emitNotify(title, message, level string) {
 	if a.ctx != nil {
 		if a.windowVisible() {
@@ -500,7 +500,7 @@ func (a *App) setWindowShown() {
 	a.mu.Unlock()
 }
 
-// nativeNotify muestra una notificaci├│n de bandeja con cooldown de 3s y
+// nativeNotify muestra una notificación de bandeja con cooldown de 3s y
 // buffer de una pendiente (paridad _notify/_flush_pending del Python).
 func (a *App) nativeNotify(title, message string, isError bool) {
 	a.notifyMu.Lock()
@@ -529,9 +529,9 @@ func (a *App) nativeNotify(title, message string, isError bool) {
 	}()
 }
 
-// showNativeBalloon emite una burbuja nativa de bandeja v├¡a PowerShell
+// showNativeBalloon emite una burbuja nativa de bandeja vía PowerShell
 // (System.Windows.Forms.NotifyIcon), fiel a QSystemTrayIcon.showMessage y
-// sin necesidad de registrar AppUserModelID. Fallo ÔåÆ toast de respaldo.
+// sin necesidad de registrar AppUserModelID. Fallo → toast de respaldo.
 func (a *App) showNativeBalloon(title, message string, isError bool) {
 	icon := "Info"
 	if isError {
@@ -781,9 +781,9 @@ var gitActions = map[string][]string{
 	"Stash": {"stash"},
 }
 
-// GitAction corre Pull/Fetch/Stash as├¡ncrono con streaming de salida.
+// GitAction corre Pull/Fetch/Stash asíncrono con streaming de salida.
 // Paridad GitPanel._run_command/_on_finished: un solo comando git a la vez
-// POR proyecto; si ese proyecto ya tiene uno en curso se ignora la petici├│n.
+// POR proyecto; si ese proyecto ya tiene uno en curso se ignora la petición.
 func (a *App) GitAction(index int, action string) {
 	args, ok := gitActions[action]
 	if !ok {
@@ -799,7 +799,7 @@ func (a *App) GitAction(index int, action string) {
 	a.mu.Lock()
 	if a.gitBusy[index] {
 		a.mu.Unlock()
-		return // paridad: self._process is not None ÔåÆ ignorar
+		return // paridad: self._process is not None → ignorar
 	}
 	a.gitBusy[index] = true
 	a.mu.Unlock()
@@ -827,7 +827,7 @@ func (a *App) GitAction(index int, action string) {
 }
 
 // runGitStreaming corre git y streamea stdout/stderr como eventos.
-// Devuelve (exitCode, stashClean) donde stashClean replica la detecci├│n
+// Devuelve (exitCode, stashClean) donde stashClean replica la detección
 // de "No local changes" del panel Qt para el strip de resultado.
 func (a *App) runGitStreaming(index int, action, path string, args []string) (int, bool) {
 	cmd := git.HiddenCommand(path, args)
@@ -908,7 +908,7 @@ type runningServer struct {
 }
 
 // runningServersSnapshot copia bajo lock el mapa de managers junto a los
-// proyectos actuales, qued├índose solo con los RUNNING. Orden estable por ├¡ndice.
+// proyectos actuales, quedándose solo con los RUNNING. Orden estable por índice.
 func (a *App) runningServersSnapshot() []runningServer {
 	a.mu.Lock()
 	servers := make(map[int]*server.Manager, len(a.servers))
@@ -932,7 +932,7 @@ func (a *App) runningServersSnapshot() []runningServer {
 func (a *App) GetMonitorData() MonitorData {
 	running := a.runningServersSnapshot()
 
-	// Mapa puerto activo ÔåÆ nombre de proyecto (solo servers RUNNING propios).
+	// Mapa puerto activo → nombre de proyecto (solo servers RUNNING propios).
 	oursByPort := map[int]string{}
 	for _, rs := range running {
 		port := rs.manager.ActivePort()
@@ -1013,7 +1013,7 @@ func (a *App) GetAppLog() []logger.Entry {
 	return a.appLog.History()
 }
 
-// ClearAppLog vac├¡a el App Log global.
+// ClearAppLog vacía el App Log global.
 func (a *App) ClearAppLog() {
 	if a.appLog != nil {
 		a.appLog.Clear()
@@ -1021,15 +1021,15 @@ func (a *App) ClearAppLog() {
 	}
 }
 
-// ---- Detecci├│n de config de proyecto (paridad detect_project_config) ----
+// ---- Detección de config de proyecto (paridad detect_project_config) ----
 
-// DetectProjectConfig expone la autodetecci├│n al frontend. existingPorts son
-// los puertos ya configurados (evita colisiones en el di├ílogo de proyecto).
+// DetectProjectConfig expone la autodetección al frontend. existingPorts son
+// los puertos ya configurados (evita colisiones en el diálogo de proyecto).
 func (a *App) DetectProjectConfig(path string) detection.ProjectConfig {
 	return detection.DetectProjectConfig(path, a.cfg.ConfiguredPorts())
 }
 
-// BrowseFolder abre un di├ílogo nativo de selecci├│n de carpeta (paridad
+// BrowseFolder abre un diálogo nativo de selección de carpeta (paridad
 // QFileDialog.getExistingDirectory). Devuelve "" si el usuario cancela.
 func (a *App) BrowseFolder() string {
 	if a.ctx == nil {
@@ -1060,7 +1060,7 @@ func (a *App) GetEvidence(index int) []evidence.File {
 	return found
 }
 
-// pathUnderProject valida que target est├® bajo alg├║n project.Path configurado
+// pathUnderProject valida que target esté bajo algún project.Path configurado
 // (case-insensitive, prefijo completo + separador; igualdad exacta permitida).
 func (a *App) pathUnderProject(target string) bool {
 	if strings.TrimSpace(target) == "" {
@@ -1086,7 +1086,7 @@ func (a *App) pathUnderProject(target string) bool {
 
 // GetEvidenceThumbnail devuelve un data URL base64 (mime real detectado al
 // decodificar) si el archivo decodifica como imagen y pesa <2MB; sino "".
-// SIN resize: la galer├¡a escala por CSS (paridad visual aceptable).
+// SIN resize: la galería escala por CSS (paridad visual aceptable).
 func (a *App) GetEvidenceThumbnail(path string) string {
 	if !a.pathUnderProject(path) {
 		return ""
@@ -1112,7 +1112,7 @@ func (a *App) GetEvidenceThumbnail(path string) string {
 }
 
 // openWithRundll32 abre target con el handler del sistema (argv simple,
-// sin comillas embebidas ÔÇö constraint global).
+// sin comillas embebidas — constraint global).
 func openWithRundll32(target string) {
 	_ = exec.Command("rundll32", "url.dll,FileProtocolHandler", target).Start()
 }
@@ -1170,7 +1170,7 @@ func (a *App) OpenTerminal(index int) {
 	}
 	wt := exec.Command("wt.exe", "-d", path)
 	if err := wt.Start(); err != nil {
-		// Fallback argv-safe: comilla simple dentro de argumento ├║nico.
+		// Fallback argv-safe: comilla simple dentro de argumento único.
 		_ = exec.Command("powershell", "-NoExit", "-Command",
 			"Set-Location -LiteralPath '"+path+"'").Start()
 	}
@@ -1194,9 +1194,9 @@ func (a *App) OpenOpenCode(index int) {
 
 // ---- Trace viewer ----
 
-// OpenTraceViewer lanza `npx playwright show-trace <path>` v├¡a Runner normal.
+// OpenTraceViewer lanza `npx playwright show-trace <path>` vía Runner normal.
 // Guard: si ya hay un visor abierto se notifica y no se lanza otro (paridad
-// is_running de Python). shutdown()/RestartApp tambi├®n lo detienen.
+// is_running de Python). shutdown()/RestartApp también lo detienen.
 func (a *App) OpenTraceViewer(index int, path string) {
 	project := a.currentProject(index)
 	if project.Path == "" || !a.pathUnderProject(path) {
@@ -1245,18 +1245,18 @@ func (a *App) GetSettings() config.Settings {
 }
 
 // SetSetting valida key/value, persiste y emite "settings:changed" con el
-// valor normalizado. Inv├ílido ÔåÆ []string{msg} sin guardar.
+// valor normalizado. Inválido → []string{msg} sin guardar.
 func (a *App) SetSetting(key, value string) []string {
 	s := a.GetSettings()
 	normalized := ""
 	switch key {
 	case "theme":
 		switch value {
-		case "light", "dark", "oled":
+		case "light", "dark", "oled", "system":
 			s.Theme = value
 			normalized = value
 		default:
-			return []string{"Invalid theme value (expected light, dark or oled)"}
+			return []string{"Invalid theme value (expected light, dark, oled or system)"}
 		}
 	case "monitor_polling":
 		b, err := parseStrictBool(value)
@@ -1302,7 +1302,7 @@ func parseStrictBool(v string) (bool, error) {
 // ---- Quit ----
 
 // Quit cierra la app real (confirm lo hace el frontend); shutdown() detiene
-// servidores y managers v├¡a OnBeforeClose/shutdown.
+// servidores y managers vía OnBeforeClose/shutdown.
 func (a *App) Quit() {
 	a.mu.Lock()
 	a.forceExit = true

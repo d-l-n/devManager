@@ -1,3 +1,5 @@
+import { icon } from '../icons.js';
+
 const BACKLOG_STATUSES = ['todo', 'in-progress', 'done'];
 const BACKLOG_PRIORITIES = ['low', 'medium', 'high'];
 
@@ -20,7 +22,10 @@ export function mount(ctx) {
         container.innerHTML = '';
 
         if (currentBacklog.length === 0) {
-            container.innerHTML = '<div class="empty-state">No backlog items yet. Click "Add Item" to create one.</div>';
+            const empty = document.createElement('div');
+            empty.className = 'empty-state';
+            empty.textContent = 'No backlog items yet. Click “Add Item” to create one.';
+            container.appendChild(empty);
             return;
         }
 
@@ -31,37 +36,65 @@ export function mount(ctx) {
             itemEl.dataset.index = index;
             itemEl.dataset.id = item.id;
 
-            const statusIcon = {
-                'todo': '○',
-                'in-progress': '◐',
-                'done': '●'
-            }[item.status] || '○';
-
             const priorityColor = {
                 'low': '#6b7280',
                 'medium': '#f59e0b',
                 'high': '#ef4444'
             }[item.priority] || '#6b7280';
 
-            itemEl.innerHTML = `
-                <div class="backlog-item-header">
-                    <div class="backlog-item-title">
-                        <span class="status-icon">${statusIcon}</span>
-                        <span class="title-text">${escapeHtml(item.title)}</span>
-                        <span class="priority-dot" style="background-color: ${priorityColor}"></span>
-                    </div>
-                    <div class="backlog-item-actions">
-                        <button class="btn-small" onclick="editBacklogItem('${item.id}')">Edit</button>
-                        <button class="btn-small btn-danger" onclick="deleteBacklogItem('${item.id}')">Delete</button>
-                    </div>
-                </div>
-                ${item.description ? `<div class="backlog-item-description">${escapeHtml(item.description)}</div>` : ''}
-                <div class="backlog-item-meta">
-                    <span class="status-badge status-${item.status}">${item.status}</span>
-                    <span class="priority-badge priority-${item.priority}">${item.priority}</span>
-                    <span class="date">Updated ${formatDate(item.updated_at)}</span>
-                </div>
-            `;
+            const header = document.createElement('div');
+            header.className = 'backlog-item-header';
+            const title = document.createElement('div');
+            title.className = 'backlog-item-title';
+            const statusIcon = document.createElement('span');
+            statusIcon.className = 'status-icon';
+            const statusName = item.status === 'done' ? 'check' : item.status === 'in-progress' ? 'restart' : 'list';
+            statusIcon.appendChild(icon(statusName));
+            const titleText = document.createElement('span');
+            titleText.className = 'title-text';
+            titleText.textContent = item.title;
+            const priority = document.createElement('span');
+            priority.className = 'priority-dot';
+            priority.style.backgroundColor = priorityColor;
+            title.append(statusIcon, titleText, priority);
+
+            const actions = document.createElement('div');
+            actions.className = 'backlog-item-actions';
+            const edit = document.createElement('button');
+            edit.className = 'btn-small';
+            edit.title = 'Edit backlog item';
+            edit.setAttribute('aria-label', 'Edit backlog item');
+            edit.appendChild(icon('edit'));
+            edit.addEventListener('click', () => window.editBacklogItem(item.id));
+            const remove = document.createElement('button');
+            remove.className = 'btn-small btn-danger';
+            remove.title = 'Delete backlog item';
+            remove.setAttribute('aria-label', 'Delete backlog item');
+            remove.appendChild(icon('trash'));
+            remove.addEventListener('click', () => window.deleteBacklogItem(item.id));
+            actions.append(edit, remove);
+            header.append(title, actions);
+            itemEl.appendChild(header);
+
+            if (item.description) {
+                const description = document.createElement('div');
+                description.className = 'backlog-item-description';
+                description.textContent = item.description;
+                itemEl.appendChild(description);
+            }
+            const meta = document.createElement('div');
+            meta.className = 'backlog-item-meta';
+            const status = document.createElement('span');
+            status.className = `status-badge status-${item.status}`;
+            status.textContent = item.status;
+            const priorityBadge = document.createElement('span');
+            priorityBadge.className = `priority-badge priority-${item.priority}`;
+            priorityBadge.textContent = item.priority;
+            const date = document.createElement('span');
+            date.className = 'date';
+            date.textContent = `Updated ${formatDate(item.updated_at)}`;
+            meta.append(status, priorityBadge, date);
+            itemEl.appendChild(meta);
 
             // Drag and drop events
             itemEl.addEventListener('dragstart', handleDragStart);
@@ -215,12 +248,6 @@ export function mount(ctx) {
     });
 
     // Utility functions
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
     function formatDate(dateString) {
         const date = new Date(dateString);
         const now = new Date();

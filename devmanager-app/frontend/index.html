@@ -9,9 +9,10 @@
 <div id="app">
     <aside id="sidebar">
         <div class="sidebar-header">
+            <img class="app-logo" src="src/icons/logo.svg" alt="devManager">
             <span class="app-title">Local Dev Manager</span>
             <span id="project-count" class="dim"></span>
-            <button id="btn-add" class="icon-btn" title="Add Project">+</button>
+            <button id="btn-add" class="icon-btn" title="Add project" aria-label="Add project" data-icon="add"></button>
         </div>
         <input id="search" type="text" placeholder="Search projects...">
         <div id="project-filters" class="filter-chips" aria-label="Project status filters">
@@ -20,6 +21,7 @@
             <button class="filter-chip" data-filter="stopped">Stopped</button>
         </div>
         <ul id="project-list"></ul>
+        <footer class="sidebar-footer" aria-label="Application version">v1.0.0</footer>
     </aside>
     <div id="main-area">
         <header id="app-bar">
@@ -28,11 +30,11 @@
                 <button id="view-monitor" class="seg">Monitor</button>
             </div>
             <div class="app-bar-actions">
-                <button id="btn-reload" class="icon-btn" title="Reload Projects">&#10227;</button>
-                <button id="btn-applog" class="icon-btn" title="Application Log">&#128220;</button>
-                <button id="btn-theme" class="icon-btn" title="Toggle theme">&#127763;</button>
-                <button id="btn-settings" class="icon-btn" title="Settings">&#9881;</button>
-                <button id="btn-quit" class="icon-btn" title="Quit">&#9211;</button>
+                <button id="btn-reload" class="icon-btn" title="Reload projects" aria-label="Reload projects" data-icon="refresh"></button>
+                <button id="btn-applog" class="icon-btn" title="Application log" aria-label="Application log" data-icon="file"></button>
+                <button id="btn-theme" class="icon-btn" title="Toggle theme" aria-label="Toggle theme" data-icon="moon"></button>
+                <button id="btn-settings" class="icon-btn" title="Settings" aria-label="Settings" data-icon="settings"></button>
+                <button id="btn-quit" class="icon-btn" title="Quit" aria-label="Quit" data-icon="power-off"></button>
             </div>
         </header>
         <main id="main">
@@ -41,19 +43,19 @@
             <header id="detail-header">
                 <h2 id="project-name"></h2>
                 <div class="actions">
-                    <button id="btn-start">ÔûÂ Start</button>
-                    <button id="btn-stop">Ôûá Stop</button>
-                    <button id="btn-restart">Ôå╗ Restart</button>
+                    <button id="btn-start"><span data-icon="play"></span>Start</button>
+                    <button id="btn-stop"><span data-icon="stop"></span>Stop</button>
+                    <button id="btn-restart"><span data-icon="restart"></span>Restart</button>
                 </div>
             </header>
             <div id="status-bar">
                 <span id="state-badge" class="badge stopped">stopped</span>
-                <span id="badge-server" class="badge stopped">Server: ÔÇö</span>
-                <span id="badge-pw" class="badge">Playwright: ÔêÆ</span>
-                <span id="badge-git" class="badge">Git: ÔêÆ</span>
+                <span id="badge-server" class="badge stopped">Server: —</span>
+                <span id="badge-pw" class="badge">Playwright: off</span>
+                <span id="badge-git" class="badge">Git: —</span>
                 <span id="url-label"></span>
                 <span id="uptime-label"></span>
-                <button id="btn-open-url" class="icon-btn" title="Open in browser">&#128279;</button>
+                <button id="btn-open-url" class="icon-btn" title="Open in browser" aria-label="Open in browser" data-icon="browser"></button>
                 <button id="btn-save-detected-port" class="btn btn-warn" hidden>Save detected port</button>
             </div>
             <nav id="tabs">
@@ -124,13 +126,13 @@
                 <div class="group">
                     <div class="group-title">Repository Status</div>
                     <div class="row-between">
-                        <span id="git-branch" class="strong">Branch: ÔÇö</span>
+                        <span id="git-branch" class="strong">Branch: —</span>
                         <span class="row-gap-small">
                             <span id="git-sync" class="dim"></span>
                             <span id="git-dirty-badge" class="mini-badge"></span>
                         </span>
                     </div>
-                    <div id="git-commit" class="mono dim wrap">Last commit: ÔÇö</div>
+                    <div id="git-commit" class="mono dim wrap">Last commit: —</div>
                 </div>
                 <div class="group">
                     <div class="group-title">Actions</div>
@@ -159,7 +161,7 @@
                         <div id="ev-grid"></div>
                     </div>
                     <div id="ev-preview">
-                        <img id="ev-preview-img" alt="" hidden>
+                        <img id="ev-preview-img" alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" hidden>
                         <span id="ev-preview-placeholder" class="dim">Select an image to preview</span>
                     </div>
                 </div>

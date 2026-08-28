@@ -1,7 +1,7 @@
-// Dialog completo de Proyecto (Add/Edit) ÔÇö Issue #10.
-// Reemplaza el prompt() con prompts hardcoded por un modal con pesta├▒as
-// General / Server / Playwright + Browse nativo + autodetecci├│n.
-// Patr├│n widgets: mount(ctx) ÔåÆ { openNew, openEdit }.
+// Dialog completo de Proyecto (Add/Edit) — Issue #10.
+// Reemplaza el prompt() con prompts hardcoded por un modal con pestañas
+// General / Server / Playwright + Browse nativo + autodetección.
+// Patrón widgets: mount(ctx) → { openNew, openEdit }.
 import { api } from '../api.js';
 
 const serverDefaults = () => ({
@@ -54,18 +54,18 @@ export function mountProjectDialog(onSaved) {
     // ---- DOM ----
     const overlay = el('div', 'settings-overlay');
     overlay.hidden = true;
-    const card = el('div', 'settings-card');
-    card.style.width = '620px';
-    card.style.maxHeight = '86vh';
-    card.style.overflowY = 'auto';
+    const card = el('div', 'settings-card project-dialog-card');
 
     const titleEl = el('div', 'settings-title', 'Add Project');
     card.appendChild(titleEl);
 
+    const body = el('div', 'project-dialog-body');
+    card.appendChild(body);
+
     // --- General ---
-    card.appendChild(sectionTitle('General'));
+    body.appendChild(sectionTitle('General'));
     const nameField = field('pf-name', 'Name', '', 'text');
-    card.appendChild(nameField.wrap);
+    body.appendChild(nameField.wrap);
 
     const pathRow = el('div', 'pf-path-row');
     const pathField = field('pf-path', 'Path', '', 'text');
@@ -74,32 +74,32 @@ export function mountProjectDialog(onSaved) {
     const btnDetect = el('button', 'btn btn-accent pf-inline-btn', 'Detect Auto');
     pathRow.appendChild(btnBrowse);
     pathRow.appendChild(btnDetect);
-    card.appendChild(pathRow);
+    body.appendChild(pathRow);
 
     const detectStatus = el('div', 'pf-status');
-    card.appendChild(detectStatus);
+    body.appendChild(detectStatus);
 
     // --- Server ---
-    card.appendChild(sectionTitle('Server'));
+    body.appendChild(sectionTitle('Server'));
     const chkServer = document.createElement('input');
     chkServer.type = 'checkbox';
     chkServer.id = 'pf-server-enabled';
-    card.appendChild(labelRow('Enable server management', chkServer));
-    card.appendChild(field('pf-server-command', 'Command', 'npm run dev').wrap);
-    card.appendChild(field('pf-server-port', 'Port', 5173, 'number').wrap);
-    card.appendChild(field('pf-server-url', 'URL', 'http://localhost:5173').wrap);
-    card.appendChild(field('pf-server-timeout', 'Startup Timeout (ms)', 15000, 'number').wrap);
+    body.appendChild(labelRow('Enable server management', chkServer));
+    body.appendChild(field('pf-server-command', 'Command', 'npm run dev').wrap);
+    body.appendChild(field('pf-server-port', 'Port', 5173, 'number').wrap);
+    body.appendChild(field('pf-server-url', 'URL', 'http://localhost:5173').wrap);
+    body.appendChild(field('pf-server-timeout', 'Startup Timeout (ms)', 15000, 'number').wrap);
 
     // --- Playwright ---
-    card.appendChild(sectionTitle('Playwright'));
+    body.appendChild(sectionTitle('Playwright'));
     const chkPw = document.createElement('input');
     chkPw.type = 'checkbox';
     chkPw.id = 'pf-pw-enabled';
-    card.appendChild(labelRow('Enable Playwright integration', chkPw));
-    card.appendChild(field('pf-pw-command', 'Test Command', 'npx playwright test').wrap);
-    card.appendChild(field('pf-pw-ui', 'UI Command', 'npx playwright test --ui').wrap);
-    card.appendChild(field('pf-pw-debug', 'Debug Command', 'npx playwright test --debug').wrap);
-    card.appendChild(field('pf-pw-report', 'Report Command', 'npx playwright show-report').wrap);
+    body.appendChild(labelRow('Enable Playwright integration', chkPw));
+    body.appendChild(field('pf-pw-command', 'Test Command', 'npx playwright test').wrap);
+    body.appendChild(field('pf-pw-ui', 'UI Command', 'npx playwright test --ui').wrap);
+    body.appendChild(field('pf-pw-debug', 'Debug Command', 'npx playwright test --debug').wrap);
+    body.appendChild(field('pf-pw-report', 'Report Command', 'npx playwright show-report').wrap);
 
     // --- Footer ---
     const footer = el('div', 'settings-footer');

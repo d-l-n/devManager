@@ -19,7 +19,7 @@ type ProjectConfig struct {
 	PlaywrightEnabled bool   `json:"playwright_enabled"`
 }
 
-// prettify convierte "my-project_name" ÔåÆ "My Project Name" (paridad .title()).
+// prettify convierte "my-project_name" → "My Project Name" (paridad .title()).
 func prettify(s string) string {
 	return strings.Title(strings.ReplaceAll(strings.ReplaceAll(s, "-", " "), "_", " "))
 }
@@ -84,7 +84,7 @@ func DetectProjectConfig(projectPath string, existingPorts []int) ProjectConfig 
 					result.ServerCommand = pkgMgr + " run serve"
 				}
 
-				// Firmas de framework ÔåÆ puerto default
+				// Firmas de framework → puerto default
 				if _, ok := deps["astro"]; ok {
 					result.Port = 4321
 				} else if _, ok := deps["next"]; ok {
@@ -174,7 +174,7 @@ func DetectProjectConfig(projectPath string, existingPorts []int) ProjectConfig 
 var portURLRe = regexp.MustCompile(`(?i)https?://(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d{2,5})`)
 
 // ExtractPortFromLog replica extract_port_from_log.
-// Devuelve 0 si no hay match o el puerto est├í fuera de rango.
+// Devuelve 0 si no hay match o el puerto está fuera de rango.
 func ExtractPortFromLog(line string) int {
 	if line == "" {
 		return 0
@@ -222,8 +222,8 @@ func exists(path string) bool {
 }
 
 // readScriptsOrdered decodifica package.json preservando el orden de
-// declaraci├│n de "scripts" (json.Unmarshal sobre map lo perder├¡a).
-// Devuelve nil si el JSON es inv├ílido o la clave falta (paridad try/except).
+// declaración de "scripts" (json.Unmarshal sobre map lo perdería).
+// Devuelve nil si el JSON es inválido o la clave falta (paridad try/except).
 func readScriptsOrdered(pkgJSONPath string) []Script {
 	f, err := os.Open(pkgJSONPath)
 	if err != nil {
@@ -280,8 +280,8 @@ func readScriptsOrdered(pkgJSONPath string) []Script {
 	return nil
 }
 
-// GetProjectScripts replica get_project_scripts: nombre ÔåÆ comando completo
-// seg├║n el gestor detectado. Orden de package.json preservado.
+// GetProjectScripts replica get_project_scripts: nombre → comando completo
+// según el gestor detectado. Orden de package.json preservado.
 func GetProjectScripts(projectPath string) []Script {
 	if projectPath == "" {
 		return nil

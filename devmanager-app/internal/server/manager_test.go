@@ -86,7 +86,7 @@ func waitForState(t *testing.T, m *Manager, want models.ServerState, timeout tim
 	t.Fatalf("estado %s no alcanzado en %v (actual %s)", want, timeout, m.State())
 }
 
-// proceso vivo: evita que OnFinished pase a Stopped antes de la detecci├│n.
+// proceso vivo: evita que OnFinished pase a Stopped antes de la detección.
 func newAliveProject(port int) models.Project {
 	p := newTestProject(port, 5000)
 	p.Server.Command = "cmd /c ping -n 30 127.0.0.1 >nul"
@@ -94,13 +94,13 @@ func newAliveProject(port int) models.Project {
 }
 
 // waitBloqueado bloquea hasta que el contexto se cancele (simula un server
-// que tarda m├ís que la simulaci├│n y que la espera aborta por ctx.Done).
+// que tarda más que la simulación y que la espera aborta por ctx.Done).
 func waitBloqueado(ctx context.Context, timeout time.Duration) error {
 	<-ctx.Done()
 	return ctx.Err()
 }
 
-// TestLogDetectionCancelsPendingWait: la detecci├│n de puerto por log debe
+// TestLogDetectionCancelsPendingWait: la detección de puerto por log debe
 // cancelar la espera pendiente para que OnReady no se dispare dos veces
 // (bug #5).
 func TestLogDetectionCancelsPendingWait(t *testing.T) {
@@ -122,7 +122,7 @@ func TestLogDetectionCancelsPendingWait(t *testing.T) {
 }
 
 // TestStderrDoesNotTriggerPortDetection: stderr nunca debe participar en la
-// detecci├│n de puerto ni en transiciones de estado (bug #6); stdout s├¡.
+// detección de puerto ni en transiciones de estado (bug #6); stdout sí.
 func TestStderrDoesNotTriggerPortDetection(t *testing.T) {
 	rec := &recorder{}
 	m := NewManager(newAliveProject(5173), rec.callbacks())
@@ -130,7 +130,7 @@ func TestStderrDoesNotTriggerPortDetection(t *testing.T) {
 	m.waitPortFn = waitBloqueado
 	m.Start()
 
-	// L├¡nea de stderr con puerto: solo log, sin OnReady ni RUNNING.
+	// Línea de stderr con puerto: solo log, sin OnReady ni RUNNING.
 	m.onRunnerError("[ERROR] App listening at http://localhost:5173")
 	if m.State() != models.StateStarting {
 		t.Fatalf("stderr no debe cambiar de estado, state=%s", m.State())
@@ -139,7 +139,7 @@ func TestStderrDoesNotTriggerPortDetection(t *testing.T) {
 		t.Errorf("stderr no debe disparar OnReady, got %d", rec.readyCount())
 	}
 
-	// La misma l├¡nea por stdout s├¡ detecta el puerto.
+	// La misma línea por stdout sí detecta el puerto.
 	m.onRunnerOutput("App listening at http://localhost:5173", false)
 	waitForState(t, m, models.StateRunning, 5*time.Second)
 	if rec.readyCount() != 1 {
@@ -150,7 +150,7 @@ func TestStderrDoesNotTriggerPortDetection(t *testing.T) {
 }
 
 // TestPortMismatchNotifiesOnce: el aviso de puerto divergente debe emitirse
-// una sola vez, no en cada l├¡nea id├®ntica (bug #7).
+// una sola vez, no en cada línea idéntica (bug #7).
 func TestPortMismatchNotifiesOnce(t *testing.T) {
 	rec := &recorder{}
 	m := NewManager(newAliveProject(5173), rec.callbacks())
@@ -209,13 +209,13 @@ func TestStopRequestedSuppressesCrashError(t *testing.T) {
 		t.Error("taskkill tras Stop no debe reportar ERROR")
 	}
 	if m.FailureReason() != "" {
-		t.Errorf("failure_reason vac├¡o tras stop, got %q", m.FailureReason())
+		t.Errorf("failure_reason vacío tras stop, got %q", m.FailureReason())
 	}
 }
 
 func TestCrashEntersError(t *testing.T) {
 	p := newTestProject(0, 1000)
-	p.Server.Command = "cmd /c exit 3" // muere inmediatamente con c├│digo != 0
+	p.Server.Command = "cmd /c exit 3" // muere inmediatamente con código != 0
 	rec := &recorder{}
 	m := NewManager(p, rec.callbacks())
 	m.Start()

@@ -33,10 +33,10 @@ func TestIsPortOpen(t *testing.T) {
 		t.Error("puerto escuchando debe reportarse abierto")
 	}
 	if IsPortOpen("127.0.0.1", 1) {
-		t.Error("puerto 1 no deber├¡a estar abierto")
+		t.Error("puerto 1 no debería estar abierto")
 	}
 	if IsPortOpen("", 8080) || IsPortOpen("127.0.0.1", 0) || IsPortOpen("127.0.0.1", 70000) {
-		t.Error("inputs inv├ílidos deben devolver false")
+		t.Error("inputs inválidos deben devolver false")
 	}
 }
 
@@ -64,7 +64,7 @@ func TestBuildServerCommand(t *testing.T) {
 		{"flag corto", "vite -p 1111", 3000, "vite -p 1111"},
 		{"no matchea vitest como vite", "vitest", 3000, "vitest"},
 		{"desconocido intacto", "make serve", 3000, "make serve"},
-		{"port inv├ílido", "vite", 0, "vite"},
+		{"port inválido", "vite", 0, "vite"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -102,7 +102,7 @@ func TestWaitForPortCancel(t *testing.T) {
 	start := time.Now()
 	err := WaitForPort(ctx, "127.0.0.1", 1, 30*time.Second, 25*time.Millisecond)
 	if err == nil {
-		t.Fatal("cancelaci├│n debe producir error")
+		t.Fatal("cancelación debe producir error")
 	}
 	if time.Since(start) > time.Second {
 		t.Error("cancel debe interrumpir antes del timeout total")

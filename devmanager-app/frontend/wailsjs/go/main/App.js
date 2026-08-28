@@ -134,10 +134,6 @@ export function ReloadProjects() {
   return window['go']['main']['App']['ReloadProjects']();
 }
 
-export function SaveDetectedPort(arg1, arg2) {
-  return window['go']['main']['App']['SaveDetectedPort'](arg1, arg2);
-}
-
 export function RemoveProject(arg1) {
   return window['go']['main']['App']['RemoveProject'](arg1);
 }
@@ -164,6 +160,10 @@ export function RunTests(arg1) {
 
 export function RunUI(arg1) {
   return window['go']['main']['App']['RunUI'](arg1);
+}
+
+export function SaveDetectedPort(arg1, arg2) {
+  return window['go']['main']['App']['SaveDetectedPort'](arg1, arg2);
 }
 
 export function SetSetting(arg1, arg2) {

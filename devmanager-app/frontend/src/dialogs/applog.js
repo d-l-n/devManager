@@ -1,5 +1,5 @@
 // Dialog App Log global (Issue #14): muestra stdout/stderr capturados por el
-// backend (ring de 3000) con live-updates v├¡a el evento applog:line.
+// backend (ring de 3000) con live-updates vía el evento applog:line.
 import { api, events } from '../api.js';
 
 const MAX_NODES = 3000;

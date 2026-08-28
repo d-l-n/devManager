@@ -1,5 +1,7 @@
 // Menu contextual de proyecto (Issue #12): singleton posicionado en el cursor.
-// mount() ÔåÆ { show(items, x, y), hide() }.
+import { icon } from '../icons.js';
+
+// mount() → { show(items, x, y), hide() }.
 function el(tag, className, text) {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -32,8 +34,9 @@ export function mountContextMenu() {
                 root.appendChild(el('div', 'context-menu-sep'));
                 return;
             }
-            const btn = el('button', 'context-menu-item' + (it.danger ? ' danger' : ''), it.label);
-            if (it.icon) btn.textContent = it.icon + '  ' + it.label;
+            const btn = el('button', 'context-menu-item' + (it.danger ? ' danger' : ''));
+            if (it.icon) btn.appendChild(icon(it.icon));
+            btn.appendChild(document.createTextNode(it.label));
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 root.hidden = true;

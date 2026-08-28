@@ -5,7 +5,7 @@ export function mount(ctx) {
     function setActive(name) {
         const label = $('script-active-label');
         const running = !!name;
-        label.textContent = running ? `Running script:  ÔÜí ${name}` : 'No script running';
+        label.textContent = running ? `Running script: ${name}` : 'No script running';
         label.className = running ? 'strong warn-text' : 'dim';
         $('script-stop').disabled = !running;
         rows.forEach((r) => {

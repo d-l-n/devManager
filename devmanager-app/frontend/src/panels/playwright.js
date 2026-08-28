@@ -2,8 +2,8 @@ const STATE_TEXT = {
     idle: ['Idle', 'idle'],
     starting: ['Starting...', 'starting'],
     running: ['Running...', 'running'],
-    passed: ['PASSED Ô£ô', 'passed'],
-    failed: ['FAILED Ô£ù', 'failed'],
+    passed: ['Passed', 'passed'],
+    failed: ['Failed', 'failed'],
     error: ['Error', 'error'],
 };
 
