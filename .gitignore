@@ -50,3 +50,6 @@ devmanager-app/frontend/coverage/
 .env
 .env.local
 .env.*.local
+
+# Documentation
+docs/
