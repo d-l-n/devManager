@@ -9,6 +9,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // ProjectConfig replica el dict result de detect_project_config.
@@ -93,7 +96,9 @@ func hasProjectSignal(path string) bool {
 
 // prettify convierte "my-project_name" → "My Project Name" (paridad .title()).
 func prettify(s string) string {
-	return strings.Title(strings.ReplaceAll(strings.ReplaceAll(s, "-", " "), "_", " "))
+	replaced := strings.ReplaceAll(strings.ReplaceAll(s, "-", " "), "_", " ")
+	c := cases.Title(language.English)
+	return c.String(replaced)
 }
 
 // DetectProjectConfig replica detect_project_config: inspecciona el folder y
@@ -194,12 +199,12 @@ func DetectProjectConfig(projectPath string, existingPorts []int) ProjectConfig 
 		}
 	}
 
-	// 2. Frameworks Python si no hay package.json o hay manage.py
-	if _, err := os.Stat(filepath.Join(projectPath, "manage.py")); err == nil {
-		result.ServerCommand = "python manage.py runserver"
-		result.Port = 8000
-	} else if _, err := os.Stat(filepath.Join(projectPath, "main.py")); err == nil {
-		if _, notPkg := os.Stat(pkgJSONPath); notPkg != nil {
+	// 2. Frameworks Python - only if no package.json detected
+	if _, err := os.Stat(pkgJSONPath); err != nil {
+		if _, err := os.Stat(filepath.Join(projectPath, "manage.py")); err == nil {
+			result.ServerCommand = "python manage.py runserver"
+			result.Port = 8000
+		} else if _, err := os.Stat(filepath.Join(projectPath, "main.py")); err == nil {
 			result.ServerCommand = "uvicorn main:app --reload"
 			result.Port = 8000
 		}

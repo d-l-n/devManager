@@ -1,11 +1,13 @@
 package errors
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -117,9 +119,71 @@ func (h *ErrorHandler) GetErrorStats() map[string]int {
 
 // GetRecentErrors returns recent errors from the log file
 func (h *ErrorHandler) GetRecentErrors(limit int) ([]*AppError, error) {
-	// This is a simplified implementation
-	// In a real app, you might want to use a proper log parsing library
-	return []*AppError{}, nil
+	if limit <= 0 {
+		limit = 50
+	}
+
+	h.logMutex.Lock()
+	defer h.logMutex.Unlock()
+
+	if h.logFile == nil {
+		return []*AppError{}, nil
+	}
+
+	// Seek to start and read all lines
+	if _, err := h.logFile.Seek(0, 0); err != nil {
+		return nil, fmt.Errorf("failed to seek log file: %w", err)
+	}
+
+	var entries []*AppError
+	scanner := bufio.NewScanner(h.logFile)
+	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+
+		var raw struct {
+			Timestamp   string                 `json:"timestamp"`
+			Code        string                 `json:"code"`
+			Message     string                 `json:"message"`
+			UserMessage string                 `json:"user_message"`
+			Severity    string                 `json:"severity"`
+			Details     map[string]interface{} `json:"details"`
+			Stack       []string               `json:"stack"`
+			Cause       string                 `json:"cause"`
+		}
+		if err := json.Unmarshal([]byte(line), &raw); err != nil {
+			continue // skip non-JSON / malformed lines
+		}
+
+		ts, err := time.Parse(time.RFC3339, raw.Timestamp)
+		if err != nil {
+			ts = time.Now()
+		}
+
+		appErr := &AppError{
+			Code:        ErrorCode(raw.Code),
+			Message:     raw.Message,
+			UserMessage: raw.UserMessage,
+			Details:     raw.Details,
+			Stack:       raw.Stack,
+			Timestamp:   ts,
+		}
+
+		entries = append(entries, appErr)
+		if len(entries) >= limit {
+			break
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("failed reading log file: %w", err)
+	}
+
+	return entries, nil
 }
 
 // Close closes the error handler
