@@ -16,6 +16,7 @@ export function mountContextMenu() {
 
     const root = el('div', 'context-menu');
     root.hidden = true;
+    root.setAttribute('role', 'menu');
     document.body.appendChild(root);
     menuEl = root;
 
@@ -29,12 +30,14 @@ export function mountContextMenu() {
 
     function show(items, x, y) {
         root.innerHTML = '';
+        const menuButtons = [];
         items.forEach((it) => {
             if (it.separator) {
                 root.appendChild(el('div', 'context-menu-sep'));
                 return;
             }
             const btn = el('button', 'context-menu-item' + (it.danger ? ' danger' : ''));
+            btn.setAttribute('role', 'menuitem');
             if (it.icon) btn.appendChild(icon(it.icon));
             btn.appendChild(document.createTextNode(it.label));
             btn.addEventListener('click', (e) => {
@@ -43,6 +46,7 @@ export function mountContextMenu() {
                 if (it.onClick) it.onClick();
             });
             root.appendChild(btn);
+            menuButtons.push(btn);
         });
         root.hidden = false;
         // Clamp dentro de la ventana
@@ -52,6 +56,22 @@ export function mountContextMenu() {
         const py = Math.min(y, Math.max(0, vh - r.height - 8));
         root.style.left = `${px}px`;
         root.style.top = `${py}px`;
+        // Keyboard navigation: arrow keys to move, Enter to activate
+        let focusIdx = 0;
+        if (menuButtons.length > 0) menuButtons[0].focus();
+        root.onkeydown = (e) => {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                focusIdx = (focusIdx + 1) % menuButtons.length;
+                menuButtons[focusIdx].focus();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                focusIdx = (focusIdx - 1 + menuButtons.length) % menuButtons.length;
+                menuButtons[focusIdx].focus();
+            } else if (e.key === 'Escape') {
+                root.hidden = true;
+            }
+        };
     }
 
     return {

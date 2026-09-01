@@ -14,12 +14,12 @@
             <button id="btn-add" class="icon-btn" title="Add project" aria-label="Add project" data-icon="add"></button>
         </div>
         <input id="search" type="text" placeholder="Search projects..." aria-label="Search projects">
-        <div id="project-filters" class="filter-chips" aria-label="Project status filters">
-            <button class="filter-chip active" data-filter="all">All</button>
-            <button class="filter-chip" data-filter="running">Running</button>
-            <button class="filter-chip" data-filter="stopped">Stopped</button>
+        <div id="project-filters" class="filter-chips" role="tablist" aria-label="Project status filters">
+            <button class="filter-chip active" data-filter="all" role="tab" aria-pressed="true">All</button>
+            <button class="filter-chip" data-filter="running" role="tab" aria-pressed="false">Running</button>
+            <button class="filter-chip" data-filter="stopped" role="tab" aria-pressed="false">Stopped</button>
         </div>
-        <ul id="project-list"></ul>
+        <ul id="project-list" role="listbox" aria-label="Projects"></ul>
         <div id="projects-empty" class="dim center padded" hidden>
             No projects found matching the current filter
         </div>
@@ -60,15 +60,15 @@
                 <button id="btn-open-url" class="icon-btn" title="Open in browser" aria-label="Open in browser" data-icon="browser"></button>
                 <button id="btn-save-detected-port" class="btn btn-warn" hidden>Save detected port</button>
             </div>
-            <nav id="tabs">
-                <button class="tab active" data-tab="logs">Logs</button>
-                <button class="tab" data-tab="playwright">Playwright</button>
-                <button class="tab" data-tab="scripts">Scripts</button>
-                <button class="tab" data-tab="git">Git</button>
-                <button class="tab" data-tab="evidence">Evidence</button>
-                <button class="tab" data-tab="backlog">Backlog</button>
+            <nav id="tabs" role="tablist" aria-label="Project panels">
+                <button class="tab active" data-tab="logs" role="tab" aria-selected="true">Logs</button>
+                <button class="tab" data-tab="playwright" role="tab" aria-selected="false">Playwright</button>
+                <button class="tab" data-tab="scripts" role="tab" aria-selected="false">Scripts</button>
+                <button class="tab" data-tab="git" role="tab" aria-selected="false">Git</button>
+                <button class="tab" data-tab="evidence" role="tab" aria-selected="false">Evidence</button>
+                <button class="tab" data-tab="backlog" role="tab" aria-selected="false">Backlog</button>
             </nav>
-            <section id="panel-logs" class="panel active">
+            <section id="panel-logs" class="panel active" role="tabpanel">
                 <div class="log-toolbar">
                     <label><input type="checkbox" id="errors-only"> Errors only</label>
                     <div class="row-gap">
@@ -81,7 +81,7 @@
                 </div>
                 <div id="log-output"></div>
             </section>
-            <section id="panel-playwright" class="panel">
+            <section id="panel-playwright" class="panel" role="tabpanel">
                 <div class="group">
                     <div class="group-title">Test Status</div>
                     <div id="pw-status-label" class="pw-status">Status: Idle</div>
@@ -100,7 +100,7 @@
                 </div>
             </section>
 
-            <section id="panel-scripts" class="panel">
+            <section id="panel-scripts" class="panel" role="tabpanel">
                 <div class="group">
                     <div class="group-title">Active Script Execution</div>
                     <div class="row-between">
@@ -124,7 +124,7 @@
                 </div>
             </section>
 
-            <section id="panel-git" class="panel">
+            <section id="panel-git" class="panel" role="tabpanel">
                 <div class="group">
                     <div class="group-title">Repository Status</div>
                     <div class="row-between">
@@ -151,7 +151,7 @@
                 </div>
             </section>
 
-            <section id="panel-evidence" class="panel">
+            <section id="panel-evidence" class="panel" role="tabpanel">
                 <header id="ev-toolbar">
                     <button id="ev-refresh" class="btn btn-accent">Refresh</button>
                     <button id="ev-report" class="btn btn-primary" disabled>Open HTML Report</button>
@@ -172,7 +172,7 @@
                 </div>
             </section>
 
-            <section id="panel-backlog" class="panel" role="tabpanel">
+            <section id="panel-backlog" class="panel" role="tabpanel" aria-labelledby="tab-backlog">
                 <header id="blg-toolbar">
                     <button id="backlog-add" class="btn btn-primary">Add Item</button>
                     <button id="backlog-refresh" class="btn btn-accent">Refresh</button>

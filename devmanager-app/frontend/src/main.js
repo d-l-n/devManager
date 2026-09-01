@@ -95,9 +95,12 @@ function renderList() {
         visibleCount++;
         const li = document.createElement('li');
         const cls = [];
-        if (i === state.selected) cls.push('selected');
+        const isSelected = i === state.selected;
+        if (isSelected) cls.push('selected');
         if (p.pinned) cls.push('pinned');
         li.className = cls.join(' ');
+        li.setAttribute('role', 'option');
+        li.setAttribute('aria-selected', isSelected);
         const dot = document.createElement('span');
         dot.className = 'proj-dot';
         dot.dataset.index = i;
@@ -185,10 +188,20 @@ function showProjectContextMenu(index, p, x, y) {
     contextMenu.show(items, x, y);
 }
 
-function updateDots() {
-    document.querySelectorAll('.proj-dot').forEach(async (dot) => {
-        const i = parseInt(dot.dataset.index, 10);
-        const status = await api.getServerStatus(i);
+async function updateDots() {
+    const dots = document.querySelectorAll('.proj-dot');
+    if (dots.length === 0) return;
+
+    // Batch all status requests into a single Promise.all
+    const indices = Array.from(dots).map((dot) => parseInt(dot.dataset.index, 10));
+    const statuses = await Promise.all(
+        indices.map((i) => api.getServerStatus(i).catch(() => ({ state: 'stopped' })))
+    );
+
+    let listDirty = false;
+    dots.forEach((dot, idx) => {
+        const i = indices[idx];
+        const status = statuses[idx];
         const previous = state.serverStates.get(i);
         state.serverStates.set(i, status.state);
         dot.className = `proj-dot ${status.state}`;
@@ -199,9 +212,10 @@ function updateDots() {
             label.classList.toggle('running', running);
         }
         if (previous !== undefined && previous !== status.state && state.projectFilter !== 'all') {
-            renderList();
+            listDirty = true;
         }
     });
+    if (listDirty) renderList();
 }
 
 function renderDetail() {
@@ -403,8 +417,11 @@ function wireEvents() {
     document.querySelectorAll('.filter-chip').forEach((button) => {
         button.addEventListener('click', () => {
             state.projectFilter = button.dataset.filter;
-            document.querySelectorAll('.filter-chip').forEach((chip) =>
-                chip.classList.toggle('active', chip === button));
+            document.querySelectorAll('.filter-chip').forEach((chip) => {
+                const isActive = chip === button;
+                chip.classList.toggle('active', isActive);
+                chip.setAttribute('aria-pressed', isActive);
+            });
             renderList();
         });
     });
@@ -539,7 +556,7 @@ $('btn-theme').addEventListener('click', () => {
         if (index === state.selected) refreshStatus();
     });
 
-    setInterval(refreshStatus, 1000); // uptime ticker
+    setInterval(refreshStatus, 2000); // uptime ticker (2s interval)
 }
 
 function isEditableTarget(e) {
@@ -706,8 +723,11 @@ updateThemeButtonIcon();
 window.updateThemeButtonIcon = updateThemeButtonIcon;
 
 function switchTab(name) {
-    document.querySelectorAll('.tab').forEach((b) =>
-        b.classList.toggle('active', b.dataset.tab === name));
+    document.querySelectorAll('.tab').forEach((b) => {
+        const isActive = b.dataset.tab === name;
+        b.classList.toggle('active', isActive);
+        b.setAttribute('aria-selected', isActive);
+    });
     document.querySelectorAll('.panel').forEach((p) =>
         p.classList.toggle('active', p.id === `panel-${name}`));
 }
