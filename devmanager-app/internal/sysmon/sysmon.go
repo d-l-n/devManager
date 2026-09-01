@@ -55,11 +55,26 @@ func getCachedProcess(pid int) *process.Process {
 		return e.proc
 	}
 	if len(procCache) >= maxProcCache {
+		// First pass: evict dead pids
 		for k := range procCache {
 			exists, _ := process.PidExists(int32(k))
 			if !exists {
 				delete(procCache, k)
 			}
+		}
+		// Second pass: if still full, evict oldest (LRU) entry
+		if len(procCache) >= maxProcCache {
+			var oldestKey int
+			var oldestTime time.Time
+			first := true
+			for k, e := range procCache {
+				if first || e.last.Before(oldestTime) {
+					oldestKey = k
+					oldestTime = e.last
+					first = false
+				}
+			}
+			delete(procCache, oldestKey)
 		}
 	}
 	proc, err := process.NewProcess(int32(pid))
