@@ -196,9 +196,8 @@ jobs:
         shell: bash
         run: |
           echo "Build directory contents:"
+          find build/bin -type f 2>/dev/null || echo "No files in build/bin"
           ls -la build/bin/ || true
-          echo "Platform-specific directory:"
-          ls -la build/bin/${{ matrix.platform }}-${{ matrix.arch }}/ || true
 
       - name: Generate build info
         id: build_info
@@ -217,31 +216,41 @@ jobs:
 
       - name: Prepare and upload artifact (Windows)
         if: matrix.os == 'windows-latest'
-        shell: powershell
+        shell: bash
         run: |
-          $sourcePath = "devmanager-app/build/bin/${{ matrix.platform }}-${{ matrix.arch }}/devmanager.exe"
-          $destPath = "${{ matrix.artifact_name }}"
-          Copy-Item $sourcePath $destPath
-          
+          set -e
+          EXE=$(find devmanager-app/build/bin -name 'devmanager.exe' -type f | head -1)
+          if [ -z "$EXE" ]; then
+            echo "ERROR: devmanager.exe not found"
+            find devmanager-app/build -type f
+            exit 1
+          fi
+          cp "$EXE" "${{ matrix.artifact_name }}"
           # Add version info
-          $versionInfo = @{
-            version = "${{ steps.build_info.outputs.version }}"
-            buildDate = "${{ steps.build_info.outputs.build_date }}"
-            commit = "${{ steps.build_info.outputs.commit_sha }}"
-            platform = "${{ matrix.platform }}"
-            arch = "${{ matrix.arch }}"
+          cat > "${{ matrix.artifact_name }}.json" << EOF
+          {
+            "version": "${{ steps.build_info.outputs.version }}",
+            "buildDate": "${{ steps.build_info.outputs.build_date }}",
+            "commit": "${{ steps.build_info.outputs.commit_sha }}",
+            "platform": "${{ matrix.platform }}",
+            "arch": "${{ matrix.arch }}"
           }
-          $versionInfo | ConvertTo-Json | Out-File -FilePath "${{ matrix.artifact_name }}.json"
+          EOF
 
       - name: Prepare and upload artifact (Unix)
         if: runner.os != 'Windows'
+        shell: bash
         run: |
-          cd devmanager-app/build/bin/${{ matrix.platform }}-${{ matrix.arch }}/
-          chmod +x devmanager
-          cp devmanager ../../../../../${{ matrix.artifact_name }}
-          
+          set -e
+          BIN=$(find devmanager-app/build/bin -name 'devmanager' -type f | head -1)
+          if [ -z "$BIN" ]; then
+            echo "ERROR: devmanager binary not found"
+            find devmanager-app/build -type f
+            exit 1
+          fi
+          cp "$BIN" "${{ matrix.artifact_name }}"
           # Add version info
-          cat > ../../../../../${{ matrix.artifact_name }}.json << EOF
+          cat > "${{ matrix.artifact_name }}.json" << EOF
           {
             "version": "${{ steps.build_info.outputs.version }}",
             "buildDate": "${{ steps.build_info.outputs.build_date }}",

@@ -111,34 +111,38 @@ jobs:
         shell: bash
         run: |
           echo "Build directory contents:"
+          find build/bin -type f 2>/dev/null || echo "No files in build/bin"
           ls -la build/bin/ || true
-          echo "Platform-specific directory:"
-          ls -la build/bin/${{ matrix.platform }}-${{ matrix.arch }}/ || true
 
       - name: Prepare artifact (Windows)
         if: matrix.os == 'windows-latest'
-        shell: powershell
+        shell: bash
         run: |
-          $artifactPath = "devmanager-app/build/bin/${{ matrix.platform }}-${{ matrix.arch }}/"
-          $exeName = "devmanager.exe"
-          $sourcePath = Join-Path $artifactPath $exeName
-          $destPath = "${{ matrix.artifact_name }}"
-          if (Test-Path $sourcePath) {
-            Copy-Item $sourcePath $destPath
-            Compress-Archive -Path $destPath -DestinationPath ${{ matrix.artifact_zip }}
-          } else {
-            Write-Error "Executable not found at $sourcePath"
-            Get-ChildItem -Path $artifactPath -Recurse
-          }
+          set -e
+          # Wails outputs to build/bin/<name>.exe
+          EXE=$(find devmanager-app/build/bin -name 'devmanager.exe' -type f | head -1)
+          if [ -z "$EXE" ]; then
+            echo "ERROR: devmanager.exe not found"
+            find devmanager-app/build -type f
+            exit 1
+          fi
+          cp "$EXE" "${{ matrix.artifact_name }}"
+          zip "${{ matrix.artifact_zip }}" "${{ matrix.artifact_name }}"
 
       - name: Prepare artifact (Unix)
         if: runner.os != 'Windows'
+        shell: bash
         run: |
-          cd devmanager-app/build/bin/${{ matrix.platform }}-${{ matrix.arch }}/
-          chmod +x devmanager
-          cp devmanager ../../../../../${{ matrix.artifact_name }}
-          cd ../../../../../
-          zip ${{ matrix.artifact_zip }} ${{ matrix.artifact_name }}
+          set -e
+          # Wails outputs to build/bin/<name> (no extension)
+          BIN=$(find devmanager-app/build/bin -name 'devmanager' -type f | head -1)
+          if [ -z "$BIN" ]; then
+            echo "ERROR: devmanager binary not found"
+            find devmanager-app/build -type f
+            exit 1
+          fi
+          cp "$BIN" "${{ matrix.artifact_name }}"
+          zip "${{ matrix.artifact_zip }}" "${{ matrix.artifact_name }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

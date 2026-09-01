@@ -5,7 +5,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"testing"
 	"time"
 )
@@ -15,7 +14,7 @@ func gexec(t *testing.T, dir string, args ...string) {
 	t.Helper()
 	cmd := exec.Command("git", args...)
 	cmd.Dir = dir
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
+	hideCmd(cmd)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("git %v en %s: %v\n%s", args, dir, err, out)

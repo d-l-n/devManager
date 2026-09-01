@@ -11,16 +11,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 )
-
-const createNoWindow = 0x08000000
-
-// hideCmd evita flash de consola en Windows (paridad STARTF_USESHOWWINDOW|SW_HIDE).
-func hideCmd(cmd *exec.Cmd) {
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: createNoWindow}
-}
 
 // HiddenCommand devuelve un exec.Cmd configurado para correr oculto
 // (uso del App layer para Pull/Fetch/Stash con streaming).
