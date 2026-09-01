@@ -16,11 +16,15 @@ export function AutoAssignPorts():Promise<number>;
 
 export function BrowseFolder():Promise<string>;
 
+export function BrowseWorkspaceFolder():Promise<string>;
+
 export function ClearAppLog():Promise<void>;
 
 export function DeleteBacklogItem(arg1:number,arg2:string):Promise<void>;
 
 export function DetectProjectConfig(arg1:string):Promise<detection.ProjectConfig>;
+
+export function DiscoverProjects(arg1:string):Promise<Array<detection.ProjectCandidate>>;
 
 export function GetAppLog():Promise<Array<logger.Entry>>;
 

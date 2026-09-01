@@ -18,6 +18,10 @@ export function BrowseFolder() {
   return window['go']['main']['App']['BrowseFolder']();
 }
 
+export function BrowseWorkspaceFolder() {
+  return window['go']['main']['App']['BrowseWorkspaceFolder']();
+}
+
 export function ClearAppLog() {
   return window['go']['main']['App']['ClearAppLog']();
 }
@@ -28,6 +32,10 @@ export function DeleteBacklogItem(arg1, arg2) {
 
 export function DetectProjectConfig(arg1) {
   return window['go']['main']['App']['DetectProjectConfig'](arg1);
+}
+
+export function DiscoverProjects(arg1) {
+  return window['go']['main']['App']['DiscoverProjects'](arg1);
 }
 
 export function GetAppLog() {
