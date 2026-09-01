@@ -23,7 +23,7 @@ on:
 
 env:
   WAILS_VERSION: v2.15.0
-  GO_VERSION: '1.23'
+  GO_VERSION: '1.25'
   NODE_VERSION: '20'
   BUILD_TYPE: ${{ github.event.inputs.build_type || 'release' }}
 
@@ -93,7 +93,7 @@ jobs:
       - name: Install Wails dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
 
       - name: Install frontend dependencies
         working-directory: ./devmanager-app/frontend
@@ -148,7 +148,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
 
       - name: Set up Wails dependencies (macOS)
         if: matrix.os == 'macos-latest'
@@ -184,7 +184,7 @@ jobs:
         working-directory: ./devmanager-app
         run: |
           if [ "${{ env.BUILD_TYPE }}" = "debug" ]; then
-            wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -debug
+            wails build -platform ${{ matrix.platform }}/${{ matrix.arch }}
           else
             wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -upx
           fi
@@ -193,6 +193,7 @@ jobs:
 
       - name: Verify build output
         working-directory: ./devmanager-app
+        shell: bash
         run: |
           echo "Build directory contents:"
           ls -la build/bin/ || true

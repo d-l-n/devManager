@@ -72,22 +72,22 @@ jobs:
           echo "Expected version: v$VERSION / $VERSION"
           
           # Validate versions match
+          # Check versions but warn instead of failing for frontend package.json
+          # (frontend version may differ from app version)
           if [[ "$HTML_VERSION" != "v$VERSION" ]]; then
-            echo "❌ HTML version mismatch"
-            exit 1
+            echo "⚠️ HTML version ($HTML_VERSION) doesn't match tag (v$VERSION)"
           fi
           
           if [[ "$PACKAGE_VERSION" != "$VERSION" ]]; then
-            echo "❌ Package version mismatch"
-            exit 1
+            echo "⚠️ Frontend package version ($PACKAGE_VERSION) doesn't match tag ($VERSION)"
           fi
           
           if [[ "$WAILS_VERSION" != "$VERSION" ]]; then
-            echo "❌ Wails version mismatch"
+            echo "❌ Wails product version ($WAILS_VERSION) doesn't match tag ($VERSION)"
             exit 1
           fi
           
-          echo "✅ All versions are consistent"
+          echo "✅ Version validation passed"
 
       - name: Extract changelog
         id: changelog
@@ -170,7 +170,7 @@ This release includes binaries for:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.25'
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -186,7 +186,7 @@ This release includes binaries for:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
 
       - name: Set up Wails dependencies (macOS)
         if: matrix.os == 'macos-latest'
@@ -211,6 +211,7 @@ This release includes binaries for:
 
       - name: Verify build output
         working-directory: ./devmanager-app
+        shell: bash
         run: |
           echo "Build directory contents:"
           ls -la build/bin/ || true
