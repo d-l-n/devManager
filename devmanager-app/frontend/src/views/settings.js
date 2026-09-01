@@ -1,8 +1,10 @@
 // Settings View - replaces the popup dialog with a full screen view
 import { api, events } from '../api.js';
-import { applyTheme, applyStyle, isValidTheme, isValidStyle } from '../theme.js';
+import { applyTheme, applyStyle, setOledMode, isValidTheme, isValidStyle } from '../theme.js';
 import { setToastsEnabled } from '../widgets/toast.js';
+import { icon, hydrateIcons } from '../icons.js';
 
+const $ = (id) => document.getElementById(id);
 const normBool = (v) => v === true || v === 'true';
 
 function el(tag, className, text) {
@@ -22,110 +24,234 @@ function optionRow(labelText, description, input) {
     return label;
 }
 
+function divider() {
+    const divider = el('div', 'settings-divider');
+    return divider;
+}
+
+function sectionDescription(text) {
+    const desc = el('div', 'settings-section-description', text);
+    return desc;
+}
+
+function sectionTitleWithIcon(iconName, title) {
+    const container = el('div', 'settings-section-title-with-icon');
+    const iconEl = icon(iconName, { size: 18 });
+    iconEl.className = 'settings-section-icon';
+    const titleEl = el('span', 'settings-section-title-text', title);
+    container.appendChild(iconEl);
+    container.appendChild(titleEl);
+    return container;
+}
+
 export function mountSettingsView() {
     const state = {
         theme: 'dark',
         style: 'standard',
         monitor_polling: true,
         toasts_enabled: true,
-        oled_enabled: false,
+        oled_mode: false,
     };
 
-    // Theme radio buttons (excluding OLED)
-    const themeRadios = ['light', 'dark', 'system'].map((value) => {
-        const radio = document.createElement('input');
-        radio.type = 'radio';
-        radio.name = 'theme';
-        radio.value = value;
-        radio.id = `theme-${value}`;
-        return radio;
-    });
+    // Store references to elements
+    let themeRadios = [];
+    let styleRadios = [];
+    let monitorPollingCheckbox = null;
+    let toastsEnabledCheckbox = null;
+    let oledModeCheckbox = null;
 
-    // Style radio buttons
-    const styleRadios = ['standard', 'brutalist'].map((value) => {
-        const radio = document.createElement('input');
-        radio.type = 'radio';
-        radio.name = 'style';
-        radio.value = value;
-        radio.id = `style-${value}`;
-        return radio;
-    });
+function render() {
+    // Don't render if the view is not visible
+    if (!isVisible()) {
+        return;
+    }
+    
+    // Create elements if they don't exist
+    if (themeRadios.length === 0) {
+        themeRadios = ['light', 'dark', 'system'].map((value) => {
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = 'theme';
+            radio.value = value;
+            radio.id = `theme-${value}`;
+            return radio;
+        });
+    }
+    
+    if (styleRadios.length === 0) {
+        styleRadios = ['standard', 'brutalist'].map((value) => {
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = 'style';
+            radio.value = value;
+            radio.id = `style-${value}`;
+            return radio;
+        });
+    }
+    
+    if (!monitorPollingCheckbox) {
+        monitorPollingCheckbox = el('input');
+        monitorPollingCheckbox.type = 'checkbox';
+        monitorPollingCheckbox.id = 'monitor-polling';
+    }
+    
+    if (!toastsEnabledCheckbox) {
+        toastsEnabledCheckbox = el('input');
+        toastsEnabledCheckbox.type = 'checkbox';
+        toastsEnabledCheckbox.id = 'toasts-enabled';
+    }
+    
+    if (!oledModeCheckbox) {
+        oledModeCheckbox = el('input');
+        oledModeCheckbox.type = 'checkbox';
+        oledModeCheckbox.id = 'oled-mode';
+    }
+    
+    // Setup event listeners if not already done
+    setupEventListeners();
+    
+    // Hydrate icons in the settings view
+    hydrateIcons($('settings-view'));
+    
+    // Add icons to section titles - check if elements exist first
+    const appearanceTitle = $('appearance-title');
+    const displayTitle = $('display-title');
+    const notificationsTitle = $('notifications-title');
+    const monitoringTitle = $('monitoring-title');
+        
+    if (appearanceTitle) {
+        appearanceTitle.replaceChildren(sectionTitleWithIcon('settings', 'Appearance'));
+    }
+    if (displayTitle) {
+        displayTitle.replaceChildren(sectionTitleWithIcon('monitor', 'Display'));
+    }
+    if (notificationsTitle) {
+        notificationsTitle.replaceChildren(sectionTitleWithIcon('notification', 'Notifications'));
+    }
+    if (monitoringTitle) {
+        monitoringTitle.replaceChildren(sectionTitleWithIcon('code', 'Monitoring'));
+    }
 
-    // Checkboxes
-    const monitorPollingCheckbox = el('input');
-    monitorPollingCheckbox.type = 'checkbox';
-    monitorPollingCheckbox.id = 'monitor-polling';
-
-    const toastsEnabledCheckbox = el('input');
-    toastsEnabledCheckbox.type = 'checkbox';
-    toastsEnabledCheckbox.id = 'toasts-enabled';
-
-    const oledEnabledCheckbox = el('input');
-    oledEnabledCheckbox.type = 'checkbox';
-    oledEnabledCheckbox.id = 'oled-enabled';
-
-    function render() {
-        const themeSection = $('settings-theme-section');
-        themeSection.innerHTML = '';
+    // Theme Section
+    const themeSection = $('settings-theme-section');
+    if (!themeSection) {
+        setTimeout(render, 100);
+        return;
+    }
+    themeSection.innerHTML = '';
+        
+    // Theme section description
+    themeSection.appendChild(sectionDescription('Choose your preferred color scheme for the application interface.'));
 
         // Theme options
         const themeContainer = el('div', 'settings-options');
         themeRadios.forEach((radio, i) => {
             const value = radio.value;
+            let description;
+            if (value === 'system') {
+                description = 'Automatically switch between light and dark based on your system preferences';
+            } else if (value === 'light') {
+                description = 'Clean, bright interface ideal for daytime use';
+            } else {
+                description = 'Easy on the eyes, perfect for low-light environments';
+            }
             const label = optionRow(
                 value.charAt(0).toUpperCase() + value.slice(1),
-                value === 'system' ? 'Follow system theme preference' : `Use ${value} theme`,
+                description,
                 radio
             );
             themeContainer.appendChild(label);
         });
         themeSection.appendChild(themeContainer);
 
-        // Style options
+        // Add divider before style section
+        themeSection.appendChild(divider());
+
+        // Style Section
+        const styleSection = $('settings-style-section');
+        if (!styleSection) {
+            console.warn('settings-style-section not found');
+        } else {
+            styleSection.innerHTML = '';
+        
+        // Style section description
+        styleSection.appendChild(sectionDescription('Customize the visual style and appearance of interface elements.'));
+
         const styleContainer = el('div', 'settings-options');
         styleRadios.forEach((radio) => {
             const value = radio.value;
             const label = optionRow(
                 value.charAt(0).toUpperCase() + value.slice(1),
-                value === 'brutalist' ? 'Bold, high-contrast design' : 'Clean, modern interface',
+                value === 'brutalist' ? 'Bold, high-contrast design with strong visual elements' : 'Clean, modern interface with smooth transitions',
                 radio
             );
             styleContainer.appendChild(label);
         });
-        themeSection.appendChild(styleContainer);
+        styleSection.appendChild(styleContainer);
+        }
 
-        // OLED option
+        // Display Section
+        const displaySection = $('settings-display-section');
+        if (!displaySection) {
+            console.warn('settings-display-section not found');
+        } else {
+            displaySection.innerHTML = '';
+        
+        // Display section description
+        displaySection.appendChild(sectionDescription('Optimize the display for your specific hardware and viewing preferences.'));
+
+        // OLED mode
         const oledContainer = el('div', 'settings-options');
         const oledLabel = optionRow(
             'OLED Mode',
-            'Pure black background for OLED displays (overrides theme selection)',
-            oledEnabledCheckbox
+            'Use pure black backgrounds to save power and improve contrast on OLED displays',
+            oledModeCheckbox
         );
         oledContainer.appendChild(oledLabel);
-        themeSection.appendChild(oledContainer);
+        displaySection.appendChild(oledContainer);
+        }
 
-        const behaviorSection = $('settings-behavior-section');
-        behaviorSection.innerHTML = '';
-
-        // Monitor polling
-        const monitorContainer = el('div', 'settings-options');
-        const monitorLabel = optionRow(
-            'Monitor Polling',
-            'Automatically monitor running servers and resource usage',
-            monitorPollingCheckbox
-        );
-        monitorContainer.appendChild(monitorLabel);
-        behaviorSection.appendChild(monitorContainer);
+        // Notifications Section
+        const notificationsSection = $('settings-notifications-section');
+        if (!notificationsSection) {
+            console.warn('settings-notifications-section not found');
+        } else {
+            notificationsSection.innerHTML = '';
+        
+        // Notifications section description
+        notificationsSection.appendChild(sectionDescription('Control how and when the application notifies you about important events.'));
 
         // Toast notifications
         const toastContainer = el('div', 'settings-options');
         const toastLabel = optionRow(
             'Toast Notifications',
-            'Show toast notifications for important events',
+            'Show non-intrusive notifications for important events and actions',
             toastsEnabledCheckbox
         );
         toastContainer.appendChild(toastLabel);
-        behaviorSection.appendChild(toastContainer);
+        notificationsSection.appendChild(toastContainer);
+        }
+
+        // Monitoring Section
+        const monitoringSection = $('settings-monitoring-section');
+        if (!monitoringSection) {
+            console.warn('settings-monitoring-section not found');
+        } else {
+            monitoringSection.innerHTML = '';
+        
+        // Monitoring section description
+        monitoringSection.appendChild(sectionDescription('Configure automatic monitoring of your development servers and resource usage.'));
+
+        // Monitor polling
+        const monitorContainer = el('div', 'settings-options');
+        const monitorLabel = optionRow(
+            'Monitor Polling',
+            'Track server status and resource usage in real-time for all active projects',
+            monitorPollingCheckbox
+        );
+        monitorContainer.appendChild(monitorLabel);
+        monitoringSection.appendChild(monitorContainer);
+        }
 
         syncUI();
     }
@@ -144,69 +270,69 @@ export function mountSettingsView() {
         // Checkboxes
         monitorPollingCheckbox.checked = state.monitor_polling;
         toastsEnabledCheckbox.checked = state.toasts_enabled;
-        oledEnabledCheckbox.checked = state.oled_enabled;
+        oledModeCheckbox.checked = state.oled_mode;
+}
 
-        // Disable theme radios when OLED is enabled
-        themeRadios.forEach(radio => {
-            radio.disabled = state.oled_enabled;
-        });
-    }
+    function setupEventListeners() {
+            // Event listeners - only add if not already added
+            themeRadios.forEach(radio => {
+                if (!radio.hasAttribute('data-listener-added')) {
+                    radio.addEventListener('change', async () => {
+                        if (radio.checked) {
+                            state.theme = radio.value;
+                            await api.setSetting('theme', state.theme);
+                            applyTheme(state.theme);
+                            if (window.updateThemeButtonIcon) {
+                                window.updateThemeButtonIcon();
+                            }
+                        }
+                    });
+                    radio.setAttribute('data-listener-added', 'true');
+                }
+            });
 
-    // Event listeners
-    themeRadios.forEach(radio => {
-        radio.addEventListener('change', async () => {
-            if (radio.checked) {
-                state.theme = radio.value;
-                await api.setSetting('theme', state.theme);
-                if (!state.oled_enabled) {
-                    applyTheme(state.theme);
+            styleRadios.forEach(radio => {
+                if (!radio.hasAttribute('data-listener-added')) {
+                    radio.addEventListener('change', async () => {
+                        if (radio.checked) {
+                            state.style = radio.value;
+                            await api.setSetting('style', state.style);
+                            applyStyle(state.style);
+                        }
+                    });
+                    radio.setAttribute('data-listener-added', 'true');
+                }
+            });
+
+            if (monitorPollingCheckbox && !monitorPollingCheckbox.hasAttribute('data-listener-added')) {
+                monitorPollingCheckbox.addEventListener('change', async () => {
+                    state.monitor_polling = monitorPollingCheckbox.checked;
+                    await api.setSetting('monitor_polling', state.monitor_polling);
+                });
+                monitorPollingCheckbox.setAttribute('data-listener-added', 'true');
+            }
+
+            if (toastsEnabledCheckbox && !toastsEnabledCheckbox.hasAttribute('data-listener-added')) {
+                toastsEnabledCheckbox.addEventListener('change', async () => {
+                    state.toasts_enabled = toastsEnabledCheckbox.checked;
+                    await api.setSetting('toasts_enabled', state.toasts_enabled);
+                    setToastsEnabled(state.toasts_enabled);
+                });
+                toastsEnabledCheckbox.setAttribute('data-listener-added', 'true');
+            }
+
+            if (oledModeCheckbox && !oledModeCheckbox.hasAttribute('data-listener-added')) {
+                oledModeCheckbox.addEventListener('change', async () => {
+                    state.oled_mode = oledModeCheckbox.checked;
+                    setOledMode(state.oled_mode);
+                    // Update theme button icon to reflect the new actual theme
                     if (window.updateThemeButtonIcon) {
                         window.updateThemeButtonIcon();
                     }
-                }
+                });
+                oledModeCheckbox.setAttribute('data-listener-added', 'true');
             }
-        });
-    });
-
-    styleRadios.forEach(radio => {
-        radio.addEventListener('change', async () => {
-            if (radio.checked) {
-                state.style = radio.value;
-                await api.setSetting('style', state.style);
-                applyStyle(state.style);
-            }
-        });
-    });
-
-    monitorPollingCheckbox.addEventListener('change', async () => {
-        state.monitor_polling = monitorPollingCheckbox.checked;
-        await api.setSetting('monitor_polling', state.monitor_polling);
-    });
-
-    toastsEnabledCheckbox.addEventListener('change', async () => {
-        state.toasts_enabled = toastsEnabledCheckbox.checked;
-        await api.setSetting('toasts_enabled', state.toasts_enabled);
-        setToastsEnabled(state.toasts_enabled);
-    });
-
-    oledEnabledCheckbox.addEventListener('change', async () => {
-        state.oled_enabled = oledEnabledCheckbox.checked;
-        await api.setSetting('oled_enabled', state.oled_enabled);
-        
-        // Apply theme based on OLED state
-        if (state.oled_enabled) {
-            applyTheme('oled');
-        } else {
-            applyTheme(state.theme);
         }
-        
-        // Update theme button icon
-        if (window.updateThemeButtonIcon) {
-            window.updateThemeButtonIcon();
-        }
-        
-        syncUI(); // Update disabled state of theme radios
-    });
 
     // Eco desde Go: actualizar estado local SIN re-persistir (evitar bucle).
     events().EventsOn('settings:changed', ({ key, value }) => {
@@ -217,29 +343,20 @@ export function mountSettingsView() {
         } else if (key === 'theme') {
             if (!isValidTheme(value)) return;
             state.theme = value;
-            // Only apply theme if OLED is not enabled
-            if (!state.oled_enabled) {
-                applyTheme(value, { persist: false });
-                // Update theme button icon to reflect the new theme
-                if (window.updateThemeButtonIcon) {
-                    window.updateThemeButtonIcon();
-                }
+            applyTheme(value, { persist: false });
+            // Update theme button icon to reflect the new theme
+            if (window.updateThemeButtonIcon) {
+                window.updateThemeButtonIcon();
             }
         } else if (key === 'toasts_enabled') {
             state.toasts_enabled = normBool(value);
             setToastsEnabled(state.toasts_enabled);
-        } else if (key === 'monitor_polling') {
+} else if (key === 'monitor_polling') {
             state.monitor_polling = normBool(value);
-        } else if (key === 'oled_enabled') {
-            state.oled_enabled = normBool(value);
-            // Apply theme based on OLED state
-            if (state.oled_enabled) {
-                applyTheme('oled');
-            } else {
-                // When OLED is disabled, apply the current theme setting
-                applyTheme(state.theme);
-            }
-            // Update theme button icon
+        } else if (key === 'oled_mode') {
+            state.oled_mode = normBool(value);
+            setOledMode(state.oled_mode, { persist: false });
+            // Update theme button icon to reflect the new actual theme
             if (window.updateThemeButtonIcon) {
                 window.updateThemeButtonIcon();
             }
@@ -249,7 +366,7 @@ export function mountSettingsView() {
         syncUI();
     });
 
-    async function init() {
+async function init() {
         try {
             const s = await api.getSettings();
             if (s) {
@@ -257,26 +374,36 @@ export function mountSettingsView() {
                 if (isValidStyle(s.style)) state.style = s.style;
                 if (typeof s.monitor_polling === 'boolean') state.monitor_polling = s.monitor_polling;
                 if (typeof s.toasts_enabled === 'boolean') state.toasts_enabled = s.toasts_enabled;
-                if (typeof s.oled_enabled === 'boolean') state.oled_enabled = s.oled_enabled;
+                if (typeof s.oled_mode === 'boolean') state.oled_mode = s.oled_mode;
             }
         } catch { /* defaults */ }
         
-        // Apply theme based on OLED state
-        if (state.oled_enabled) {
-            applyTheme('oled', { persist: false });
-        } else {
-            applyTheme(state.theme, { persist: false });
-        }
-        
+        applyTheme(state.theme, { persist: false });
         applyStyle(state.style, { persist: false });
         setToastsEnabled(state.toasts_enabled);
+        setOledMode(state.oled_mode, { persist: false });
         
-        render();
+        // Don't render here - let switchView handle rendering when the view is actually shown
+        // This prevents rendering issues when the view is hidden
     }
 
     function isVisible() {
         return !$('settings-view').hidden;
     }
+
+    // Re-render when the view becomes visible
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'hidden') {
+                if (!$('settings-view').hidden) {
+                    console.log('Settings view became visible, rendering...');
+                    setTimeout(render, 50); // Small delay to ensure DOM is ready
+                }
+            }
+        });
+    });
+    
+    observer.observe($('settings-view'), { attributes: true });
 
     return { init, render, isVisible, getState: () => ({ ...state }) };
 }

@@ -5,7 +5,7 @@ import { mount as mountGit } from './panels/git.js';
 import { mount as mountEvidence } from './panels/evidence.js';
 import { mount as mountBacklog } from './panels/backlog.js';
 import { mount as mountMonitor } from './panels/monitor.js';
-import { applyTheme, THEME_CYCLE, currentTheme } from './theme.js';
+import { applyTheme, THEME_CYCLE, currentTheme, getOledMode } from './theme.js';
 import { showToast } from './widgets/toast.js';
 import { mountSettingsView } from './views/settings.js';
 import { mountProjectDialog } from './dialogs/project.js';
@@ -42,16 +42,10 @@ function timestamp() {
 // Update theme button icon based on current theme
 function updateThemeButtonIcon() {
     const theme = currentTheme();
-    let icon;
+    const oledMode = getOledMode();
     
-    // Determine icon based on theme
-    if (theme === 'light') {
-        icon = 'sun';
-    } else if (theme === 'oled') {
-        icon = 'moon'; // Use moon icon for OLED as it's a dark theme
-    } else {
-        icon = 'moon'; // Default to moon for dark theme
-    }
+    // Show sun for light, moon for dark or OLED
+    const icon = theme === 'light' ? 'sun' : 'moon';
     
     setIcon($('btn-theme'), icon);
     
@@ -60,6 +54,9 @@ function updateThemeButtonIcon() {
     btn.style.background = '';
     btn.style.color = '';
 }
+
+// Make function globally available for settings module
+window.updateThemeButtonIcon = updateThemeButtonIcon;
 
 async function refreshProjects(keepSelection = true) {
     state.projects = await api.getProjects();
@@ -331,19 +328,34 @@ function reloadLogs() {
 function switchView(view) {
     if (state.view === view) return;
     state.view = view;
+    
+    // Handle tab states - only show active for project/monitor, none for settings
     $('view-project').classList.toggle('active', view === 'project');
     $('view-monitor').classList.toggle('active', view === 'monitor');
-    $('view-settings').classList.toggle('active', view === 'settings');
+    
+    // Handle view visibility
     $('monitor-view').hidden = view !== 'monitor';
     $('settings-view').hidden = view !== 'settings';
     ctx.panels.monitorPanel.setVisible(view === 'monitor');
     
     // Render settings view when switching to it
     if (view === 'settings' && window.settingsView && window.settingsView.render) {
-        window.settingsView.render();
+        // Ensure settings view is properly initialized and rendered
+        try {
+            window.settingsView.render();
+        } catch (error) {
+            console.error('Error rendering settings view:', error);
+        }
     }
     
-    renderDetail();
+    // Only render project detail for project view
+    if (view === 'project') {
+        renderDetail();
+    } else {
+        // Hide project detail when not in project view
+        $('project-detail').hidden = true;
+        $('empty-state').hidden = view !== 'project';
+    }
 }
 
 async function addProjectFlow() {
@@ -453,7 +465,6 @@ function wireEvents() {
 
     $('view-project').addEventListener('click', () => switchView('project'));
     $('view-monitor').addEventListener('click', () => switchView('monitor'));
-    $('view-settings').addEventListener('click', () => switchView('settings'));
 
     // Auto-asignar puertos únicos (Task 16)
     $('btn-auto-ports').addEventListener('click', async () => {
@@ -464,27 +475,13 @@ function wireEvents() {
         if (n > 0) refreshProjects();
     });
 
-    $('btn-theme').addEventListener('click', () => {
-        // Check if OLED mode is enabled in settings
-        let oledEnabled = false;
-        
-        // Try to get OLED state from settings if available
-        if (window.settingsView && window.settingsView.getState) {
-            const state = window.settingsView.getState();
-            oledEnabled = state.oled_enabled;
-        }
-        
-        if (oledEnabled) {
-            // If OLED is enabled, cycle between OLED and light themes only
-            const cur = document.documentElement.dataset.theme || 'oled';
-            const oledCycle = ['oled', 'light'];
-            const nextTheme = oledCycle[(oledCycle.indexOf(cur) + 1) % oledCycle.length];
-            applyTheme(nextTheme);
-        } else {
-            // Normal theme cycling
-            const cur = document.documentElement.dataset.theme || 'dark';
-            applyTheme(THEME_CYCLE[(THEME_CYCLE.indexOf(cur) + 1) % THEME_CYCLE.length]);
-        }
+$('btn-theme').addEventListener('click', () => {
+        // Simple toggle between light and dark (OLED mode is handled separately)
+        const cur = currentTheme();
+        // If current theme is OLED, treat it as dark for toggling purposes
+        const effectiveTheme = cur === 'oled' ? 'dark' : cur;
+        const newTheme = effectiveTheme === 'light' ? 'dark' : 'light';
+        applyTheme(newTheme);
         updateThemeButtonIcon();
     });
     $('btn-settings').addEventListener('click', () => switchView('settings'));

@@ -29,7 +29,6 @@ export function mountSettings() {
         style: 'standard',
         monitor_polling: true,
         toasts_enabled: true,
-        oled_enabled: false,
     };
     let isOpen = false;
 
@@ -44,16 +43,17 @@ export function mountSettings() {
     const secAppearance = el('div', 'settings-section');
     secAppearance.appendChild(el('div', 'settings-section-title', 'Appearance'));
     
-    // Theme radio buttons (excluding OLED)
-    const themeRadios = ['light', 'dark', 'system'].map((value) => {
+    // Theme radio buttons (including OLED)
+    const themeRadios = ['light', 'dark', 'oled', 'system'].map((value) => {
         const radio = document.createElement('input');
         radio.type = 'radio';
         radio.name = 'settings-theme';
-        radio.value = value;
+radio.value = value;
         const label = value === 'system' ? 'Follow system theme' : value[0].toUpperCase() + value.slice(1);
         const descriptions = {
             light: 'Use a bright interface at all times.',
             dark: 'Use the standard low-light interface.',
+            oled: 'Use true black backgrounds for OLED displays.',
             system: 'Automatically match your operating system.',
         };
         const row = optionRow(label, descriptions[value], radio);
@@ -62,18 +62,6 @@ export function mountSettings() {
     });
     
     card.appendChild(secAppearance);
-
-    // OLED section - separate from Appearance
-    const secOled = el('div', 'settings-section');
-    secOled.appendChild(el('div', 'settings-section-title', 'Display Optimization'));
-    
-    const cbOled = document.createElement('input');
-    cbOled.type = 'checkbox';
-    cbOled.id = 'settings-oled';
-    const oledRow = optionRow('OLED', 'Use true black backgrounds to save OLED power. Replaces dark mode when enabled.', cbOled);
-    secOled.appendChild(oledRow);
-    
-    card.appendChild(secOled);
 
     const secStyle = el('div', 'settings-section');
     secStyle.appendChild(el('div', 'settings-section-title', 'Interface style'));
@@ -110,26 +98,11 @@ export function mountSettings() {
     document.body.appendChild(overlay);
 
     // ---- Comportamiento ----
-    function syncUI() {
+function syncUI() {
         themeRadios.forEach((r) => { r.checked = r.value === state.theme; });
         styleRadios.forEach((r) => { r.checked = r.value === state.style; });
         cbToasts.checked = state.toasts_enabled;
         cbPolling.checked = state.monitor_polling;
-        cbOled.checked = state.oled_enabled;
-        
-        // Disable dark mode radio when OLED is enabled, and enable when OLED is disabled
-        const darkRadio = themeRadios.find(r => r.value === 'dark');
-        if (darkRadio) {
-            darkRadio.disabled = state.oled_enabled;
-            if (state.oled_enabled && darkRadio.checked) {
-                // When OLED is enabled, switch to system theme if dark was selected
-                const systemRadio = themeRadios.find(r => r.value === 'system');
-                if (systemRadio) {
-                    systemRadio.checked = true;
-                    state.theme = 'system';
-                }
-            }
-        }
     }
 
     function open() {
@@ -146,48 +119,18 @@ export function mountSettings() {
     themeRadios.forEach((radio) =>
         radio.addEventListener('change', () => {
             if (radio.checked) {
-                // Only apply theme if OLED is not enabled
-                if (!state.oled_enabled) {
-                    applyTheme(radio.value); // valida + aplica + persiste
-                    // Update theme button icon to reflect the new theme
-                    if (window.updateThemeButtonIcon) {
-                        window.updateThemeButtonIcon();
-                    }
+                applyTheme(radio.value); // valida + aplica + persiste
+                // Update theme button icon to reflect the new theme
+                if (window.updateThemeButtonIcon) {
+                    window.updateThemeButtonIcon();
                 }
             }
         }));
     styleRadios.forEach((radio) => radio.addEventListener('change', () => { if (radio.checked) applyStyle(radio.value); }));
     cbToasts.addEventListener('change', () =>
         api.setSetting('toasts_enabled', String(cbToasts.checked)));
-    cbPolling.addEventListener('change', () =>
+cbPolling.addEventListener('change', () =>
         api.setSetting('monitor_polling', String(cbPolling.checked)));
-    
-    // OLED switch event listener
-    cbOled.addEventListener('change', () => {
-        state.oled_enabled = cbOled.checked;
-        api.setSetting('oled_enabled', String(state.oled_enabled));
-        
-        // Apply theme based on OLED state
-        if (state.oled_enabled) {
-            // When OLED is enabled, apply OLED theme
-            applyTheme('oled');
-            // Update theme button icon
-            if (window.updateThemeButtonIcon) {
-                window.updateThemeButtonIcon();
-            }
-        } else {
-            // When OLED is disabled, apply the currently selected theme
-            const checkedRadio = themeRadios.find(r => r.checked);
-            if (checkedRadio) {
-                applyTheme(checkedRadio.value);
-                // Update theme button icon
-                if (window.updateThemeButtonIcon) {
-                    window.updateThemeButtonIcon();
-                }
-            }
-        }
-        syncUI(); // Update UI state
-    });
     btnClose.addEventListener('click', close);
     overlay.addEventListener('mousedown', (e) => {
         if (e.target === overlay) close();
@@ -212,39 +155,23 @@ export function mountSettings() {
         } else if (key === 'theme') {
             if (!isValidTheme(value)) return;
             state.theme = value;
-            // Only apply theme if OLED is not enabled
-            if (!state.oled_enabled) {
-                applyTheme(value, { persist: false });
-                // Update theme button icon to reflect the new theme
-                if (window.updateThemeButtonIcon) {
-                    window.updateThemeButtonIcon();
-                }
+            applyTheme(value, { persist: false });
+            // Update theme button icon to reflect the new theme
+            if (window.updateThemeButtonIcon) {
+                window.updateThemeButtonIcon();
             }
         } else if (key === 'toasts_enabled') {
             state.toasts_enabled = normBool(value);
             setToastsEnabled(state.toasts_enabled);
         } else if (key === 'monitor_polling') {
             state.monitor_polling = normBool(value);
-        } else if (key === 'oled_enabled') {
-            state.oled_enabled = normBool(value);
-            // Apply theme based on OLED state
-            if (state.oled_enabled) {
-                applyTheme('oled');
-            } else {
-                // When OLED is disabled, apply the current theme setting
-                applyTheme(state.theme);
-            }
-            // Update theme button icon
-            if (window.updateThemeButtonIcon) {
-                window.updateThemeButtonIcon();
-            }
         } else {
             return;
         }
         syncUI();
     });
 
-    async function init() {
+async function init() {
         try {
             const s = await api.getSettings();
             if (s) {
@@ -252,17 +179,10 @@ export function mountSettings() {
                 if (isValidStyle(s.style)) state.style = s.style;
                 if (typeof s.monitor_polling === 'boolean') state.monitor_polling = s.monitor_polling;
                 if (typeof s.toasts_enabled === 'boolean') state.toasts_enabled = s.toasts_enabled;
-                if (typeof s.oled_enabled === 'boolean') state.oled_enabled = s.oled_enabled;
             }
         } catch { /* defaults */ }
         
-        // Apply theme based on OLED state
-        if (state.oled_enabled) {
-            applyTheme('oled', { persist: false });
-        } else {
-            applyTheme(state.theme, { persist: false });
-        }
-        
+        applyTheme(state.theme, { persist: false });
         applyStyle(state.style, { persist: false });
         setToastsEnabled(state.toasts_enabled);
         syncUI();

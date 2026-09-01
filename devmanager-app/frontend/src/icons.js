@@ -15,6 +15,8 @@ import {
     List,
     ListCheck,
     Moon,
+    Monitor,
+    Notification,
     Play,
     PowerOff,
     Refresh,
@@ -24,6 +26,7 @@ import {
     Sun,
     Trash,
 } from 'reicon';
+import { default as logoSvg } from './icons/logo.svg';
 
 const ICONS = {
     add: Add,
@@ -50,11 +53,32 @@ const ICONS = {
     trash: Trash,
     up: ArrowUp,
     down: ArrowDown,
+    monitor: Monitor,
+    notification: Notification,
+    logo: logoSvg,
 };
 
 export function icon(name, { label = '', size = 16 } = {}) {
     const factory = ICONS[name];
     if (!factory) throw new Error(`Unknown Reicon icon: ${name}`);
+    
+    // Handle SVG imports (like logo) differently from Reicon functions
+    if (name === 'logo') {
+        const svg = document.createElement('div');
+        svg.innerHTML = factory;
+        svg.firstChild.setAttribute('width', size);
+        svg.firstChild.setAttribute('height', size);
+        svg.firstChild.setAttribute('class', 'reicon-icon');
+        if (label) {
+            svg.firstChild.setAttribute('aria-label', label);
+            svg.firstChild.setAttribute('role', 'img');
+        } else {
+            svg.firstChild.setAttribute('aria-hidden', 'true');
+            svg.firstChild.setAttribute('focusable', 'false');
+        }
+        return svg.firstChild;
+    }
+    
     const svg = factory({
         size,
         color: 'currentColor',
