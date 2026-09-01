@@ -47,8 +47,12 @@ func TestFetchUpdateInfo(t *testing.T) {
 			t.Errorf("Expected platform %s, got %s", runtime.GOOS, platform)
 		}
 
-		if arch != runtime.GOARCH {
-			t.Errorf("Expected architecture %s, got %s", runtime.GOARCH, arch)
+		expectedArch := runtime.GOARCH
+		if expectedArch == "amd64" {
+			expectedArch = "x64"
+		}
+		if arch != expectedArch {
+			t.Errorf("Expected architecture %s, got %s", expectedArch, arch)
 		}
 
 		if currentVersion != "1.0.0" {
@@ -179,7 +183,7 @@ func TestGetDownloadDir(t *testing.T) {
 }
 
 func TestUpdateStatus(t *testing.T) {
-	updater := &Updater{}
+	updater := NewUpdater(&UpdateConfig{CurrentVersion: "1.0.0"})
 
 	// Test initial status
 	if updater.GetStatus() != UpdateStatusIdle {
@@ -249,6 +253,7 @@ func TestContextCancellation(t *testing.T) {
 	config := &UpdateConfig{
 		CurrentVersion: "1.0.0",
 		UpdateServer:   "http://example.com",
+		CheckInterval:  time.Hour,
 	}
 
 	updater := NewUpdater(config)
@@ -266,7 +271,7 @@ func TestContextCancellation(t *testing.T) {
 }
 
 func TestProgressTracking(t *testing.T) {
-	updater := &Updater{}
+	updater := NewUpdater(&UpdateConfig{CurrentVersion: "1.0.0"})
 	progress := updater.GetProgress()
 
 	if progress == nil {
