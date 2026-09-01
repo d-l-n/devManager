@@ -24,7 +24,6 @@ class ShortcutManager {
             // Server control
             'Ctrl+S': { action: 'startServer', description: 'Start Server', category: 'Server' },
             'Ctrl+Shift+S': { action: 'stopServer', description: 'Stop Server', category: 'Server' },
-            'Ctrl+R': { action: 'restartServer', description: 'Restart Server', category: 'Server' },
             'F5': { action: 'restartServer', description: 'Restart Server', category: 'Server' },
             
             // Navigation
@@ -52,16 +51,16 @@ class ShortcutManager {
             // Log operations
             'Ctrl+L': { action: 'clearLogs', description: 'Clear Logs', category: 'Logs' },
             'Ctrl+Shift+C': { action: 'copyLogs', description: 'Copy Logs', category: 'Logs' },
-            'Ctrl+Shift+S': { action: 'saveLogs', description: 'Save Logs', category: 'Logs' },
+            'Ctrl+Shift+E': { action: 'saveLogs', description: 'Save Logs', category: 'Logs' },
             'Ctrl+E': { action: 'toggleErrorsOnly', description: 'Toggle Errors Only', category: 'Logs' },
             'Ctrl+W': { action: 'toggleWordWrap', description: 'Toggle Word Wrap', category: 'Logs' },
-            'Ctrl+F': { action: 'toggleFollow', description: 'Toggle Follow', category: 'Logs' },
+            'Ctrl+J': { action: 'toggleFollow', description: 'Toggle Follow', category: 'Logs' },
             
             // Git operations
             'Ctrl+G': { action: 'gitStatus', description: 'Git Status', category: 'Git' },
             'Ctrl+Shift+G': { action: 'gitPull', description: 'Git Pull', category: 'Git' },
             'Ctrl+Shift+P': { action: 'gitPush', description: 'Git Push', category: 'Git' },
-            'Ctrl+Shift+C': { action: 'gitCommit', description: 'Git Commit', category: 'Git' },
+            'Ctrl+Shift+M': { action: 'gitCommit', description: 'Git Commit', category: 'Git' },
             
             // Playwright
             'Ctrl+T': { action: 'runTests', description: 'Run Tests', category: 'Testing' },
@@ -76,7 +75,7 @@ class ShortcutManager {
             'F1': { action: 'showHelp', description: 'Show Help', category: 'Application' },
             
             // Theme
-            'Ctrl+Shift+T': { action: 'cycleTheme', description: 'Cycle Theme', category: 'Appearance' },
+            'Ctrl+Shift+Y': { action: 'cycleTheme', description: 'Cycle Theme', category: 'Appearance' },
             'Ctrl+Shift+D': { action: 'toggleDarkMode', description: 'Toggle Dark Mode', category: 'Appearance' },
             
             // Quick actions
@@ -588,6 +587,11 @@ class ShortcutManager {
         const helpModal = this.createHelpModal();
         document.body.appendChild(helpModal);
         this.helpVisible = true;
+
+        const closeButton = document.getElementById('shortcut-help-close');
+        if (closeButton) {
+            closeButton.addEventListener('click', () => this.hideHelp());
+        }
     }
 
     hideHelp() {
@@ -606,7 +610,7 @@ class ShortcutManager {
             <div class="modal-content">
                 <div class="modal-header">
                     <h2>Keyboard Shortcuts</h2>
-                    <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                    <button class="modal-close" id="shortcut-help-close">&times;</button>
                 </div>
                 <div class="modal-body">
                     ${this.generateHelpHTML()}
