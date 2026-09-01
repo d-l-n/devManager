@@ -352,9 +352,7 @@ async function buildApplication() {
   console.log('\n[STEP 6] Building Wails application...');
   
   let buildCommand = 'wails build';
-  if (options.debug) {
-    buildCommand += ' -debug';
-  } else {
+  if (!options.debug) {
     buildCommand += ' -upx';
   }
   

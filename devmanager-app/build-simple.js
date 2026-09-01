@@ -75,7 +75,7 @@ try {
   // Build Wails application
   console.log('[BUILD] Building Wails application...');
   if (debug) {
-    execSync('wails build -debug', { 
+    execSync('wails build', { 
       cwd: __dirname,
       stdio: 'inherit'
     });

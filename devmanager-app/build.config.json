@@ -47,7 +47,7 @@
       "artifactName": "devmanager-windows-amd64.exe",
       "dependencies": [],
       "buildFlags": ["-upx"],
-      "debugFlags": ["-debug"],
+      "debugFlags": [],
       "environment": {
         "CGO_ENABLED": "1"
       }
@@ -57,7 +57,7 @@
       "artifactName": "devmanager-linux-amd64",
       "dependencies": ["libgtk-3-dev", "libwebkit2gtk-4.0-dev"],
       "buildFlags": ["-upx"],
-      "debugFlags": ["-debug"],
+      "debugFlags": [],
       "environment": {
         "CGO_ENABLED": "1"
       }
@@ -67,7 +67,7 @@
       "artifactName": "devmanager-macos-amd64",
       "dependencies": [],
       "buildFlags": ["-upx"],
-      "debugFlags": ["-debug"],
+      "debugFlags": [],
       "environment": {
         "CGO_ENABLED": "1"
       }
@@ -93,7 +93,7 @@
     "directory": ".",
     "testCommand": "go test -v -race -coverprofile=coverage.out ./...",
     "buildCommand": "wails build",
-    "devBuildCommand": "wails build -debug",
+    "devBuildCommand": "wails build",
     "cleanCommand": "go clean -cache -modcache -testcache",
     "outputDirectory": "build/bin",
     "cacheDirectories": [

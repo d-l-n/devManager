@@ -199,8 +199,8 @@ echo [SUCCESS] Frontend built successfully
 echo.
 echo [STEP %STEP_NUM%] Building Wails application...
 if "%BUILD_TYPE%"=="debug" (
-    echo [EXEC] wails build -debug
-    call wails build -debug
+    echo [EXEC] wails build
+    call wails build
 ) else (
     echo [EXEC] wails build -upx
     call wails build -upx
