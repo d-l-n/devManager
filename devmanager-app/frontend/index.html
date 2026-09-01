@@ -13,7 +13,7 @@
             <div class="sidebar-brand"><div class="sidebar-brand-row"><img class="app-logo" src="src/icons/logo.svg" alt="devManager"><span class="app-title">Local Dev Manager</span></div><span id="project-count" class="dim"></span></div>
             <button id="btn-add" class="icon-btn" title="Add project" aria-label="Add project" data-icon="add"></button>
         </div>
-        <input id="search" type="text" placeholder="Search projects...">
+        <input id="search" type="text" placeholder="Search projects..." aria-label="Search projects">
         <div id="project-filters" class="filter-chips" aria-label="Project status filters">
             <button class="filter-chip active" data-filter="all">All</button>
             <button class="filter-chip" data-filter="running">Running</button>
@@ -111,14 +111,14 @@
                 <div class="group">
                     <div class="group-title">Run Custom Command</div>
                     <div class="row-gap">
-                        <input id="custom-command" type="text" class="text-input mono"
+                        <input id="custom-command" type="text" class="text-input mono" aria-label="Run Custom Command"
                                placeholder="e.g. npx prisma studio / pip install -r requirements.txt">
                         <button id="custom-run" class="btn btn-primary">Run Custom</button>
                     </div>
                 </div>
                 <div class="group grow">
                     <div class="group-title">Project Scripts (package.json / config)</div>
-                    <input id="scripts-filter" type="text" class="text-input" placeholder="Filter scripts...">
+                    <input id="scripts-filter" type="text" class="text-input" placeholder="Filter scripts..." aria-label="Filter scripts">
                     <div id="scripts-list"></div>
                     <div id="scripts-empty" class="dim center padded">Select a project to view scripts</div>
                 </div>

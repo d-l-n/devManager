@@ -26,7 +26,7 @@ import {
     Sun,
     Trash,
 } from 'reicon';
-import { default as logoSvg } from './icons/logo.svg';
+import { default as logoSvg } from './icons/logo.svg?raw';
 
 const ICONS = {
     add: Add,

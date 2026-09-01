@@ -37,7 +37,7 @@ function sectionDescription(text) {
 function sectionTitleWithIcon(iconName, title) {
     const container = el('div', 'settings-section-title-with-icon');
     const iconEl = icon(iconName, { size: 18 });
-    iconEl.className = 'settings-section-icon';
+    iconEl.setAttribute('class', 'settings-section-icon');
     const titleEl = el('span', 'settings-section-title-text', title);
     container.appendChild(iconEl);
     container.appendChild(titleEl);

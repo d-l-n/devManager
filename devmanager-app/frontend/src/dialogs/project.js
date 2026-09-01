@@ -33,6 +33,7 @@ function labelRow(labelText, input) {
 function field(id, labelText, value, type = 'text') {
     const wrap = el('div');
     const lb = el('label', 'pf-label', labelText);
+    lb.htmlFor = id; // asocia el label al input (a11y)
     const input = document.createElement(type === 'number' ? 'input' : 'input');
     input.type = type;
     input.id = id;

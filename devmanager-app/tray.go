@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"math"
 	"strconv"
 	"strings"
 	goruntime "runtime"
@@ -48,20 +49,108 @@ func trayIcon() []byte {
 	return ico
 }
 
+// trayIconPNG dibuja el logo de la app a 16x16, con el mismo diseño que
+// frontend/src/icons/logo.svg: "D" indigo sobre cuadrado oscuro redondeado
+// (paridad de marca con el header y el icono de la app).
+//
+// Las formas se definen en las coordenadas 0-64 del SVG y un píxel se colorea
+// muestreando su centro (con (x+0.5)*4). Las curvas de la "D" se aproximan
+// muestreando los Béziers cúbicos del path original.
 func trayIconPNG() []byte {
 	img := image.NewRGBA(image.Rect(0, 0, 16, 16))
-	c := color.RGBA{R: 99, G: 102, B: 241, A: 255} // accent dark #6366f1
+	bg := color.RGBA{R: 23, G: 27, B: 46, A: 255}      // #171B2E
+	accent := color.RGBA{R: 99, G: 102, B: 241, A: 255} // #6366F1
+	dot := color.RGBA{R: 165, G: 180, B: 252, A: 255}  // #A5B4FC
+
+	dPoly := trayDPoly()
+	counterPoly := trayCounterPoly()
+
 	for y := 0; y < 16; y++ {
 		for x := 0; x < 16; x++ {
-			dx, dy := float64(x)-7.5, float64(y)-7.5
-			if dx*dx+dy*dy <= 36 {
-				img.Set(x, y, c)
+			cx, cy := (float64(x)+0.5)*4, (float64(y)+0.5)*4
+			c := color.RGBA{}
+			switch {
+			case trayInDot(cx, cy):
+				c = dot
+			case pointInPoly(cx, cy, counterPoly):
+				c = bg
+			case pointInPoly(cx, cy, dPoly):
+				c = accent
+			case trayInRoundedRect(cx, cy):
+				c = bg
 			}
+			img.Set(x, y, c)
 		}
 	}
 	var buf bytes.Buffer
 	_ = png.Encode(&buf, img)
 	return buf.Bytes()
+}
+
+// trayInRoundedRect reporta si (x,y) cae dentro del rect bg redondeado del logo.
+func trayInRoundedRect(x, y float64) bool {
+	minX, minY, maxX, maxY := 6.0, 6.0, 58.0, 58.0
+	r := 14.0
+	if x < minX || x > maxX || y < minY || y > maxY {
+		return false
+	}
+	// Esquinas: carrot x solo cuenta dentro de los radios.
+	cx := math.Max(minX+r-x, x-(maxX-r))
+	cy := math.Max(minY+r-y, y-(maxY-r))
+	return cx*cx+cy*cy <= r*r
+}
+
+// trayInDot reporta si (x,y) cae dentro del punto #A5B4FC del logo.
+func trayInDot(x, y float64) bool {
+	dx, dy := x-22, y-32
+	return dx*dx+dy*dy <= 3*3
+}
+
+// trayDPoly aproxima el path exterior de la "D":
+// M19 18 H34 C43.389 18 49 23.467 49 32 C49 40.533 43.389 46 34 46 H19 V18 Z
+func trayDPoly() [][2]float64 {
+	p := [][2]float64{{19, 18}, {34, 18}}
+	p = append(p, cubicBezier(p[len(p)-1], [2]float64{43.389, 18}, [2]float64{49, 23.467}, [2]float64{49, 32})...)
+	p = append(p, cubicBezier(p[len(p)-1], [2]float64{49, 40.533}, [2]float64{43.389, 46}, [2]float64{34, 46})...)
+	p = append(p, [2]float64{19, 46})
+	return p
+}
+
+// trayCounterPoly aproxima la contraforma (agujero) de la "D":
+// M27 25 H33.5 C38.194 25 41 27.567 41 32 C41 36.433 38.194 39 33.5 39 H27 V25 Z
+func trayCounterPoly() [][2]float64 {
+	p := [][2]float64{{27, 25}, {33.5, 25}}
+	p = append(p, cubicBezier(p[len(p)-1], [2]float64{38.194, 25}, [2]float64{41, 27.567}, [2]float64{41, 32})...)
+	p = append(p, cubicBezier(p[len(p)-1], [2]float64{41, 36.433}, [2]float64{38.194, 39}, [2]float64{33.5, 39})...)
+	p = append(p, [2]float64{27, 39})
+	return p
+}
+
+// cubicBezier muestra un Bézier cúbico desde start por c1/c2 hasta end.
+func cubicBezier(start, c1, c2, end [2]float64) [][2]float64 {
+	const n = 16
+	out := make([][2]float64, 0, n)
+	for i := 1; i <= n; i++ {
+		t := float64(i) / n
+		mt := 1 - t
+		x := mt*mt*mt*start[0] + 3*mt*mt*t*c1[0] + 3*mt*t*t*c2[0] + t*t*t*end[0]
+		y := mt*mt*mt*start[1] + 3*mt*mt*t*c1[1] + 3*mt*t*t*c2[1] + t*t*t*end[1]
+		out = append(out, [2]float64{x, y})
+	}
+	return out
+}
+
+// pointInPoly aplica el ray-casting estándar sobre un polígono cerrado.
+func pointInPoly(x, y float64, poly [][2]float64) bool {
+	inside := false
+	for i, j := 0, len(poly)-1; i < len(poly); j, i = i, i+1 {
+		xi, yi := poly[i][0], poly[i][1]
+		xj, yj := poly[j][0], poly[j][1]
+		if (yi > y) != (yj > y) && x < (xj-xi)*(y-yi)/(yj-yi)+xi {
+			inside = !inside
+		}
+	}
+	return inside
 }
 
 // runTray lanza el pump de la bandeja en un hilo dedicado. Llamar una sola vez.

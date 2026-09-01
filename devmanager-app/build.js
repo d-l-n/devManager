@@ -16,7 +16,7 @@
  */
 
 import { execSync, spawn } from 'child_process';
-import { existsSync, readFileSync, rmSync, mkdirSync, statSync } from 'fs';
+import { existsSync, readFileSync, rmSync, mkdirSync, statSync, writeFileSync } from 'fs';
 import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { createHash } from 'crypto';
@@ -170,7 +170,8 @@ function generateBuildId() {
   return `${date}_${time}_${hash}`;
 }
 
-function execCommand(command, cwd = process.cwd(), verbose = false) {
+function execCommand(command, cwd = process.cwd(), opts = {}) {
+  const verbose = opts.verbose ?? false;
   if (verbose || options.verbose) {
     console.log(`[EXEC] ${command}`);
   }
@@ -179,7 +180,8 @@ function execCommand(command, cwd = process.cwd(), verbose = false) {
     const result = execSync(command, {
       cwd,
       stdio: (verbose || options.verbose) ? 'inherit' : 'pipe',
-      encoding: 'utf8'
+      encoding: 'utf8',
+      timeout: opts.timeout
     });
     return result;
   } catch (error) {
@@ -207,16 +209,21 @@ async function getDiskSpace() {
   return new Promise((resolve, reject) => {
     try {
       if (CONFIG.PLATFORM === 'win32') {
-        const output = execCommand('wmic logicaldisk get freespace /value', process.cwd(), { silent: true });
-        const match = output.match(/FreeSpace=(\d+)/);
-        if (match) {
-          const freeSpaceGB = Math.round(parseInt(match[1]) / (1024 * 1024 * 1024));
+        // wmic was removed in Windows 11/Server 2022, use PowerShell instead
+        const output = execCommand(
+          'powershell -NoProfile -Command "(Get-PSDrive C).Free"',
+          process.cwd(),
+          { verbose: false }
+        ).trim();
+        const freeBytes = parseInt(output, 10);
+        if (!isNaN(freeBytes)) {
+          const freeSpaceGB = Math.round(freeBytes / (1024 * 1024 * 1024));
           resolve(freeSpaceGB);
         } else {
           reject(new Error('Could not parse disk space'));
         }
       } else {
-        const output = execCommand('df -BG .', process.cwd(), { silent: true });
+        const output = execCommand('df -BG .', process.cwd(), { verbose: false });
         const match = output.match(/(\d+)G/);
         if (match) {
           resolve(parseInt(match[1]));
@@ -242,9 +249,14 @@ async function checkDependencies() {
   
   for (const dep of dependencies) {
     try {
-      const version = execCommand(dep.command, process.cwd(), { silent: true }).trim();
-      console.log(`[OK] Found ${dep.name} ${version}`);
-      
+      const rawVersion = execCommand(dep.command, process.cwd(), { verbose: false }).trim();
+      console.log(`[OK] Found ${dep.name} ${rawVersion}`);
+
+      // Extract the version number (e.g. "go version go1.21.5" -> "1.21.5",
+      // "wails version v2.15.0" -> "2.15.0")
+      const semverMatch = rawVersion.match(/(\d+\.\d+\.\d+)/);
+      const version = semverMatch ? semverMatch[1] : rawVersion;
+
       if (options.versionCheck && dep.minVersion) {
         if (!checkVersion(version, dep.minVersion)) {
           throw new Error(`${dep.name} version ${version} is too old. Minimum required: ${dep.minVersion}`);
@@ -304,7 +316,7 @@ async function setupBuildEnvironment() {
     // Clean Go cache
     console.log('[CLEAN] Cleaning Go build cache...');
     try {
-      execCommand('go clean -cache', process.cwd(), { silent: true });
+      execCommand('go clean -cache', process.cwd(), { verbose: false });
     } catch (error) {
       console.warn('[WARNING] Could not clean Go cache:', error.message);
     }
@@ -364,19 +376,12 @@ async function verifyBuild() {
   const stats = statSync(appPath);
   const sizeMB = Math.round(stats.size / (1024 * 1024));
   console.log(`[OK] Build artifact found: ${appPath} (${sizeMB}MB)`);
-  
-  // Try to run the application to verify it starts
-  try {
-    if (CONFIG.PLATFORM === 'win32') {
-      execCommand(`"${appPath}" --version`, process.cwd(), { silent: true, timeout: 5000 });
-    } else {
-      execCommand(`"${appPath}" --version`, process.cwd(), { silent: true, timeout: 5000 });
-    }
-    console.log('[OK] Application starts successfully');
-  } catch (error) {
-    console.warn('[WARNING] Application failed to start - may need additional dependencies');
-  }
-  
+
+  // Note: runtime start verification is intentionally skipped. This is a
+  // GUI desktop application and invoking it from the CLI would open a window
+  // and block, and GUI apps don't respond to a --version flag. A successful
+  // compile + UPX pack already confirms the binary is produced correctly.
+
   // Generate build report
   await generateBuildReport(sizeMB);
 }
@@ -407,7 +412,7 @@ Wails: ${execCommand('wails version', process.cwd(), { silent: true }).trim()}
 Artifact Size: ${sizeMB}MB
 `;
   
-  require('fs').writeFileSync(reportPath, report);
+  writeFileSync(reportPath, report);
   console.log(`[INFO] Build report generated: ${reportPath}`);
 }
 

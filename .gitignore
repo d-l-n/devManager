@@ -40,6 +40,9 @@ projects.json
 *.swo
 *~
 
+# Build reports
+devmanager-app/build-report-*.txt
+
 # Node.js (for frontend development)
 devmanager-app/frontend/node_modules/
 devmanager-app/frontend/dist/

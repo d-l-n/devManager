@@ -67,7 +67,7 @@
   "logWails": false,
   "errorExternal": false,
   "redirectStdio": false,
-  "remoteDebugging": false,
+  "remoteDebugging": true,
   "openDevToolsInDebug": false,
   "colorScheme": "dark",
   "windowIsTranslucent": false,

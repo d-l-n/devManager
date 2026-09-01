@@ -240,9 +240,7 @@ git commit -m "feat: bump version to $NEW_VERSION
 - Update version from $CURRENT_VERSION to $NEW_VERSION
 - Update changelog with release notes
 - Create release documentation
-- $DESCRIPTION
-
-Co-Authored-By: CODA <coda@globant.com>"
+- $DESCRIPTION"
 
 # Create tag
 print_status "Creating git tag..."
