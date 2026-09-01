@@ -43,6 +43,8 @@ export const api = {
     // Detección de config de proyecto (Issue #11) + diálogo nativo
     detectProjectConfig: (path) => app().DetectProjectConfig(path),
     browseFolder: () => app().BrowseFolder(),
+    browseWorkspaceFolder: () => app().BrowseWorkspaceFolder(),
+    discoverProjects: (root) => app().DiscoverProjects(root),
     // App Log global (Issue #14)
     getAppLog: () => app().GetAppLog(),
     clearAppLog: () => app().ClearAppLog(),

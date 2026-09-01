@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -17,6 +18,77 @@ type ProjectConfig struct {
 	Port              int    `json:"port"`
 	URL               string `json:"url"`
 	PlaywrightEnabled bool   `json:"playwright_enabled"`
+}
+
+// ProjectCandidate is a directly discovered project and its suggested setup.
+type ProjectCandidate struct {
+	Path   string        `json:"path"`
+	Config ProjectConfig `json:"config"`
+}
+
+// DiscoverProjects finds recognizable projects directly inside root. It never
+// traverses descendants and omits paths that are already configured.
+func DiscoverProjects(root string, configuredPaths []string) []ProjectCandidate {
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return []ProjectCandidate{}
+	}
+
+	configured := normalizedPathSet(configuredPaths)
+	candidates := make([]ProjectCandidate, 0)
+	for _, entry := range entries {
+		if !entry.IsDir() || skippedDiscoveryDir(entry.Name()) {
+			continue
+		}
+
+		path := filepath.Join(root, entry.Name())
+		if hasProjectSignal(path) && !configured[normalizePath(path)] {
+			candidates = append(candidates, ProjectCandidate{
+				Path:   path,
+				Config: DetectProjectConfig(path, nil),
+			})
+		}
+	}
+
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].Config.Name < candidates[j].Config.Name
+	})
+	return candidates
+}
+
+func normalizedPathSet(paths []string) map[string]bool {
+	set := make(map[string]bool, len(paths))
+	for _, path := range paths {
+		set[normalizePath(path)] = true
+	}
+	return set
+}
+
+func normalizePath(path string) string {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		absPath = path
+	}
+	return strings.ToLower(filepath.Clean(absPath))
+}
+
+func skippedDiscoveryDir(name string) bool {
+	switch name {
+	case "node_modules", ".git", "vendor", "build":
+		return true
+	default:
+		return false
+	}
+}
+
+func hasProjectSignal(path string) bool {
+	for _, name := range []string{"package.json", "manage.py", "main.py"} {
+		if _, err := os.Stat(filepath.Join(path, name)); err == nil {
+			return true
+		}
+	}
+	info, err := os.Stat(filepath.Join(path, ".git"))
+	return err == nil && info.IsDir()
 }
 
 // prettify convierte "my-project_name" → "My Project Name" (paridad .title()).

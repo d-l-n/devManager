@@ -1023,6 +1023,17 @@ func (a *App) ClearAppLog() {
 
 // ---- Detección de config de proyecto (paridad detect_project_config) ----
 
+// configuredProjectPaths returns a snapshot of the project paths currently
+// registered in the manager so discovery can omit duplicates.
+func (a *App) configuredProjectPaths() []string {
+	projects := a.cfg.Projects()
+	paths := make([]string, 0, len(projects))
+	for _, project := range projects {
+		paths = append(paths, project.Path)
+	}
+	return paths
+}
+
 // DetectProjectConfig expone la autodetección al frontend. existingPorts son
 // los puertos ya configurados (evita colisiones en el diálogo de proyecto).
 func (a *App) DetectProjectConfig(path string) detection.ProjectConfig {
@@ -1042,6 +1053,26 @@ func (a *App) BrowseFolder() string {
 		return ""
 	}
 	return dir
+}
+
+// BrowseWorkspaceFolder abre un diálogo nativo para seleccionar la carpeta
+// contenedora cuyos proyectos directos se van a descubrir.
+func (a *App) BrowseWorkspaceFolder() string {
+	if a.ctx == nil {
+		return ""
+	}
+	dir, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Select Workspace Folder",
+	})
+	if err != nil {
+		return ""
+	}
+	return dir
+}
+
+// DiscoverProjects finds unregistered projects directly inside root.
+func (a *App) DiscoverProjects(root string) []detection.ProjectCandidate {
+	return detection.DiscoverProjects(root, a.configuredProjectPaths())
 }
 
 // ---- Evidence bindings ----
