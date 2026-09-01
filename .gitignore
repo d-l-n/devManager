@@ -60,3 +60,8 @@ docs/
 
 # Wails generated files
 devmanager-app/frontend/wailsjs/
+
+# AI agent/skills configuration (not needed for building)
+.agents/
+.claude/
+skills-lock.json
