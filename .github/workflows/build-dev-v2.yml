@@ -180,7 +180,21 @@ jobs:
             npm run build
           fi
 
-      - name: Build Wails application
+      - name: Build Wails application (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: ./devmanager-app
+        run: |
+          eval "$(dbus-launch --sh-syntax)"
+          if [ "${{ env.BUILD_TYPE }}" = "debug" ]; then
+            xvfb-run wails build -platform ${{ matrix.platform }}/${{ matrix.arch }}
+          else
+            xvfb-run wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -upx
+          fi
+        env:
+          CGO_ENABLED: 1
+
+      - name: Build Wails application (non-Linux)
+        if: matrix.os != 'ubuntu-latest'
         working-directory: ./devmanager-app
         run: |
           if [ "${{ env.BUILD_TYPE }}" = "debug" ]; then

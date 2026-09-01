@@ -99,7 +99,17 @@ jobs:
         working-directory: ./devmanager-app/frontend
         run: npm run build
 
-      - name: Build Wails application
+      - name: Build Wails application (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: ./devmanager-app
+        run: |
+          eval "$(dbus-launch --sh-syntax)"
+          xvfb-run wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean
+        env:
+          CGO_ENABLED: 1
+
+      - name: Build Wails application (non-Linux)
+        if: matrix.os != 'ubuntu-latest'
         working-directory: ./devmanager-app
         run: |
           wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean
