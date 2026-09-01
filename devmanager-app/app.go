@@ -1283,11 +1283,11 @@ func (a *App) SetSetting(key, value string) []string {
 	switch key {
 	case "style":
 		switch value {
-		case "standard", "brutalist":
+		case "standard", "brutalist", "glassmorphism", "retro", "dracula":
 			s.Style = value
 			normalized = value
 		default:
-			return []string{"Invalid style value (expected standard or brutalist)"}
+			return []string{"Invalid style value (expected standard, brutalist, glassmorphism, retro or dracula)"}
 		}
 	case "theme":
 		switch value {

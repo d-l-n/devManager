@@ -15,7 +15,13 @@ type Settings struct {
 	ToastsEnabled  bool   `json:"toasts_enabled"`
 }
 
-func validStyle(s string) bool { return s == "standard" || s == "brutalist" }
+func validStyle(s string) bool {
+	switch s {
+	case "standard", "brutalist", "glassmorphism", "retro", "dracula":
+		return true
+	}
+	return false
+}
 
 // Temas válidos; cualquier otro valor sanea a "dark" (paridad tolerante).
 func validTheme(t string) bool {

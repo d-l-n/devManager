@@ -1,0 +1,545 @@
+/* Retro Style - CRT-inspired, neon glow, vintage terminal aesthetic */
+
+/* ---- Dark Mode (default) ---- */
+:root[data-style="retro"] {
+    --retro-bg: #0a0a0a;
+    --retro-surface: #111111;
+    --retro-card: #161616;
+    --retro-border: #2a2a2a;
+    --retro-text: #e0e0e0;
+    --retro-text-dim: #777777;
+    --retro-green: #39ff14;
+    --retro-amber: #ffb000;
+    --retro-cyan: #00ffff;
+    --retro-magenta: #ff00ff;
+    --retro-red: #ff3333;
+    --retro-blue: #4488ff;
+    --retro-glow-sm: 0 0 6px;
+    --retro-glow-md: 0 0 12px;
+    --retro-glow-lg: 0 0 24px;
+    --retro-scanline: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.06) 0px,
+        rgba(0, 0, 0, 0.06) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+}
+
+/* ---- Light Mode ---- */
+:root[data-style="retro"][data-theme="light"] {
+    --retro-bg: #e8e4d8;
+    --retro-surface: #f0ece0;
+    --retro-card: #f5f1e5;
+    --retro-border: #c8c4b8;
+    --retro-text: #1a1a1a;
+    --retro-text-dim: #666666;
+    --retro-green: #00aa00;
+    --retro-amber: #cc7700;
+    --retro-cyan: #008888;
+    --retro-magenta: #aa00aa;
+    --retro-red: #cc0000;
+    --retro-blue: #3366cc;
+    --retro-glow-sm: 0 0 4px;
+    --retro-glow-md: 0 0 8px;
+    --retro-glow-lg: 0 0 16px;
+    --retro-scanline: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.03) 0px,
+        rgba(0, 0, 0, 0.03) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+}
+
+/* ---- OLED Mode ---- */
+:root[data-style="retro"][data-theme="oled"] {
+    --retro-bg: #000000;
+    --retro-surface: #050505;
+    --retro-card: #0a0a0a;
+    --retro-border: #1a1a1a;
+    --retro-text: #e0e0e0;
+    --retro-text-dim: #666666;
+    --retro-green: #39ff14;
+    --retro-amber: #ffb000;
+    --retro-cyan: #00ffff;
+    --retro-magenta: #ff00ff;
+    --retro-red: #ff3333;
+    --retro-blue: #4488ff;
+    --retro-glow-sm: 0 0 8px;
+    --retro-glow-md: 0 0 16px;
+    --retro-glow-lg: 0 0 32px;
+}
+
+/* ---- Body & Base ---- */
+:root[data-style="retro"] body {
+    font-family: "Cascadia Code", "Fira Code", "JetBrains Mono", "Consolas", monospace;
+    background: var(--retro-bg);
+    color: var(--retro-text);
+    letter-spacing: 0.02em;
+}
+
+/* ---- Sidebar ---- */
+:root[data-style="retro"] #sidebar {
+    background: var(--retro-surface);
+    border-right: 2px solid var(--retro-border);
+    box-shadow: 2px 0 0 var(--retro-border);
+}
+
+:root[data-style="retro"] .sidebar-brand {
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* ---- App Bar ---- */
+:root[data-style="retro"] #app-bar {
+    background: var(--retro-surface);
+    border-bottom: 2px solid var(--retro-border);
+}
+
+/* ---- Buttons ---- */
+:root[data-style="retro"] .btn,
+:root[data-style="retro"] .icon-btn,
+:root[data-style="retro"] #btn-start,
+:root[data-style="retro"] #btn-stop,
+:root[data-style="retro"] #btn-restart {
+    background: var(--retro-surface);
+    color: var(--retro-text);
+    border: 2px solid var(--retro-border);
+    border-radius: 0;
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 8px 14px;
+    box-shadow: 2px 2px 0 var(--retro-border);
+    transition: all 0.1s linear;
+}
+
+:root[data-style="retro"] .btn:hover:not(:disabled),
+:root[data-style="retro"] .icon-btn:hover:not(:disabled),
+:root[data-style="retro"] #btn-start:hover:not(:disabled),
+:root[data-style="retro"] #btn-stop:hover:not(:disabled),
+:root[data-style="retro"] #btn-restart:hover:not(:disabled) {
+    background: var(--retro-card);
+    border-color: var(--retro-green);
+    color: var(--retro-green);
+    box-shadow: var(--retro-glow-sm) var(--retro-green), 2px 2px 0 var(--retro-border);
+}
+
+:root[data-style="retro"] .btn:active:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+}
+
+:root[data-style="retro"] .btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+:root[data-style="retro"] .btn-primary {
+    background: rgba(57, 255, 20, 0.15);
+    border-color: var(--retro-green);
+    color: var(--retro-green);
+}
+:root[data-style="retro"] .btn-primary:hover:not(:disabled) {
+    background: rgba(57, 255, 20, 0.25);
+    box-shadow: var(--retro-glow-md) var(--retro-green), 2px 2px 0 var(--retro-border);
+}
+
+:root[data-style="retro"] .btn-success {
+    background: rgba(57, 255, 20, 0.2);
+    border-color: var(--retro-green);
+    color: var(--retro-green);
+}
+
+:root[data-style="retro"] .btn-danger {
+    background: rgba(255, 51, 51, 0.2);
+    border-color: var(--retro-red);
+    color: var(--retro-red);
+}
+
+:root[data-style="retro"] .btn-warn {
+    background: rgba(255, 176, 0, 0.2);
+    border-color: var(--retro-amber);
+    color: var(--retro-amber);
+}
+
+:root[data-style="retro"] .btn-accent {
+    background: rgba(0, 255, 255, 0.12);
+    border: 2px solid var(--retro-cyan);
+    color: var(--retro-cyan);
+}
+
+/* ---- Cards & Panels ---- */
+:root[data-style="retro"] .group,
+:root[data-style="retro"] .panel {
+    background: var(--retro-card);
+    border: 2px solid var(--retro-border);
+    border-radius: 0;
+    padding: 12px;
+    position: relative;
+}
+:root[data-style="retro"] .group::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--retro-scanline);
+    pointer-events: none;
+    opacity: 0.4;
+}
+
+:root[data-style="retro"] .settings-card,
+:root[data-style="retro"] .dialog-card,
+:root[data-style="retro"] .message-card {
+    background: var(--retro-card);
+    border: 2px solid var(--retro-green);
+    border-radius: 0;
+    box-shadow: var(--retro-glow-sm) var(--retro-green), 4px 4px 0 var(--retro-border);
+}
+
+:root[data-style="retro"] .context-menu {
+    background: var(--retro-card);
+    border: 2px solid var(--retro-green);
+    border-radius: 0;
+    box-shadow: var(--retro-glow-sm) var(--retro-green), 4px 4px 0 var(--retro-border);
+}
+
+/* ---- Inputs ---- */
+:root[data-style="retro"] .text-input,
+:root[data-style="retro"] .form-input,
+:root[data-style="retro"] .form-select,
+:root[data-style="retro"] .form-textarea {
+    background: var(--retro-bg);
+    color: var(--retro-green);
+    border: 2px solid var(--retro-border);
+    border-radius: 0;
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    font-size: 12px;
+    padding: 8px 10px;
+    caret-color: var(--retro-green);
+}
+
+:root[data-style="retro"] .text-input:focus,
+:root[data-style="retro"] .form-input:focus,
+:root[data-style="retro"] .form-select:focus,
+:root[data-style="retro"] .form-textarea:focus {
+    border-color: var(--retro-green);
+    box-shadow: var(--retro-glow-sm) var(--retro-green);
+    outline: none;
+}
+
+/* ---- Search ---- */
+:root[data-style="retro"] #search {
+    background: var(--retro-bg);
+    color: var(--retro-green);
+    border: 2px solid var(--retro-border);
+    border-radius: 0;
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    font-size: 12px;
+}
+:root[data-style="retro"] #search:focus {
+    border-color: var(--retro-green);
+    box-shadow: var(--retro-glow-sm) var(--retro-green);
+}
+
+/* ---- Tabs ---- */
+:root[data-style="retro"] .tab {
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+    border-bottom: 2px solid var(--retro-border);
+    transition: all 0.1s linear;
+}
+:root[data-style="retro"] .tab:hover {
+    color: var(--retro-cyan);
+}
+:root[data-style="retro"] .tab.active {
+    color: var(--retro-green);
+    border-bottom-color: var(--retro-green);
+    text-shadow: var(--retro-glow-sm) var(--retro-green);
+}
+
+/* ---- Segmented Controls ---- */
+:root[data-style="retro"] .seg {
+    background: var(--retro-surface);
+    border: 2px solid var(--retro-border);
+    border-radius: 0;
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+    color: var(--retro-text-dim);
+}
+:root[data-style="retro"] .seg:hover {
+    color: var(--retro-cyan);
+    border-color: var(--retro-cyan);
+}
+:root[data-style="retro"] .seg.active {
+    background: rgba(57, 255, 20, 0.12);
+    color: var(--retro-green);
+    border-color: var(--retro-green);
+    text-shadow: var(--retro-glow-sm) var(--retro-green);
+}
+
+/* ---- Project List ---- */
+:root[data-style="retro"] #project-list li {
+    border-left: 3px solid transparent;
+    border-radius: 0;
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    transition: all 0.1s linear;
+}
+:root[data-style="retro"] #project-list li:hover {
+    background: rgba(0, 255, 255, 0.06);
+    border-left-color: var(--retro-cyan);
+}
+:root[data-style="retro"] #project-list li.selected {
+    background: rgba(57, 255, 20, 0.1);
+    border-left-color: var(--retro-green);
+    color: var(--retro-green);
+    text-shadow: var(--retro-glow-sm) var(--retro-green);
+}
+
+/* ---- Project Dots (diamond shape) ---- */
+:root[data-style="retro"] .proj-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 0;
+    transform: rotate(45deg);
+    border: 1px solid var(--retro-border);
+}
+:root[data-style="retro"] .proj-dot.running {
+    background: var(--retro-green);
+    border-color: var(--retro-green);
+    box-shadow: var(--retro-glow-sm) var(--retro-green);
+}
+:root[data-style="retro"] .proj-dot.starting {
+    background: var(--retro-amber);
+    border-color: var(--retro-amber);
+    box-shadow: var(--retro-glow-sm) var(--retro-amber);
+}
+:root[data-style="retro"] .proj-dot.error {
+    background: var(--retro-red);
+    border-color: var(--retro-red);
+    box-shadow: var(--retro-glow-sm) var(--retro-red);
+}
+
+/* ---- Badges ---- */
+:root[data-style="retro"] .badge,
+:root[data-style="retro"] .mini-badge {
+    border-radius: 0;
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 10px;
+    border: 1px solid var(--retro-border);
+    background: var(--retro-surface);
+}
+
+:root[data-style="retro"] .badge.running,
+:root[data-style="retro"] .badge.passed,
+:root[data-style="retro"] .badge.clean {
+    color: var(--retro-green);
+    border-color: var(--retro-green);
+    text-shadow: var(--retro-glow-sm) var(--retro-green);
+}
+:root[data-style="retro"] .badge.error,
+:root[data-style="retro"] .badge.failed {
+    color: var(--retro-red);
+    border-color: var(--retro-red);
+    text-shadow: var(--retro-glow-sm) var(--retro-red);
+}
+:root[data-style="retro"] .badge.starting,
+:root[data-style="retro"] .badge.stopping,
+:root[data-style="retro"] .badge.dirty {
+    color: var(--retro-amber);
+    border-color: var(--retro-amber);
+    text-shadow: var(--retro-glow-sm) var(--retro-amber);
+}
+
+/* ---- Filter Chips ---- */
+:root[data-style="retro"] .filter-chip {
+    border-radius: 0;
+    border: 2px solid var(--retro-border);
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 10px;
+    color: var(--retro-text-dim);
+}
+:root[data-style="retro"] .filter-chip.active {
+    color: var(--retro-green);
+    border-color: var(--retro-green);
+    text-shadow: var(--retro-glow-sm) var(--retro-green);
+    background: rgba(57, 255, 20, 0.1);
+}
+
+/* ---- Log Output ---- */
+:root[data-style="retro"] #log-output {
+    background: var(--retro-bg);
+    border: 2px solid var(--retro-green);
+    border-radius: 0;
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    font-size: 11px;
+    line-height: 1.4;
+    box-shadow: var(--retro-glow-sm) var(--retro-green), inset 0 0 60px rgba(57, 255, 20, 0.03);
+    position: relative;
+}
+:root[data-style="retro"] #log-output::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--retro-scanline);
+    pointer-events: none;
+    opacity: 0.3;
+}
+
+:root[data-style="retro"] .log-line {
+    border-bottom: 1px solid rgba(57, 255, 20, 0.08);
+}
+:root[data-style="retro"] .log-line.err {
+    color: var(--retro-red);
+    text-shadow: var(--retro-glow-sm) var(--retro-red);
+    background: rgba(255, 51, 51, 0.08);
+}
+
+/* ---- Toasts ---- */
+:root[data-style="retro"] .toast {
+    background: var(--retro-card);
+    border: 2px solid var(--retro-cyan);
+    border-radius: 0;
+    box-shadow: var(--retro-glow-sm) var(--retro-cyan), 4px 4px 0 var(--retro-border);
+}
+:root[data-style="retro"] .toast-title {
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* ---- Script Rows ---- */
+:root[data-style="retro"] .script-row {
+    border-radius: 0;
+    background: var(--retro-card);
+    border: 2px solid var(--retro-border);
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    font-size: 12px;
+}
+
+/* ---- Backlog Items ---- */
+:root[data-style="retro"] .backlog-item {
+    border-radius: 0;
+    border: 2px solid var(--retro-border);
+    border-top: 3px solid var(--retro-text-dim);
+    font-family: "Cascadia Code", "Fira Code", monospace;
+}
+:root[data-style="retro"] .backlog-item.status-in-progress {
+    border-top-color: var(--retro-cyan);
+}
+:root[data-style="retro"] .backlog-item.status-done {
+    border-top-color: var(--retro-green);
+}
+
+/* ---- Monitor ---- */
+:root[data-style="retro"] .cpu-bar {
+    border-radius: 0;
+    border: 1px solid var(--retro-border);
+}
+
+/* ---- Evidence ---- */
+:root[data-style="retro"] .ev-card {
+    border-radius: 0;
+    background: var(--retro-card);
+    border: 2px solid var(--retro-border);
+}
+:root[data-style="retro"] .ev-card:hover,
+:root[data-style="retro"] .ev-card.selected {
+    border-color: var(--retro-cyan);
+    box-shadow: var(--retro-glow-sm) var(--retro-cyan);
+}
+
+/* ---- Result Strips ---- */
+:root[data-style="retro"] .result-strip {
+    border-radius: 0;
+    background: var(--retro-card);
+    border: 2px solid var(--retro-border);
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    font-size: 12px;
+}
+
+/* ---- Settings ---- */
+:root[data-style="retro"] .settings-option {
+    border-radius: 0;
+    transition: all 0.1s linear;
+    border: 2px solid transparent;
+}
+:root[data-style="retro"] .settings-option:hover {
+    background: rgba(57, 255, 20, 0.06);
+    border-color: var(--retro-border);
+}
+
+:root[data-style="retro"] .settings-section-description {
+    border-radius: 0;
+    border: 2px solid var(--retro-border);
+    background: var(--retro-card);
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    font-size: 11px;
+}
+
+:root[data-style="retro"] .settings-divider {
+    height: 2px;
+    background: var(--retro-border);
+}
+
+/* ---- Scrollbar ---- */
+:root[data-style="retro"] ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+:root[data-style="retro"] ::-webkit-scrollbar-track {
+    background: var(--retro-bg);
+}
+:root[data-style="retro"] ::-webkit-scrollbar-thumb {
+    background: var(--retro-border);
+    border: 2px solid var(--retro-bg);
+}
+:root[data-style="retro"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--retro-green);
+    box-shadow: var(--retro-glow-sm) var(--retro-green);
+}
+
+/* ---- App Log Output ---- */
+:root[data-style="retro"] .applog-output {
+    border-radius: 0;
+    border: 2px solid var(--retro-green);
+    background: var(--retro-bg);
+    box-shadow: var(--retro-glow-sm) var(--retro-green), inset 0 0 60px rgba(57, 255, 20, 0.03);
+}
+
+/* ---- Power-off icon glow ---- */
+:root[data-style="retro"] #btn-quit:hover {
+    color: var(--retro-red);
+    border-color: var(--retro-red);
+    box-shadow: var(--retro-glow-sm) var(--retro-red);
+}
+
+/* ---- Settings header icon ---- */
+:root[data-style="retro"] .settings-header-icon {
+    color: var(--retro-green);
+    text-shadow: var(--retro-glow-sm) var(--retro-green);
+}
+
+/* ---- Monospace utility class override ---- */
+:root[data-style="retro"] .mono {
+    font-family: "Cascadia Code", "Fira Code", monospace;
+}

@@ -23,6 +23,35 @@ function optionRow(labelText, description, input) {
     return label;
 }
 
+// Style preview thumbnail configs
+const STYLE_PREVIEWS = {
+    standard: { bg: '#141724', surface: '#22263d', accent: '#6366f1', border: '#252a3f', borderRadius: '6px' },
+    brutalist: { bg: '#0a0a0a', surface: '#1a1a1a', accent: '#ff006e', border: '#555', borderRadius: '0', hardShadow: true },
+    glassmorphism: { bg: '#0c0e17', surface: 'rgba(30,35,60,0.6)', accent: '#6366f1', border: 'rgba(255,255,255,0.08)', borderRadius: '12px', blur: true },
+    retro: { bg: '#0a0a0a', surface: '#111', accent: '#39ff14', border: '#2a2a2a', borderRadius: '0', glow: true },
+    dracula: { bg: '#282a36', surface: '#44475a', accent: '#bd93f9', border: '#44475a', borderRadius: '8px' },
+};
+
+function createStylePreview(styleName) {
+    const cfg = STYLE_PREVIEWS[styleName];
+    if (!cfg) return null;
+    const preview = el('div', 'style-preview');
+    preview.style.background = cfg.bg;
+    preview.style.borderColor = cfg.border;
+    if (cfg.borderRadius) preview.style.borderRadius = cfg.borderRadius;
+    if (cfg.glow) { preview.style.boxShadow = `0 0 6px ${cfg.accent}`; preview.style.border = `1px solid ${cfg.accent}`; }
+    if (cfg.hardShadow) preview.style.boxShadow = '2px 2px 0 #333';
+    if (cfg.blur) { preview.style.backdropFilter = 'blur(4px)'; preview.style.webkitBackdropFilter = 'blur(4px)'; }
+    const row = el('div', 'style-preview-row');
+    const b1 = el('div', 'style-preview-block'); b1.style.background = cfg.surface; b1.style.borderRadius = cfg.borderRadius === '0' ? '0' : '3px';
+    const b2 = el('div', 'style-preview-block'); b2.style.background = cfg.accent; b2.style.borderRadius = cfg.borderRadius === '0' ? '0' : '3px'; b2.style.opacity = '0.7';
+    row.appendChild(b1); row.appendChild(b2);
+    const bar = el('div', 'style-preview-bar'); bar.style.background = cfg.accent; bar.style.opacity = '0.5';
+    if (cfg.borderRadius === '0') bar.style.borderRadius = '0';
+    preview.appendChild(row); preview.appendChild(bar);
+    return preview;
+}
+
 export function mountSettings() {
     const state = {
         theme: 'dark',
@@ -65,10 +94,20 @@ radio.value = value;
 
     const secStyle = el('div', 'settings-section');
     secStyle.appendChild(el('div', 'settings-section-title', 'Interface style'));
-    const styleRadios = ['standard', 'brutalist'].map((value) => {
+    const styleDescriptions = {
+        standard: 'Clean, modern interface with smooth transitions.',
+        brutalist: 'Bold, high-contrast design with strong visual elements.',
+        glassmorphism: 'Frosted glass panels with translucent effects and blur.',
+        retro: 'CRT-inspired aesthetic with neon glow and monospace terminal feel.',
+        dracula: 'Popular Dracula color palette with purple, pink and cyan accents.',
+    };
+    const styleRadios = ['standard', 'brutalist', 'glassmorphism', 'retro', 'dracula'].map((value) => {
         const radio = document.createElement('input');
         radio.type = 'radio'; radio.name = 'settings-style'; radio.value = value;
-        secStyle.appendChild(optionRow(value === 'standard' ? 'Standard' : 'Brutalist', value === 'standard' ? 'Keep the current rounded interface.' : 'Use sharp edges and strong structural contrast.', radio));
+        const row = optionRow(value.charAt(0).toUpperCase() + value.slice(1), styleDescriptions[value], radio);
+        const preview = createStylePreview(value);
+        if (preview) { preview.style.marginLeft = 'auto'; row.appendChild(preview); }
+        secStyle.appendChild(row);
         return radio;
     });
     card.appendChild(secStyle);

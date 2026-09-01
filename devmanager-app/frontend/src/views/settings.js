@@ -24,6 +24,69 @@ function optionRow(labelText, description, input) {
     return label;
 }
 
+// Style preview thumbnail configs
+const STYLE_PREVIEWS = {
+    standard: {
+        bg: '#141724', surface: '#22263d', accent: '#6366f1', border: '#252a3f',
+        borderRadius: '6px', barColor: '#6366f1',
+    },
+    brutalist: {
+        bg: '#0a0a0a', surface: '#1a1a1a', accent: '#ff006e', border: '#555555',
+        borderRadius: '0', barColor: '#ff006e', hardShadow: true,
+    },
+    glassmorphism: {
+        bg: '#0c0e17', surface: 'rgba(30,35,60,0.6)', accent: '#6366f1', border: 'rgba(255,255,255,0.08)',
+        borderRadius: '12px', barColor: '#6366f1', blur: true,
+    },
+    retro: {
+        bg: '#0a0a0a', surface: '#111111', accent: '#39ff14', border: '#2a2a2a',
+        borderRadius: '0', barColor: '#39ff14', glow: true,
+    },
+    dracula: {
+        bg: '#282a36', surface: '#44475a', accent: '#bd93f9', border: '#44475a',
+        borderRadius: '8px', barColor: '#bd93f9',
+    },
+};
+
+function createStylePreview(styleName) {
+    const cfg = STYLE_PREVIEWS[styleName];
+    if (!cfg) return null;
+    const preview = el('div', 'style-preview');
+    preview.style.background = cfg.bg;
+    preview.style.borderColor = cfg.border;
+    if (cfg.borderRadius) preview.style.borderRadius = cfg.borderRadius;
+    if (cfg.glow) {
+        preview.style.boxShadow = `0 0 6px ${cfg.accent}, inset 0 0 20px rgba(57,255,20,0.03)`;
+        preview.style.border = `1px solid ${cfg.accent}`;
+    }
+    if (cfg.hardShadow) {
+        preview.style.boxShadow = '2px 2px 0 #333';
+    }
+    if (cfg.blur) {
+        preview.style.backdropFilter = 'blur(4px)';
+        preview.style.webkitBackdropFilter = 'blur(4px)';
+    }
+    // Top row: two blocks
+    const row = el('div', 'style-preview-row');
+    const block1 = el('div', 'style-preview-block');
+    block1.style.background = cfg.surface;
+    block1.style.borderRadius = cfg.borderRadius === '0' ? '0' : '3px';
+    const block2 = el('div', 'style-preview-block');
+    block2.style.background = cfg.accent;
+    block2.style.borderRadius = cfg.borderRadius === '0' ? '0' : '3px';
+    block2.style.opacity = '0.7';
+    row.appendChild(block1);
+    row.appendChild(block2);
+    // Bottom bar
+    const bar = el('div', 'style-preview-bar');
+    bar.style.background = cfg.barColor;
+    bar.style.opacity = '0.5';
+    if (cfg.borderRadius === '0') bar.style.borderRadius = '0';
+    preview.appendChild(row);
+    preview.appendChild(bar);
+    return preview;
+}
+
 function divider() {
     const divider = el('div', 'settings-divider');
     return divider;
@@ -79,7 +142,7 @@ function render() {
     }
     
     if (styleRadios.length === 0) {
-        styleRadios = ['standard', 'brutalist'].map((value) => {
+        styleRadios = ['standard', 'brutalist', 'glassmorphism', 'retro', 'dracula'].map((value) => {
             const radio = document.createElement('input');
             radio.type = 'radio';
             radio.name = 'style';
@@ -177,14 +240,27 @@ function render() {
         // Style section description
         styleSection.appendChild(sectionDescription('Customize the visual style and appearance of interface elements.'));
 
+        const styleDescriptions = {
+            standard: 'Clean, modern interface with smooth transitions',
+            brutalist: 'Bold, high-contrast design with strong visual elements',
+            glassmorphism: 'Frosted glass panels with translucent effects and blur',
+            retro: 'CRT-inspired aesthetic with neon glow and monospace terminal feel',
+            dracula: 'Popular Dracula color palette with purple, pink and cyan accents',
+        };
         const styleContainer = el('div', 'settings-options');
         styleRadios.forEach((radio) => {
             const value = radio.value;
             const label = optionRow(
                 value.charAt(0).toUpperCase() + value.slice(1),
-                value === 'brutalist' ? 'Bold, high-contrast design with strong visual elements' : 'Clean, modern interface with smooth transitions',
+                styleDescriptions[value] || value,
                 radio
             );
+            // Add style preview thumbnail
+            const preview = createStylePreview(value);
+            if (preview) {
+                preview.style.marginLeft = 'auto';
+                label.appendChild(preview);
+            }
             styleContainer.appendChild(label);
         });
         styleSection.appendChild(styleContainer);

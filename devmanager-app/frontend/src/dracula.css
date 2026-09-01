@@ -1,0 +1,452 @@
+/* Dracula Style - Based on the official Dracula color palette */
+
+/* ---- Dark Mode (default, Dracula is inherently dark) ---- */
+:root[data-style="dracula"] {
+    --dracula-bg: #282a36;
+    --dracula-current: #44475a;
+    --dracula-fg: #f8f8f2;
+    --dracula-comment: #6272a4;
+    --dracula-red: #ff5555;
+    --dracula-orange: #ffb86c;
+    --dracula-yellow: #f1fa8c;
+    --dracula-green: #50fa7b;
+    --dracula-cyan: #8be9fd;
+    --dracula-purple: #bd93f9;
+    --dracula-pink: #ff79c6;
+    --dracula-border: #44475a;
+    --dracula-surface: #343746;
+    --dracula-card: #3c3f58;
+}
+
+/* ---- Light Mode (Dracula-inspired light) ---- */
+:root[data-style="dracula"][data-theme="light"] {
+    --dracula-bg: #f8f8f2;
+    --dracula-current: #e8e8e0;
+    --dracula-fg: #282a36;
+    --dracula-comment: #6272a4;
+    --dracula-red: #e64747;
+    --dracula-orange: #d4923a;
+    --dracula-yellow: #c5a830;
+    --dracula-green: #3ab85a;
+    --dracula-cyan: #2ea8cf;
+    --dracula-purple: #8b6fc0;
+    --dracula-pink: #d45d99;
+    --dracula-border: #d0d0c8;
+    --dracula-surface: #ffffff;
+    --dracula-card: #f0f0e8;
+}
+
+/* ---- OLED Mode ---- */
+:root[data-style="dracula"][data-theme="oled"] {
+    --dracula-bg: #181920;
+    --dracula-current: #2e303e;
+    --dracula-fg: #f8f8f2;
+    --dracula-comment: #566080;
+    --dracula-border: #2e303e;
+    --dracula-surface: #22232e;
+    --dracula-card: #2a2c3a;
+}
+
+/* ---- Body ---- */
+:root[data-style="dracula"] body {
+    background: var(--dracula-bg);
+    color: var(--dracula-fg);
+}
+
+/* ---- Sidebar ---- */
+:root[data-style="dracula"] #sidebar {
+    background: var(--dracula-surface);
+    border-right: 1px solid var(--dracula-border);
+}
+
+/* ---- App Bar ---- */
+:root[data-style="dracula"] #app-bar {
+    background: var(--dracula-surface);
+    border-bottom: 1px solid var(--dracula-border);
+}
+
+/* ---- Buttons ---- */
+:root[data-style="dracula"] .btn,
+:root[data-style="dracula"] .icon-btn,
+:root[data-style="dracula"] #btn-start,
+:root[data-style="dracula"] #btn-stop,
+:root[data-style="dracula"] #btn-restart {
+    background: var(--dracula-current);
+    color: var(--dracula-fg);
+    border: 1px solid var(--dracula-border);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+:root[data-style="dracula"] .btn:hover:not(:disabled),
+:root[data-style="dracula"] .icon-btn:hover:not(:disabled),
+:root[data-style="dracula"] #btn-start:hover:not(:disabled),
+:root[data-style="dracula"] #btn-stop:hover:not(:disabled),
+:root[data-style="dracula"] #btn-restart:hover:not(:disabled) {
+    background: var(--dracula-purple);
+    color: var(--dracula-bg);
+    border-color: var(--dracula-purple);
+}
+
+:root[data-style="dracula"] .btn:active:not(:disabled) {
+    filter: brightness(0.85);
+}
+
+:root[data-style="dracula"] .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+:root[data-style="dracula"] .btn-primary {
+    background: var(--dracula-purple);
+    color: var(--dracula-bg);
+    border-color: var(--dracula-purple);
+}
+:root[data-style="dracula"] .btn-primary:hover:not(:disabled) {
+    background: var(--dracula-pink);
+    border-color: var(--dracula-pink);
+}
+
+:root[data-style="dracula"] .btn-success {
+    background: var(--dracula-green);
+    color: var(--dracula-bg);
+    border-color: var(--dracula-green);
+}
+
+:root[data-style="dracula"] .btn-danger {
+    background: var(--dracula-red);
+    color: var(--dracula-bg);
+    border-color: var(--dracula-red);
+}
+
+:root[data-style="dracula"] .btn-warn {
+    background: var(--dracula-orange);
+    color: var(--dracula-bg);
+    border-color: var(--dracula-orange);
+}
+
+:root[data-style="dracula"] .btn-accent {
+    background: transparent;
+    color: var(--dracula-cyan);
+    border: 1px solid var(--dracula-cyan);
+}
+:root[data-style="dracula"] .btn-accent:hover:not(:disabled) {
+    background: var(--dracula-cyan);
+    color: var(--dracula-bg);
+}
+
+/* ---- Cards & Panels ---- */
+:root[data-style="dracula"] .group,
+:root[data-style="dracula"] .panel {
+    background: var(--dracula-surface);
+    border: 1px solid var(--dracula-border);
+    border-radius: 8px;
+}
+
+:root[data-style="dracula"] .settings-card,
+:root[data-style="dracula"] .dialog-card,
+:root[data-style="dracula"] .message-card {
+    background: var(--dracula-surface);
+    border: 1px solid var(--dracula-purple);
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-style="dracula"] .context-menu {
+    background: var(--dracula-surface);
+    border: 1px solid var(--dracula-purple);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* ---- Inputs ---- */
+:root[data-style="dracula"] .text-input,
+:root[data-style="dracula"] .form-input,
+:root[data-style="dracula"] .form-select,
+:root[data-style="dracula"] .form-textarea {
+    background: var(--dracula-bg);
+    color: var(--dracula-fg);
+    border: 1px solid var(--dracula-border);
+    border-radius: 6px;
+    transition: border-color 0.2s ease;
+}
+
+:root[data-style="dracula"] .text-input:focus,
+:root[data-style="dracula"] .form-input:focus,
+:root[data-style="dracula"] .form-select:focus,
+:root[data-style="dracula"] .form-textarea:focus {
+    border-color: var(--dracula-purple);
+    box-shadow: 0 0 0 2px rgba(189, 147, 249, 0.2);
+}
+
+/* ---- Search ---- */
+:root[data-style="dracula"] #search {
+    background: var(--dracula-bg);
+    color: var(--dracula-fg);
+    border: 1px solid var(--dracula-border);
+    border-radius: 6px;
+}
+:root[data-style="dracula"] #search:focus {
+    border-color: var(--dracula-purple);
+}
+
+/* ---- Tabs ---- */
+:root[data-style="dracula"] .tab {
+    color: var(--dracula-comment);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+:root[data-style="dracula"] .tab:hover {
+    color: var(--dracula-fg);
+}
+:root[data-style="dracula"] .tab.active {
+    color: var(--dracula-purple);
+    border-bottom-color: var(--dracula-purple);
+}
+
+/* ---- Segmented Controls ---- */
+:root[data-style="dracula"] .seg {
+    color: var(--dracula-comment);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+:root[data-style="dracula"] .seg:hover {
+    color: var(--dracula-fg);
+}
+:root[data-style="dracula"] .seg.active {
+    background: var(--dracula-current);
+    color: var(--dracula-purple);
+    border-color: var(--dracula-purple);
+}
+
+/* ---- Project List ---- */
+:root[data-style="dracula"] #project-list li {
+    border-left: 3px solid transparent;
+    transition: all 0.15s ease;
+}
+:root[data-style="dracula"] #project-list li:hover {
+    background: var(--dracula-current);
+}
+:root[data-style="dracula"] #project-list li.selected {
+    background: var(--dracula-current);
+    border-left-color: var(--dracula-purple);
+}
+
+/* ---- Project Dots ---- */
+:root[data-style="dracula"] .proj-dot {
+    background: var(--dracula-comment);
+}
+:root[data-style="dracula"] .proj-dot.running {
+    background: var(--dracula-green);
+}
+:root[data-style="dracula"] .proj-dot.starting {
+    background: var(--dracula-yellow);
+}
+:root[data-style="dracula"] .proj-dot.error {
+    background: var(--dracula-red);
+}
+
+/* ---- Badges ---- */
+:root[data-style="dracula"] .badge,
+:root[data-style="dracula"] .mini-badge {
+    border-radius: 999px;
+    border: 1px solid var(--dracula-border);
+}
+
+:root[data-style="dracula"] .badge.running,
+:root[data-style="dracula"] .badge.passed,
+:root[data-style="dracula"] .badge.clean,
+:root[data-style="dracula"] .mini-badge.clean {
+    color: var(--dracula-green);
+    border-color: var(--dracula-green);
+    background: rgba(80, 250, 123, 0.12);
+}
+:root[data-style="dracula"] .badge.error,
+:root[data-style="dracula"] .badge.failed {
+    color: var(--dracula-red);
+    border-color: var(--dracula-red);
+    background: rgba(255, 85, 85, 0.12);
+}
+:root[data-style="dracula"] .badge.starting,
+:root[data-style="dracula"] .badge.stopping,
+:root[data-style="dracula"] .badge.dirty,
+:root[data-style="dracula"] .mini-badge.dirty {
+    color: var(--dracula-yellow);
+    border-color: var(--dracula-yellow);
+    background: rgba(241, 250, 140, 0.12);
+}
+
+/* ---- Filter Chips ---- */
+:root[data-style="dracula"] .filter-chip {
+    border: 1px solid var(--dracula-border);
+    border-radius: 999px;
+    color: var(--dracula-comment);
+    transition: all 0.15s ease;
+}
+:root[data-style="dracula"] .filter-chip:hover {
+    color: var(--dracula-fg);
+    border-color: var(--dracula-comment);
+}
+:root[data-style="dracula"] .filter-chip.active {
+    color: var(--dracula-purple);
+    border-color: var(--dracula-purple);
+    background: rgba(189, 147, 249, 0.12);
+}
+
+/* ---- Log Output ---- */
+:root[data-style="dracula"] #log-output {
+    background: var(--dracula-bg);
+    border: 1px solid var(--dracula-border);
+    border-radius: 8px;
+}
+:root[data-style="dracula"] .log-line {
+    border-bottom: 1px solid rgba(68, 71, 90, 0.3);
+}
+:root[data-style="dracula"] .log-line.err {
+    color: var(--dracula-red);
+    background: rgba(255, 85, 85, 0.06);
+}
+:root[data-style="dracula"] .log-line .ts {
+    color: var(--dracula-comment);
+}
+
+/* ---- Toasts ---- */
+:root[data-style="dracula"] .toast {
+    background: var(--dracula-surface);
+    border: 1px solid var(--dracula-purple);
+    border-top: 3px solid var(--dracula-cyan);
+    border-radius: 8px;
+}
+
+/* ---- Script Rows ---- */
+:root[data-style="dracula"] .script-row {
+    background: var(--dracula-surface);
+    border: 1px solid var(--dracula-border);
+    border-radius: 8px;
+}
+
+/* ---- Backlog Items ---- */
+:root[data-style="dracula"] .backlog-item {
+    background: var(--dracula-card);
+    border: 1px solid var(--dracula-border);
+    border-top: 2px solid var(--dracula-comment);
+    border-radius: 8px;
+}
+:root[data-style="dracula"] .backlog-item.status-in-progress {
+    border-top-color: var(--dracula-cyan);
+}
+:root[data-style="dracula"] .backlog-item.status-done {
+    border-top-color: var(--dracula-green);
+}
+
+/* ---- Monitor ---- */
+:root[data-style="dracula"] .cpu-bar {
+    background: var(--dracula-bg);
+}
+:root[data-style="dracula"] .cpu-fill {
+    background: var(--dracula-green);
+}
+:root[data-style="dracula"] .mon-row {
+    border-bottom-color: var(--dracula-border);
+}
+
+/* ---- Evidence ---- */
+:root[data-style="dracula"] .ev-card {
+    background: var(--dracula-surface);
+    border: 1px solid var(--dracula-border);
+    border-radius: 8px;
+}
+:root[data-style="dracula"] .ev-card:hover,
+:root[data-style="dracula"] .ev-card.selected {
+    border-color: var(--dracula-purple);
+}
+
+/* ---- Result Strips ---- */
+:root[data-style="dracula"] .result-strip {
+    background: var(--dracula-surface);
+    border: 1px solid var(--dracula-border);
+    border-radius: 8px;
+}
+:root[data-style="dracula"] .result-strip.ok {
+    color: var(--dracula-green);
+}
+:root[data-style="dracula"] .result-strip.err {
+    color: var(--dracula-red);
+}
+
+/* ---- Settings ---- */
+:root[data-style="dracula"] .settings-option {
+    border-radius: 6px;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+}
+:root[data-style="dracula"] .settings-option:hover {
+    background: var(--dracula-current);
+    border-color: var(--dracula-border);
+}
+
+:root[data-style="dracula"] .settings-section-description {
+    background: var(--dracula-card);
+    border: 1px solid var(--dracula-border);
+    border-radius: 6px;
+}
+
+:root[data-style="dracula"] .settings-divider {
+    background: var(--dracula-border);
+}
+
+:root[data-style="dracula"] .settings-header-icon {
+    color: var(--dracula-purple);
+}
+
+/* ---- Scrollbar ---- */
+:root[data-style="dracula"] ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+:root[data-style="dracula"] ::-webkit-scrollbar-track {
+    background: var(--dracula-bg);
+}
+:root[data-style="dracula"] ::-webkit-scrollbar-thumb {
+    background: var(--dracula-current);
+    border-radius: 999px;
+}
+:root[data-style="dracula"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--dracula-comment);
+}
+
+/* ---- App Log Output ---- */
+:root[data-style="dracula"] .applog-output {
+    background: var(--dracula-bg);
+    border: 1px solid var(--dracula-border);
+    border-radius: 8px;
+}
+
+/* ---- Context Menu Items ---- */
+:root[data-style="dracula"] .context-menu-item {
+    border-radius: 6px;
+}
+:root[data-style="dracula"] .context-menu-item:hover {
+    background: var(--dracula-current);
+}
+:root[data-style="dracula"] .context-menu-item.danger {
+    color: var(--dracula-red);
+}
+
+/* ---- Status Bar ---- */
+:root[data-style="dracula"] #status-bar {
+    color: var(--dracula-comment);
+}
+
+/* ---- Utility: Dracula accent color classes ---- */
+:root[data-style="dracula"] .pw-status.running {
+    color: var(--dracula-purple);
+}
+:root[data-style="dracula"] .pw-status.passed {
+    color: var(--dracula-green);
+}
+:root[data-style="dracula"] .pw-status.failed,
+:root[data-style="dracula"] .pw-status.error {
+    color: var(--dracula-red);
+}
