@@ -1,0 +1,303 @@
+name: Development Build v2
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+        - release
+        - debug
+      run_tests:
+        description: 'Run tests'
+        required: true
+        default: true
+        type: boolean
+
+env:
+  WAILS_VERSION: v2.15.0
+  GO_VERSION: '1.23'
+  NODE_VERSION: '20'
+  BUILD_TYPE: ${{ github.event.inputs.build_type || 'release' }}
+
+jobs:
+  # Pre-build checks and validation
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run_tests: ${{ steps.check.outputs.run_tests }}
+      build_matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for changes
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run_tests=${{ github.event.inputs.run_tests }}" >> $GITHUB_OUTPUT
+          else
+            # Check if there are code changes (not just docs)
+            if git diff --name-only HEAD~1 HEAD | grep -vE '\.(md|txt|yml|yaml)$'; then
+              echo "run_tests=true" >> $GITHUB_OUTPUT
+            else
+              echo "run_tests=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Generate build matrix
+        id: matrix
+        run: |
+          # Only build all platforms on main branch or PRs
+          if [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo 'matrix=[{"os":"windows-latest","platform":"windows","arch":"amd64","artifact_name":"devmanager-dev-windows-amd64.exe"},{"os":"macos-latest","platform":"darwin","arch":"amd64","artifact_name":"devmanager-dev-macos-amd64"},{"os":"ubuntu-latest","platform":"linux","arch":"amd64","artifact_name":"devmanager-dev-linux-amd64"}]' >> $GITHUB_OUTPUT
+          else
+            # On develop, only build the current platform
+            echo 'matrix=[{"os":"ubuntu-latest","platform":"linux","arch":"amd64","artifact_name":"devmanager-dev-linux-amd64"}]' >> $GITHUB_OUTPUT
+          fi
+
+  # Run tests if needed
+  test:
+    needs: validate
+    if: needs.validate.outputs.should_run_tests == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: devmanager-app/frontend/package-lock.json
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+
+      - name: Install Wails dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
+      - name: Install frontend dependencies
+        working-directory: ./devmanager-app/frontend
+        run: npm ci
+
+      - name: Run Go tests
+        working-directory: ./devmanager-app
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Run frontend tests
+        working-directory: ./devmanager-app/frontend
+        run: npm test --if-present
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./devmanager-app/coverage.out
+          flags: unittests
+          name: codecov-umbrella
+
+  # Build applications
+  build:
+    needs: [validate, test]
+    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.validate.outputs.build_matrix) }}
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: devmanager-app/go.sum
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: devmanager-app/frontend/package-lock.json
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+
+      - name: Set up Wails dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
+      - name: Set up Wails dependencies (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          # Install any macOS-specific dependencies if needed
+          echo "Setting up macOS dependencies"
+
+      - name: Cache Go modules
+        if: matrix.os != 'windows-latest'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install frontend dependencies
+        working-directory: ./devmanager-app/frontend
+        run: npm ci
+
+      - name: Build frontend assets
+        working-directory: ./devmanager-app/frontend
+        run: |
+          if [ "${{ env.BUILD_TYPE }}" = "debug" ]; then
+            npm run build:dev
+          else
+            npm run build
+          fi
+
+      - name: Build Wails application
+        working-directory: ./devmanager-app
+        run: |
+          if [ "${{ env.BUILD_TYPE }}" = "debug" ]; then
+            wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -debug
+          else
+            wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -upx
+          fi
+        env:
+          CGO_ENABLED: 1
+
+      - name: Verify build output
+        working-directory: ./devmanager-app
+        run: |
+          echo "Build directory contents:"
+          ls -la build/bin/ || true
+          echo "Platform-specific directory:"
+          ls -la build/bin/${{ matrix.platform }}-${{ matrix.arch }}/ || true
+
+      - name: Generate build info
+        id: build_info
+        working-directory: ./devmanager-app
+        run: |
+          BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          COMMIT_SHA=${{ github.sha }}
+          VERSION="dev-${{ github.run_number }}-${COMMIT_SHA:0:7}"
+          
+          echo "build_date=$BUILD_DATE" >> $GITHUB_OUTPUT
+          echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          
+          # Create version file
+          echo "{\"version\":\"$VERSION\",\"buildDate\":\"$BUILD_DATE\",\"commit\":\"$COMMIT_SHA\",\"platform\":\"${{ matrix.platform }}\",\"arch\":\"${{ matrix.arch }}\"}" > build/version.json
+
+      - name: Prepare and upload artifact (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: powershell
+        run: |
+          $sourcePath = "devmanager-app/build/bin/${{ matrix.platform }}-${{ matrix.arch }}/devmanager.exe"
+          $destPath = "${{ matrix.artifact_name }}"
+          Copy-Item $sourcePath $destPath
+          
+          # Add version info
+          $versionInfo = @{
+            version = "${{ steps.build_info.outputs.version }}"
+            buildDate = "${{ steps.build_info.outputs.build_date }}"
+            commit = "${{ steps.build_info.outputs.commit_sha }}"
+            platform = "${{ matrix.platform }}"
+            arch = "${{ matrix.arch }}"
+          }
+          $versionInfo | ConvertTo-Json | Out-File -FilePath "${{ matrix.artifact_name }}.json"
+
+      - name: Prepare and upload artifact (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cd devmanager-app/build/bin/${{ matrix.platform }}-${{ matrix.arch }}/
+          chmod +x devmanager
+          cp devmanager ../../../../../${{ matrix.artifact_name }}
+          
+          # Add version info
+          cat > ../../../../../${{ matrix.artifact_name }}.json << EOF
+          {
+            "version": "${{ steps.build_info.outputs.version }}",
+            "buildDate": "${{ steps.build_info.outputs.build_date }}",
+            "commit": "${{ steps.build_info.outputs.commit_sha }}",
+            "platform": "${{ matrix.platform }}",
+            "arch": "${{ matrix.arch }}"
+          }
+          EOF
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            ${{ matrix.artifact_name }}
+            ${{ matrix.artifact_name }}.json
+          retention-days: 30
+
+      - name: Upload build logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            devmanager-app/frontend/dist/
+            devmanager-app/build/
+          retention-days: 7
+
+  # Security scan
+  security:
+    needs: validate
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Gosec Security Scanner
+        uses: securecodewarrior/github-action-gosec@master
+        with:
+          args: './devmanager-app/...'
+
+      - name: Run npm audit
+        working-directory: ./devmanager-app/frontend
+        run: npm audit --audit-level=moderate
+
+  # Build summary
+  build-summary:
+    needs: [validate, test, build]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build Summary
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Validation**: ${{ needs.validate.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tests**: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build**: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Type**: ${{ env.BUILD_TYPE }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY

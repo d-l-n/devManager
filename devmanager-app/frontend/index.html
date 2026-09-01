@@ -30,7 +30,6 @@
             <div class="seg-group">
                 <button id="view-project" class="seg active">Project</button>
                 <button id="view-monitor" class="seg">Monitor</button>
-                <button id="view-settings" class="seg">Settings</button>
             </div>
             <div class="app-bar-actions">
                 <button id="btn-reload" class="icon-btn" title="Reload projects" aria-label="Reload projects" data-icon="refresh"></button>
@@ -207,18 +206,44 @@
         </section>
         <section id="settings-view" hidden>
             <header id="settings-toolbar">
-                <h2>Settings</h2>
+                <div class="settings-header-with-icon">
+                    <span class="settings-header-icon" data-icon="logo"></span>
+                    <h2>Settings</h2>
+                </div>
             </header>
+            
+            <!-- Appearance Section -->
             <div class="group">
-                <div class="group-title">Appearance</div>
+                <div class="group-title" id="appearance-title">Appearance</div>
                 <div id="settings-theme-section">
                     <!-- Theme options will be populated here -->
                 </div>
+                <div id="settings-style-section">
+                    <!-- Style options will be populated here -->
+                </div>
             </div>
+            
+            <!-- Display Section -->
             <div class="group">
-                <div class="group-title">Behavior</div>
-                <div id="settings-behavior-section">
-                    <!-- Behavior options will be populated here -->
+                <div class="group-title" id="display-title">Display</div>
+                <div id="settings-display-section">
+                    <!-- Display options will be populated here -->
+                </div>
+            </div>
+            
+            <!-- Notifications Section -->
+            <div class="group">
+                <div class="group-title" id="notifications-title">Notifications</div>
+                <div id="settings-notifications-section">
+                    <!-- Notification options will be populated here -->
+                </div>
+            </div>
+            
+            <!-- Monitoring Section -->
+            <div class="group">
+                <div class="group-title" id="monitoring-title">Monitoring</div>
+                <div id="settings-monitoring-section">
+                    <!-- Monitoring options will be populated here -->
                 </div>
             </div>
         </section>

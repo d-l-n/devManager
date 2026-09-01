@@ -54,3 +54,6 @@ devmanager-app/frontend/coverage/
 # Documentation
 docs/
 *.backup
+
+# Wails generated files
+devmanager-app/frontend/wailsjs/

@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "devManager Build Configuration",
+  "description": "Centralized build configuration for devManager Desktop Application",
+  "version": "2.0.0",
+  
+  "build": {
+    "defaultType": "release",
+    "supportedTypes": ["debug", "release"],
+    "parallelBuild": true,
+    "cleanBuild": false,
+    "versionCheck": true,
+    "verboseOutput": false,
+    "generateReports": true,
+    "uploadArtifacts": false
+  },
+  
+  "dependencies": {
+    "node": {
+      "minimumVersion": "18.0.0",
+      "recommendedVersion": "20.0.0",
+      "installUrl": "https://nodejs.org/",
+      "checkCommand": "node --version"
+    },
+    "npm": {
+      "minimumVersion": "8.0.0",
+      "recommendedVersion": "10.0.0",
+      "checkCommand": "npm --version"
+    },
+    "go": {
+      "minimumVersion": "1.21.0",
+      "recommendedVersion": "1.23.0",
+      "installUrl": "https://golang.org/dl/",
+      "checkCommand": "go version"
+    },
+    "wails": {
+      "minimumVersion": "2.15.0",
+      "recommendedVersion": "2.15.0",
+      "installCommand": "go install github.com/wailsapp/wails/v2/cmd/wails@latest",
+      "checkCommand": "wails version"
+    }
+  },
+  
+  "platforms": {
+    "windows": {
+      "executableName": "devmanager.exe",
+      "artifactName": "devmanager-windows-amd64.exe",
+      "dependencies": [],
+      "buildFlags": ["-upx"],
+      "debugFlags": ["-debug"],
+      "environment": {
+        "CGO_ENABLED": "1"
+      }
+    },
+    "linux": {
+      "executableName": "devmanager",
+      "artifactName": "devmanager-linux-amd64",
+      "dependencies": ["libgtk-3-dev", "libwebkit2gtk-4.0-dev"],
+      "buildFlags": ["-upx"],
+      "debugFlags": ["-debug"],
+      "environment": {
+        "CGO_ENABLED": "1"
+      }
+    },
+    "darwin": {
+      "executableName": "devmanager",
+      "artifactName": "devmanager-macos-amd64",
+      "dependencies": [],
+      "buildFlags": ["-upx"],
+      "debugFlags": ["-debug"],
+      "environment": {
+        "CGO_ENABLED": "1"
+      }
+    }
+  },
+  
+  "frontend": {
+    "directory": "frontend",
+    "buildCommand": "npm run build",
+    "devBuildCommand": "npm run build:dev",
+    "installCommand": "npm install --no-audit --no-fund",
+    "testCommand": "npm test --if-present",
+    "outputDirectory": "dist",
+    "cacheDirectory": "node_modules/.cache",
+    "dependencies": {
+      "packageManager": "npm",
+      "lockFile": "package-lock.json",
+      "cacheKey": "npm"
+    }
+  },
+  
+  "backend": {
+    "directory": ".",
+    "testCommand": "go test -v -race -coverprofile=coverage.out ./...",
+    "buildCommand": "wails build",
+    "devBuildCommand": "wails build -debug",
+    "cleanCommand": "go clean -cache -modcache -testcache",
+    "outputDirectory": "build/bin",
+    "cacheDirectories": [
+      "~/.cache/go-build",
+      "~/go/pkg/mod"
+    ],
+    "dependencies": {
+      "goModFile": "go.mod",
+      "goSumFile": "go.sum",
+      "cacheKey": "go"
+    }
+  },
+  
+  "artifacts": {
+    "retentionDays": 30,
+    "includeVersionInfo": true,
+    "includeBuildLogs": false,
+    "compression": {
+      "enabled": false,
+      "format": "zip",
+      "level": 6
+    },
+    "naming": {
+      "pattern": "devmanager-{version}-{platform}-{arch}{extension}",
+      "includeTimestamp": false,
+      "includeCommitHash": true
+    }
+  },
+  
+  "quality": {
+    "security": {
+      "enabled": true,
+      "tools": ["gosec", "npm-audit"],
+      "failOnVulnerabilities": true,
+      "auditLevel": "moderate"
+    },
+    "testing": {
+      "enabled": true,
+      "coverageThreshold": 80,
+      "runOnPR": true,
+      "runOnPush": false
+    },
+    "linting": {
+      "enabled": true,
+      "tools": ["gofmt", "eslint"],
+      "failOnErrors": true
+    }
+  },
+  
+  "ci": {
+    "github": {
+      "enabled": true,
+      "workflows": {
+        "development": ".github/workflows/build-dev-v2.yml",
+        "release": ".github/workflows/build-release.yml"
+      },
+      "triggers": {
+        "push": ["main", "develop"],
+        "pullRequest": ["main"],
+        "workflowDispatch": true
+      },
+      "cache": {
+        "enabled": true,
+        "paths": [
+          "node_modules",
+          "~/.cache/go-build",
+          "~/go/pkg/mod"
+        ]
+      }
+    }
+  },
+  
+  "notifications": {
+    "enabled": false,
+    "channels": {
+      "slack": {
+        "enabled": false,
+        "webhookUrl": "",
+        "channel": "#builds"
+      },
+      "email": {
+        "enabled": false,
+        "recipients": []
+      }
+    }
+  },
+  
+  "monitoring": {
+    "buildMetrics": {
+      "enabled": true,
+      "trackDuration": true,
+      "trackSize": true,
+      "trackSuccessRate": true
+    },
+    "resourceMonitoring": {
+      "enabled": true,
+      "trackMemoryUsage": true,
+      "trackDiskUsage": true,
+      "trackCpuUsage": false
+    }
+  },
+  
+  "experimental": {
+    "features": {
+      "incrementalBuilds": false,
+      "remoteCaching": false,
+      "distributedBuilds": false,
+      "aiOptimization": false
+    }
+  }
+}

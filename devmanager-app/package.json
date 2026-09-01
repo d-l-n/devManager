@@ -1,0 +1,54 @@
+{
+  "name": "devmanager-build-scripts",
+  "version": "2.0.0",
+  "description": "Cross-platform build scripts for devManager Desktop Application",
+  "main": "build.js",
+  "type": "module",
+  "scripts": {
+    "build": "node build.js",
+    "build:debug": "node build.js --debug",
+    "build:clean": "node build.js --clean",
+    "build:parallel": "node build.js --parallel",
+    "build:dev": "node build.js --debug --clean",
+    "build:release": "node build.js --clean",
+    "build:help": "node build.js --help",
+    "test": "node build.js --debug && npm run test:frontend && npm run test:backend",
+    "test:frontend": "cd frontend && npm test --if-present",
+    "test:backend": "go test -v -race -coverprofile=coverage.out ./...",
+    "clean": "node build.js --clean --no-version-check",
+    "clean:deep": "node build.js --clean --no-version-check && go clean -cache -modcache -testcache",
+    "lint": "npm run lint:frontend && npm run lint:backend",
+    "lint:frontend": "cd frontend && npm run lint --if-present",
+    "lint:backend": "gofmt -l .",
+    "security": "npm run security:frontend && npm run security:backend",
+    "security:frontend": "cd frontend && npm audit --audit-level=moderate",
+    "security:backend": "gosec ./...",
+    "dev": "node build.js --debug --parallel",
+    "release": "node build.js --clean --parallel",
+    "ci": "node build.js --clean --no-version-check --verbose"
+  },
+  "keywords": [
+    "build",
+    "cross-platform",
+    "wails",
+    "desktop",
+    "electron-alternative"
+  ],
+  "author": "devManager Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/d-l-n/devManager.git"
+  },
+  "bugs": {
+    "url": "https://github.com/d-l-n/devManager/issues"
+  },
+  "homepage": "https://github.com/d-l-n/devManager#readme"
+}
