@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "devManager Build Configuration",
   "description": "Centralized build configuration for devManager Desktop Application",
-  "version": "2.0.0",
+  "version": "2.0.1",
   
   "build": {
     "defaultType": "release",

@@ -1,6 +1,6 @@
 {
   "name": "devmanager-build-scripts",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Cross-platform build scripts for devManager Desktop Application",
   "main": "build.js",
   "type": "module",
