@@ -178,12 +178,16 @@ function render() {
     
     // Add icons to section titles - check if elements exist first
     const appearanceTitle = $('appearance-title');
+    const styleTitle = $('style-title');
     const displayTitle = $('display-title');
     const notificationsTitle = $('notifications-title');
     const monitoringTitle = $('monitoring-title');
         
     if (appearanceTitle) {
         appearanceTitle.replaceChildren(sectionTitleWithIcon('settings', 'Appearance'));
+    }
+    if (styleTitle) {
+        styleTitle.replaceChildren(sectionTitleWithIcon('palette', 'Visual Style'));
     }
     if (displayTitle) {
         displayTitle.replaceChildren(sectionTitleWithIcon('monitor', 'Display'));

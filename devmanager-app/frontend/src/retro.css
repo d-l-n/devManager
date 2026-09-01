@@ -100,7 +100,6 @@
 
 /* ---- Buttons ---- */
 :root[data-style="retro"] .btn,
-:root[data-style="retro"] .icon-btn,
 :root[data-style="retro"] #btn-start,
 :root[data-style="retro"] #btn-stop,
 :root[data-style="retro"] #btn-restart {
@@ -114,6 +113,20 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
     padding: 8px 14px;
+    box-shadow: 2px 2px 0 var(--retro-border);
+    transition: all 0.1s linear;
+}
+
+:root[data-style="retro"] .icon-btn {
+    background: var(--retro-surface);
+    color: var(--retro-text);
+    border: 2px solid var(--retro-border);
+    border-radius: 0;
+    width: 30px;
+    height: 30px;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
     box-shadow: 2px 2px 0 var(--retro-border);
     transition: all 0.1s linear;
 }
