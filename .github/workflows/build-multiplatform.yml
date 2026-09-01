@@ -83,7 +83,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev dbus dbus-x11 xvfb
 
       - name: Set up Wails dependencies (macOS)
         if: matrix.os == 'macos-latest'
@@ -116,18 +116,16 @@ jobs:
 
       - name: Prepare artifact (Windows)
         if: matrix.os == 'windows-latest'
-        shell: bash
+        shell: powershell
         run: |
-          set -e
-          # Wails outputs to build/bin/<name>.exe
-          EXE=$(find devmanager-app/build/bin -name 'devmanager.exe' -type f | head -1)
-          if [ -z "$EXE" ]; then
-            echo "ERROR: devmanager.exe not found"
-            find devmanager-app/build -type f
+          $exe = Get-ChildItem -Path devmanager-app/build/bin -Filter devmanager.exe -Recurse | Select-Object -First 1
+          if (-not $exe) {
+            Write-Error "devmanager.exe not found"
+            Get-ChildItem -Path devmanager-app/build -Recurse -File
             exit 1
-          fi
-          cp "$EXE" "${{ matrix.artifact_name }}"
-          zip "${{ matrix.artifact_zip }}" "${{ matrix.artifact_name }}"
+          }
+          Copy-Item $exe.FullName "${{ matrix.artifact_name }}"
+          Compress-Archive -Path "${{ matrix.artifact_name }}" -DestinationPath "${{ matrix.artifact_zip }}"
 
       - name: Prepare artifact (Unix)
         if: runner.os != 'Windows'
