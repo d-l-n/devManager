@@ -28,6 +28,7 @@ type Runner struct {
 	mu       sync.Mutex
 	cb       RunnerCallbacks
 	cmd      *exec.Cmd
+	starting bool
 	waitDone chan struct{}
 }
 
@@ -53,10 +54,11 @@ func (r *Runner) PID() int {
 // Start ejecuta command vía cmd.exe /d /s /c (paridad QProcess Windows).
 func (r *Runner) Start(command, workingDir string, extraEnv map[string]string) error {
 	r.mu.Lock()
-	if r.cmd != nil && r.cmd.Process != nil && r.cmd.ProcessState == nil {
+	if r.starting || (r.cmd != nil && r.cmd.Process != nil && r.cmd.ProcessState == nil) {
 		r.mu.Unlock()
 		return errors.New("process is already running")
 	}
+	r.starting = true
 	cmd := exec.Command("cmd.exe", "/d", "/s", "/c", command)
 	cmd.Dir = workingDir
 	if extraEnv != nil {
@@ -68,15 +70,18 @@ func (r *Runner) Start(command, workingDir string, extraEnv map[string]string) e
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
+		r.starting = false
 		r.mu.Unlock()
 		return fmt.Errorf("stdout pipe: %w", err)
 	}
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
+		r.starting = false
 		r.mu.Unlock()
 		return fmt.Errorf("stderr pipe: %w", err)
 	}
 	if err := cmd.Start(); err != nil {
+		r.starting = false
 		r.mu.Unlock()
 		if r.cb.OnError != nil {
 			r.cb.OnError("Failed to start: " + err.Error())
@@ -112,6 +117,7 @@ func (r *Runner) Start(command, workingDir string, extraEnv map[string]string) e
 		}
 		r.mu.Lock()
 		r.cmd = nil
+		r.starting = false
 		close(r.waitDone)
 		r.waitDone = nil
 		r.mu.Unlock()
