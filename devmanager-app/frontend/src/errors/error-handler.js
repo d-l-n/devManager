@@ -84,7 +84,7 @@ class ErrorHandler {
     /**
      * Handle an error
      */
-    handle(error, context = {}) {
+    handle(error, context = {}, showFeedback = true) {
         const structuredError = this.structureError(error, context);
         
         // Count errors
@@ -100,7 +100,7 @@ class ErrorHandler {
         this.notifySubscribers(structuredError);
         
         // Show user feedback if appropriate
-        if (structuredError.userMessage) {
+        if (showFeedback && structuredError.userMessage) {
             this.showUserFeedback(structuredError);
         }
 
@@ -208,7 +208,7 @@ class ErrorHandler {
      * Generate unique error ID
      */
     generateErrorId() {
-        return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        return `err_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
     }
 
     /**
@@ -425,13 +425,13 @@ window.addEventListener('error', (event) => {
         lineno: event.lineno,
         colno: event.colno,
         type: 'javascript_error'
-    });
+    }, false);
 });
 
 window.addEventListener('unhandledrejection', (event) => {
     globalErrorHandler.handle(event.reason, {
         type: 'unhandled_promise_rejection'
-    });
+    }, false);
 });
 
 // Convenience functions for common error types
