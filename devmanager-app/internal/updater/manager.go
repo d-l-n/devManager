@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -203,7 +204,7 @@ func (m *Manager) handleUpdateAvailable(event UpdateEvent) {
 		})
 
 		// Show system notification
-		runtime.ShowNotification(m.ctx, title, message)
+		_ = runtime.SendNotification(m.ctx, runtime.NotificationOptions{Title: title, Body: message})
 	}
 }
 
@@ -244,7 +245,7 @@ func (m *Manager) handleUpdateInstalled(event UpdateEvent) {
 	})
 
 	// Show notification
-	runtime.ShowNotification(m.ctx, "Update Installed", "The application has been updated successfully")
+	_ = runtime.SendNotification(m.ctx, runtime.NotificationOptions{Title: "Update Installed", Body: "The application has been updated successfully"})
 }
 
 // handleUpdateFailed handles update failed event
@@ -255,7 +256,7 @@ func (m *Manager) handleUpdateFailed(event UpdateEvent) {
 	})
 
 	// Show error notification
-	runtime.ShowNotification(m.ctx, "Update Failed", event.Message)
+	_ = runtime.SendNotification(m.ctx, runtime.NotificationOptions{Title: "Update Failed", Body: event.Message})
 }
 
 // SetEventLogger sets the event logger
@@ -366,7 +367,7 @@ func (m *Manager) ScheduleUpdate(delay time.Duration) error {
 		case <-m.ctx.Done():
 			return
 		case <-time.After(delay):
-			if err := m.CheckForUpdates(); err != nil {
+			if _, err := m.CheckForUpdates(); err != nil {
 				runtime.EventsEmit(m.ctx, "update:error", map[string]interface{}{
 					"error": err.Error(),
 				})

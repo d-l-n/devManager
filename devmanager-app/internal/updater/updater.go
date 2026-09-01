@@ -2,14 +2,17 @@ package updater
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/blang/semver/v4"
@@ -483,7 +486,7 @@ rm -f "%s"
 rm -f "$0"
 
 echo "Update completed!"
-`, updateFile, updateFile, filepath.Dir(os.Args[0]), filepath.Dir(os.Args[0]), updateFile, scriptPath)
+`, updateFile, updateFile, filepath.Dir(os.Args[0]), filepath.Dir(os.Args[0]), updateFile)
 		
 	default:
 		return "", fmt.Errorf("unsupported platform: %s", runtime.GOOS)
@@ -510,7 +513,7 @@ func (u *Updater) executeInstallScript(scriptPath string) error {
 	
 	// Detach from current process
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
+		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 	
 	return cmd.Start()
@@ -564,5 +567,6 @@ func (u *Updater) SkipUpdate() {
 // RetryUpdate retries the update process
 func (u *Updater) RetryUpdate() error {
 	u.updateInfo = nil
-	return u.CheckForUpdates()
+	_, err := u.CheckForUpdates()
+	return err
 }
