@@ -62,6 +62,8 @@ func TestBuildServerCommand(t *testing.T) {
 		{"flask", "flask run", 5000, "flask run --port 5000"},
 		{"ya tiene flag", "vite --port 1111", 3000, "vite --port 1111"},
 		{"flag corto", "vite -p 1111", 3000, "vite -p 1111"},
+		{"flag corto sin espacio", "vite -p1111", 3000, "vite -p1111"},
+
 		{"no matchea vitest como vite", "vitest", 3000, "vitest"},
 		{"desconocido intacto", "make serve", 3000, "make serve"},
 		{"port inválido", "vite", 0, "vite"},

@@ -24,7 +24,7 @@ func IsPortOpen(host string, port int) bool {
 }
 
 var (
-	hasPortFlag = regexp.MustCompile(`(?:--port|-p)\s+\d+`)
+	hasPortFlag = regexp.MustCompile(`--port\s+\d+|-p\s*\d+`)
 	vitePrefix  = regexp.MustCompile(`^(?:npx\s+)?vite\b`)
 )
 
