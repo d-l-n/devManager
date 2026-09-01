@@ -441,7 +441,7 @@ func (m *Manager) onRunnerOutput(line string, isError bool) {
 			m.cb.OnPortMismatch(configuredPort, detected, detectedURL)
 		}
 		m.log(fmt.Sprintf("[PORT MISMATCH] Server started on port %d, differing from configured port %d", detected, configuredPort), true)
-		m.log(fmt.Sprintf("­ƒöù Active URL redirected to: %s", detectedURL), false)
+		m.log(fmt.Sprintf("[Port Detect] Active URL redirected to: %s", detectedURL), false)
 	} else if hasChanged {
 		m.log(fmt.Sprintf("[Auto-Detect] Server bound to active port %d", detected), false)
 	}
