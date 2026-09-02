@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -51,7 +50,7 @@ func (r *Runner) PID() int {
 	return 0
 }
 
-// Start ejecuta command vía cmd.exe /d /s /c (paridad QProcess Windows).
+// Start ejecuta command via platform shell (cmd.exe on Windows, /bin/sh on Unix).
 func (r *Runner) Start(command, workingDir string, extraEnv map[string]string) error {
 	r.mu.Lock()
 	if r.starting || (r.cmd != nil && r.cmd.Process != nil && r.cmd.ProcessState == nil) {
@@ -59,7 +58,7 @@ func (r *Runner) Start(command, workingDir string, extraEnv map[string]string) e
 		return errors.New("process is already running")
 	}
 	r.starting = true
-	cmd := exec.Command("cmd.exe", "/d", "/s", "/c", command)
+	cmd := shellCommand(command)
 	cmd.Dir = workingDir
 	if extraEnv != nil {
 		env := os.Environ()
@@ -140,8 +139,8 @@ func scanLines(wg *sync.WaitGroup, f interface{ Read([]byte) (int, error) }, emi
 	}
 }
 
-// Stop replica ProcessRunner.stop(): taskkill /T /F al árbol y espera
-// acotada (waitForFinished(5000)).
+// Stop replica ProcessRunner.stop(): kills the process tree and waits
+// up to 5 seconds for clean exit.
 func (r *Runner) Stop() {
 	r.mu.Lock()
 	if r.cmd == nil || r.cmd.Process == nil || r.cmd.ProcessState != nil {
@@ -152,8 +151,7 @@ func (r *Runner) Stop() {
 	done := r.waitDone
 	r.mu.Unlock()
 
-	kill := exec.Command("taskkill", "/T", "/F", "/PID", strconv.Itoa(pid))
-	_ = kill.Run() // paridad Python: resultado ignorado
+	killProcessTree(pid)
 
 	if done != nil {
 		select {

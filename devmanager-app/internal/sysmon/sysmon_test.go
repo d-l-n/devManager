@@ -2,32 +2,10 @@ package sysmon
 
 import (
 	"errors"
-	"os/exec"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
 )
-
-// levanta un listener real (PowerShell TcpListener) para tener dueño de puerto real
-func startListenerProc(t *testing.T, port int) *exec.Cmd {
-	t.Helper()
-	script := `$l=[System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback,` + strconv.Itoa(port) + `);$l.Start();Start-Sleep -Seconds 60;$l.Stop()`
-	cmd := exec.Command("powershell", "-NoProfile", "-Command", script)
-	if err := cmd.Start(); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = cmd.Process.Kill() })
-	deadline := time.Now().Add(10 * time.Second)
-	for time.Now().Before(deadline) {
-		if GetPortOwner(port) != nil {
-			return cmd
-		}
-		time.Sleep(200 * time.Millisecond)
-	}
-	t.Fatal("listener no llegó a abrir el puerto")
-	return nil
-}
 
 func TestGetPortOwner(t *testing.T) {
 	port := 58131 // rango efímero poco probable
@@ -48,7 +26,7 @@ func TestGetPortOwner(t *testing.T) {
 }
 
 func TestGetProcessTreeUsage(t *testing.T) {
-	cmd := exec.Command("ping", "-n", "30", "127.0.0.1")
+	cmd := pingCmd()
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +54,7 @@ func TestGetProcessTreeUsage(t *testing.T) {
 }
 
 func TestKillTree(t *testing.T) {
-	cmd := exec.Command("ping", "-n", "30", "127.0.0.1")
+	cmd := pingCmd()
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}

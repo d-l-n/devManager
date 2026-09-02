@@ -9,8 +9,6 @@ package sysmon
 import (
 	"fmt"
 	"math"
-	"os/exec"
-	"strconv"
 	"sync"
 	"time"
 
@@ -193,13 +191,13 @@ type killParams struct {
 	pollInterval time.Duration
 }
 
-// KillTree mata el proceso y su árbol con taskkill /T /F y verifica que no
+// KillTree mata el proceso y su árbol y verifica que no
 // queden supervivientes (paridad monitor.kill_tree).
 func KillTree(pid int) (bool, string) {
 	return killTreeVerified(pid, killParams{
 		preCheck:     preCheckRoot,
 		tree:         killTreePids,
-		kill:         runTaskkill,
+		kill:         runKillTree,
 		alive:        pidAlive,
 		pollTimeout:  killPollTimeout,
 		pollInterval: killPollInterval,
@@ -267,11 +265,7 @@ func killTreePids(pid int) []int {
 	return pids
 }
 
-// runTaskkill ejecuta taskkill /T /F sobre el árbol.
-func runTaskkill(pid int) error {
-	cmd := exec.Command("taskkill", "/T", "/F", "/PID", strconv.Itoa(pid))
-	return cmd.Run()
-}
+// runKillTree is defined per-platform in kill_windows.go / kill_unix.go.
 
 // pidAlive reporta si el proceso sigue existiendo (paridad pid_exists).
 func pidAlive(pid int) bool {

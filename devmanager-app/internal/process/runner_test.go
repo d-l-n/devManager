@@ -5,6 +5,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/d-l-n/devmanager/internal/testutil"
 )
 
 func TestStripANSI(t *testing.T) {
@@ -51,7 +53,7 @@ func TestRunnerLifecycle(t *testing.T) {
 	}
 
 	r := NewRunner(cb)
-	if err := r.Start(`ping -n 10 127.0.0.1`, ".", nil); err != nil {
+	if err := r.Start(testutil.PingCmdStr(), ".", nil); err != nil {
 		t.Fatalf("start: %v", err)
 	}
 	if !r.IsRunning() {
@@ -87,7 +89,7 @@ func TestRunnerNormalExit(t *testing.T) {
 		OnFinished: func(c int, s string) { code, status = c, s; close(finished) },
 	}
 	r := NewRunner(cb)
-	if err := r.Start(`cmd /c exit 0`, ".", nil); err != nil {
+	if err := r.Start(testutil.ExitCmdStr(0), ".", nil); err != nil {
 		t.Fatalf("start: %v", err)
 	}
 	select {
@@ -109,7 +111,7 @@ func TestRunnerExtraEnv(t *testing.T) {
 		OnFinished: func(int, string) { close(finished) },
 	}
 	r := NewRunner(cb)
-	if err := r.Start(`cmd /c echo PORT=%PORT%`, ".", map[string]string{"PORT": "4321"}); err != nil {
+	if err := r.Start(testutil.EchoEnvCmdStr("PORT"), ".", map[string]string{"PORT": "4321"}); err != nil {
 		t.Fatalf("start: %v", err)
 	}
 	select {

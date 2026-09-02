@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/d-l-n/devmanager/internal/models"
+	"github.com/d-l-n/devmanager/internal/testutil"
 )
 
 type rec struct {
@@ -80,14 +81,14 @@ func waitFor(t *testing.T, timeout time.Duration, cond func() bool) {
 
 func TestRunScriptSuccess(t *testing.T) {
 	m, r := newMgr(t)
-	m.RunScript("build", "cmd /c exit 0")
+	m.RunScript("build", testutil.ExitCmdStr(0))
 	waitFor(t, 8*time.Second, func() bool { return !m.IsRunning() })
 	waitFor(t, 2*time.Second, func() bool {
 		r.mu.Lock()
 		defer r.mu.Unlock()
 		return len(r.finished) == 1 && r.finished[0].name == "build" && r.finished[0].code == 0
 	})
-	if !r.hasLog(`Starting script 'build': cmd /c exit 0`) {
+	if !r.hasLog(`Starting script 'build': ` + testutil.ExitCmdStr(0)) {
 		t.Errorf("log de arranque ausente: %v", r.logs)
 	}
 	if !r.hasLog(`Script 'build' finished (code 0)`) {
@@ -100,7 +101,7 @@ func TestRunScriptSuccess(t *testing.T) {
 
 func TestRunScriptFailure(t *testing.T) {
 	m, r := newMgr(t)
-	m.RunScript("lint", "cmd /c exit 3")
+	m.RunScript("lint", testutil.ExitCmdStr(3))
 	waitFor(t, 8*time.Second, func() bool { return !m.IsRunning() })
 	if !r.hasLog(`Script 'lint' exited with code 3 (CrashExit)`) {
 		t.Errorf("log de fallo ausente: %v", r.logs)
@@ -115,10 +116,10 @@ func TestRunScriptFailure(t *testing.T) {
 
 func TestConcurrentRunRejected(t *testing.T) {
 	m, r := newMgr(t)
-	m.RunScript("long", "ping -n 30 127.0.0.1")
+	m.RunScript("long", testutil.PingCmdStr())
 	waitFor(t, 8*time.Second, func() bool { return m.IsRunning() })
 
-	m.RunScript("other", "cmd /c exit 0")
+	m.RunScript("other", testutil.ExitCmdStr(0))
 	if !r.hasLog(`Cannot start 'other': script 'long' is already running.`) {
 		t.Errorf("warning concurrente ausente: %v", r.logs)
 	}
@@ -132,7 +133,7 @@ func TestConcurrentRunRejected(t *testing.T) {
 
 func TestStopByUserEmitsFinishedZero(t *testing.T) {
 	m, r := newMgr(t)
-	m.RunScript("watch", "ping -n 30 127.0.0.1")
+	m.RunScript("watch", testutil.PingCmdStr())
 	waitFor(t, 8*time.Second, func() bool { return m.IsRunning() })
 
 	m.Stop()
@@ -153,7 +154,7 @@ func TestStopByUserEmitsFinishedZero(t *testing.T) {
 
 func TestOutputPrefixedWithScriptName(t *testing.T) {
 	m, r := newMgr(t)
-	m.RunScript("hello", "cmd /c echo HOLA-SCRIPT")
+	m.RunScript("hello", testutil.EchoCmdStr("HOLA-SCRIPT"))
 	waitFor(t, 8*time.Second, func() bool { return !m.IsRunning() })
 	if !r.hasLog("[hello] HOLA-SCRIPT") {
 		t.Errorf("stdout sin prefijo [name]: %v", r.logs)

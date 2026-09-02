@@ -8,6 +8,7 @@ import (
 
 	"github.com/d-l-n/devmanager/internal/models"
 	"github.com/d-l-n/devmanager/internal/server"
+	"github.com/d-l-n/devmanager/internal/testutil"
 )
 
 type rec struct {
@@ -128,7 +129,7 @@ func TestEmptyCommandLogsAndStaysIdle(t *testing.T) {
 }
 
 func TestDisabledPlaywrightRejected(t *testing.T) {
-	pm, sm, r := newPair(t, baseProject(false, false, "cmd /c echo hi"))
+	pm, sm, r := newPair(t, baseProject(false, false, testutil.EchoCmdStr("hi")))
 	pm.RunTests()
 	if pm.State() != StateIdle {
 		t.Errorf("estado = %s, want idle", pm.State())
@@ -140,14 +141,14 @@ func TestDisabledPlaywrightRejected(t *testing.T) {
 }
 
 func TestDirectRunServerDisabled(t *testing.T) {
-	pm, sm, _ := newPair(t, baseProject(false, true, "cmd /c exit 0"))
+	pm, sm, _ := newPair(t, baseProject(false, true, testutil.ExitCmdStr(0)))
 	pm.RunTests()
 	waitForState(t, pm, StatePassed, 10*time.Second)
 	sm.Stop()
 }
 
 func TestFinishNonZeroIsFailed(t *testing.T) {
-	pm, sm, r := newPair(t, baseProject(false, true, "cmd /c exit 3"))
+	pm, sm, r := newPair(t, baseProject(false, true, testutil.ExitCmdStr(3)))
 	pm.RunTests()
 	waitForState(t, pm, StateFailed, 10*time.Second)
 	waitFor(t, 2*time.Second, func() bool {
@@ -168,12 +169,12 @@ func TestAutoStartWaitsForServerThenRuns(t *testing.T) {
 		Name: "t", Path: ".",
 		Server: models.ServerConfig{
 			Enabled: true,
-			Command: "ping -n 3 127.0.0.1 > nul && echo Local: http://localhost:5173/",
+			Command: testutil.PingCmdStr() + " && " + testutil.EchoCmdStr("Local: http://localhost:5173/"),
 			Port:    5173, URL: "http://localhost:5173", StartupTimeout: 15000,
 		},
 		Playwright: models.PlaywrightConfig{
-			Enabled: true, Command: "cmd /c echo pw-done",
-			UICommand: "cmd /c echo pw-done", DebugCommand: "cmd /c echo pw-done",
+			Enabled: true, Command: testutil.EchoCmdStr("pw-done"),
+			UICommand: testutil.EchoCmdStr("pw-done"), DebugCommand: testutil.EchoCmdStr("pw-done"),
 		},
 	}
 	pm, sm, r := newPair(t, proj)
@@ -191,8 +192,8 @@ func TestAutoStartWaitsForServerThenRuns(t *testing.T) {
 func TestCancelledWhenServerFailsToStart(t *testing.T) {
 	// Servidor real que nunca abre el puerto; StartupTimeout corto fuerza
 	// la transición a ERROR (paridad del gate inyectado del plan).
-	proj := baseProject(true, true, "cmd /c echo never")
-	proj.Server.Command = "ping -n 30 127.0.0.1 > nul"
+	proj := baseProject(true, true, testutil.EchoCmdStr("never"))
+	proj.Server.Command = testutil.PingCmdStr()
 	proj.Server.StartupTimeout = 800
 	pm, sm, r := newPair(t, proj)
 
@@ -205,7 +206,7 @@ func TestCancelledWhenServerFailsToStart(t *testing.T) {
 }
 
 func TestStopWhileRunningGoesIdle(t *testing.T) {
-	pm, sm, r := newPair(t, baseProject(false, true, "ping -n 30 127.0.0.1"))
+	pm, sm, r := newPair(t, baseProject(false, true, testutil.PingCmdStr()))
 	pm.RunTests()
 	waitForState(t, pm, StateRunning, 10*time.Second)
 	pm.Stop()
@@ -217,7 +218,7 @@ func TestStopWhileRunningGoesIdle(t *testing.T) {
 }
 
 func TestAlreadyRunningRejected(t *testing.T) {
-	pm, sm, r := newPair(t, baseProject(false, true, "ping -n 30 127.0.0.1"))
+	pm, sm, r := newPair(t, baseProject(false, true, testutil.PingCmdStr()))
 	pm.RunTests()
 	waitForState(t, pm, StateRunning, 10*time.Second)
 	before := len(r.logs)
@@ -242,8 +243,8 @@ func TestShowReportEmptyCommand(t *testing.T) {
 }
 
 func TestUpdateProjectChangesCommands(t *testing.T) {
-	pm, sm, _ := newPair(t, baseProject(false, true, "cmd /c echo v1"))
-	updated := baseProject(false, true, fmt.Sprintf("cmd /c echo v%d", 2))
+	pm, sm, _ := newPair(t, baseProject(false, true, testutil.EchoCmdStr("v1")))
+	updated := baseProject(false, true, testutil.EchoCmdStr(fmt.Sprintf("v%d", 2)))
 	pm.UpdateProject(updated)
 	// Sin aserción directa: UpdateProject no debe panear ni cambiar estado.
 	if pm.State() != StateIdle {

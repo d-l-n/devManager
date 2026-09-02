@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/d-l-n/devmanager/internal/models"
+	"github.com/d-l-n/devmanager/internal/testutil"
 )
 
 func newTestProject(port, timeoutMs int) models.Project {
@@ -89,7 +90,7 @@ func waitForState(t *testing.T, m *Manager, want models.ServerState, timeout tim
 // proceso vivo: evita que OnFinished pase a Stopped antes de la detección.
 func newAliveProject(port int) models.Project {
 	p := newTestProject(port, 5000)
-	p.Server.Command = "cmd /c ping -n 30 127.0.0.1 >nul"
+	p.Server.Command = testutil.PingCmdStr()
 	return p
 }
 
@@ -215,7 +216,7 @@ func TestStopRequestedSuppressesCrashError(t *testing.T) {
 
 func TestCrashEntersError(t *testing.T) {
 	p := newTestProject(0, 1000)
-	p.Server.Command = "cmd /c exit 3" // muere inmediatamente con código != 0
+	p.Server.Command = testutil.ExitCmdStr(3)
 	rec := &recorder{}
 	m := NewManager(p, rec.callbacks())
 	m.Start()
