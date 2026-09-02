@@ -37,13 +37,13 @@ type PlaywrightConfig struct {
 }
 
 type BacklogItem struct {
-	ID          string    `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Status      string    `json:"status"`      // todo, in-progress, done
-	Priority    string    `json:"priority"`    // low, medium, high
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Status      string `json:"status"`   // todo, in-progress, done
+	Priority    string `json:"priority"` // low, medium, high
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
 }
 
 type Project struct {
@@ -86,13 +86,13 @@ type playwrightConfigJSON struct {
 }
 
 type backlogItemJSON struct {
-	ID          *string  `json:"id"`
-	Title       *string  `json:"title"`
-	Description *string  `json:"description"`
-	Status      *string  `json:"status"`
-	Priority    *string  `json:"priority"`
-	CreatedAt   *string  `json:"created_at"`
-	UpdatedAt   *string  `json:"updated_at"`
+	ID          *string `json:"id"`
+	Title       *string `json:"title"`
+	Description *string `json:"description"`
+	Status      *string `json:"status"`
+	Priority    *string `json:"priority"`
+	CreatedAt   *string `json:"created_at"`
+	UpdatedAt   *string `json:"updated_at"`
 }
 
 type projectJSON struct {
@@ -163,7 +163,7 @@ func applyPlaywright(j *playwrightConfigJSON) PlaywrightConfig {
 }
 
 func applyBacklogItem(j backlogItemJSON) BacklogItem {
-	now := time.Now()
+	now := time.Now().Format(time.RFC3339Nano)
 	c := BacklogItem{
 		ID:          "",
 		Title:       "",
@@ -189,14 +189,10 @@ func applyBacklogItem(j backlogItemJSON) BacklogItem {
 		c.Priority = *j.Priority
 	}
 	if j.CreatedAt != nil {
-		if t, err := time.Parse(time.RFC3339, *j.CreatedAt); err == nil {
-			c.CreatedAt = t
-		}
+		c.CreatedAt = *j.CreatedAt
 	}
 	if j.UpdatedAt != nil {
-		if t, err := time.Parse(time.RFC3339, *j.UpdatedAt); err == nil {
-			c.UpdatedAt = t
-		}
+		c.UpdatedAt = *j.UpdatedAt
 	}
 	return c
 }

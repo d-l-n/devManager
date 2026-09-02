@@ -15,7 +15,7 @@ func newTestProject(port, timeoutMs int) models.Project {
 	return models.Project{
 		Name: "t", Path: ".",
 		Server: models.ServerConfig{
-			Enabled: true, Command: "echo hola",
+			Enabled: true, Command: testutil.PingCmdStr(),
 			Port: port, URL: "http://localhost", StartupTimeout: timeoutMs,
 		},
 	}

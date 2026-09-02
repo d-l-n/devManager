@@ -8,7 +8,7 @@ import (
 
 func TestBacklogItemSerialization(t *testing.T) {
 	// Test that BacklogItem can be serialized and deserialized correctly
-	now := time.Now()
+	now := time.Now().Format(time.RFC3339Nano)
 	item := BacklogItem{
 		ID:          "test-id",
 		Title:       "Test Item",
@@ -76,8 +76,8 @@ func TestProjectWithBacklog(t *testing.T) {
 				Description: "First description",
 				Status:      "todo",
 				Priority:    "high",
-				CreatedAt:   time.Now(),
-				UpdatedAt:   time.Now(),
+				CreatedAt:   time.Now().Format(time.RFC3339Nano),
+				UpdatedAt:   time.Now().Format(time.RFC3339Nano),
 			},
 			{
 				ID:          "item-2",
@@ -85,8 +85,8 @@ func TestProjectWithBacklog(t *testing.T) {
 				Description: "Second description",
 				Status:      "in-progress",
 				Priority:    "medium",
-				CreatedAt:   time.Now(),
-				UpdatedAt:   time.Now(),
+				CreatedAt:   time.Now().Format(time.RFC3339Nano),
+				UpdatedAt:   time.Now().Format(time.RFC3339Nano),
 			},
 		},
 	}

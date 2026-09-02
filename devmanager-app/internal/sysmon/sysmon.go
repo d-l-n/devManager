@@ -9,6 +9,7 @@ package sysmon
 import (
 	"fmt"
 	"math"
+	"runtime"
 	"sync"
 	"time"
 
@@ -268,7 +269,19 @@ func killTreePids(pid int) []int {
 // runKillTree is defined per-platform in kill_windows.go / kill_unix.go.
 
 // pidAlive reporta si el proceso sigue existiendo (paridad pid_exists).
+// En Linux un proceso SIGKILLeado puede quedar zombie (Z) hasta que el padre
+// lo recoja; para kill_tree cuenta como muerto.
 func pidAlive(pid int) bool {
 	exists, _ := process.PidExists(int32(pid))
-	return exists
+	if !exists {
+		return false
+	}
+	if runtime.GOOS == "linux" {
+		if p, err := process.NewProcess(int32(pid)); err == nil {
+			if st, err := p.Status(); err == nil && len(st) > 0 && st[0] == process.Zombie {
+				return false
+			}
+		}
+	}
+	return true
 }

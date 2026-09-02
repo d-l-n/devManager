@@ -780,7 +780,7 @@ func (a *App) AddBacklogItem(index int, title, description, status, priority str
 		return fmt.Errorf("backlog item title cannot be empty")
 	}
 	p := projects[index]
-	now := time.Now()
+	now := time.Now().Format(time.RFC3339Nano)
 	item := models.BacklogItem{
 		ID:          uuid.NewString(),
 		Title:       strings.TrimSpace(title),
@@ -813,7 +813,7 @@ func (a *App) UpdateBacklogItem(index int, itemID, title, description, status, p
 			p.Backlog[i].Description = strings.TrimSpace(description)
 			p.Backlog[i].Status = status
 			p.Backlog[i].Priority = priority
-			p.Backlog[i].UpdatedAt = time.Now()
+			p.Backlog[i].UpdatedAt = time.Now().Format(time.RFC3339Nano)
 			if err := a.cfg.UpdateProject(index, p); err != nil {
 				return err
 			}
