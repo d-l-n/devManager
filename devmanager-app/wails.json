@@ -45,7 +45,7 @@
   "arch": "build",
   "ldflags": [],
   "tags": [],
-  "cgo": false,
+  "cgo": true,
   "race": false,
   "frontendDevServerTimeout": 10000,
   "windowWidth": 1200,

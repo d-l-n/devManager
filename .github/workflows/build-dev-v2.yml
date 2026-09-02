@@ -2,9 +2,9 @@ name: Development Build v2
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, master, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch:
     inputs:
       build_type:
@@ -69,7 +69,7 @@ jobs:
   test:
     needs: validate
     if: needs.validate.outputs.should_run_tests == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -166,6 +166,10 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
+
+      - name: Install UPX
+        if: runner.os != 'Windows'
+        run: sudo apt-get update && (sudo apt-get install -y upx-ucl || sudo apt-get install -y upx || true)
 
       - name: Install frontend dependencies
         working-directory: ./devmanager-app/frontend
