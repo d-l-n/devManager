@@ -106,7 +106,16 @@ jobs:
         working-directory: ./devmanager-app
         run: |
           eval "$(dbus-launch --sh-syntax)"
-          xvfb-run wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean
+          # En cross-compilación a arm64, Wails regenera los bindings ejecutando
+          # un binario del host (amd64) que arranca el systray y crashea en su
+          # teardown (godbus SIGSEGV) al morir la sesión dbus sintética. Los
+          # bindings ya están commiteados en frontend/wailsjs, así que se pueden
+          # saltar sin perder nada. La celda amd64 (nativa) no se toca.
+          SKIP_BINDINGS=""
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            SKIP_BINDINGS="-skipbindings"
+          fi
+          xvfb-run wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean $SKIP_BINDINGS
         env:
           CGO_ENABLED: 1
 
