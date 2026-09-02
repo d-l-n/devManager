@@ -3,6 +3,7 @@ import { mount as mountPlaywright } from './panels/playwright.js';
 import { mount as mountScripts } from './panels/scripts.js';
 import { mount as mountGit } from './panels/git.js';
 import { mount as mountEvidence } from './panels/evidence.js';
+import { mount as mountObscura } from './panels/obscura.js';
 import { mount as mountBacklog } from './panels/backlog.js';
 import { mount as mountMonitor } from './panels/monitor.js';
 import { applyTheme, THEME_CYCLE, currentTheme, getOledMode } from './theme.js';
@@ -233,6 +234,7 @@ function renderDetail() {
     ctx.panels.scriptsPanel.onProjectChanged(p);
     ctx.panels.gitPanel.onProjectChanged(p);
     ctx.panels.evidencePanel.onProjectChanged(p);
+    ctx.panels.obscuraPanel.onProjectChanged(p);
     ctx.panels.backlogPanel.onProjectChanged(p);
 }
 
@@ -704,9 +706,10 @@ const playwrightPanel = mountPlaywright(ctx);
 const scriptsPanel = mountScripts(ctx);
 const gitPanel = mountGit(ctx);
 const evidencePanel = mountEvidence(ctx);
+const obscuraPanel = mountObscura(ctx);
 const monitorPanel = mountMonitor(ctx);
 const backlogPanel = mountBacklog(ctx);
-ctx.panels = { playwrightPanel, scriptsPanel, gitPanel, evidencePanel, monitorPanel, backlogPanel };
+ctx.panels = { playwrightPanel, scriptsPanel, gitPanel, evidencePanel, obscuraPanel, monitorPanel, backlogPanel };
 
 const settingsView = mountSettingsView();
 window.settingsView = settingsView;

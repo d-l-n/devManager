@@ -66,6 +66,13 @@ export const api = {
     updateBacklogItem: (i, itemId, title, description, status, priority) => app().UpdateBacklogItem(i, itemId, title, description, status, priority),
     deleteBacklogItem: (i, itemId) => app().DeleteBacklogItem(i, itemId),
     moveBacklogItem: (i, itemId, newIndex) => app().MoveBacklogItem(i, itemId, newIndex),
+    // Obscura (herramienta auxiliar: screenshots, dump, eval, fetch libre)
+    getObscuraStatus: (i) => app().GetObscuraStatus(i),
+    obscuraScreenshot: (i, url) => app().ObscuraScreenshot(i, url),
+    obscuraDump: (i, url, format) => app().ObscuraDump(i, url, format),
+    obscuraEval: (i, url, js) => app().ObscuraEval(i, url, js),
+    obscuraFetch: (i, command) => app().ObscuraFetch(i, command),
+    stopObscura: (i) => app().StopObscura(i),
 };
 
 export const events = () => window.runtime;

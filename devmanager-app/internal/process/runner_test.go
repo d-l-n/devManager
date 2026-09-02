@@ -125,3 +125,56 @@ func TestRunnerExtraEnv(t *testing.T) {
 		t.Errorf("extra_env no aplicado, salida: %q", out.String())
 	}
 }
+
+func TestRunnerStartArgv(t *testing.T) {
+	var mu sync.Mutex
+	var lines []string
+	finished := make(chan struct{})
+
+	cb := RunnerCallbacks{
+		OnStdout:  func(l string) { mu.Lock(); lines = append(lines, l); mu.Unlock() },
+		OnStarted: func() {},
+		OnFinished: func(code int, status string) {
+			mu.Lock()
+			t.Logf("finished code=%d status=%s", code, status)
+			mu.Unlock()
+			close(finished)
+		},
+	}
+
+	r := NewRunner(cb)
+	// testutil.PingCmd construye argv directo por OS (sin shell).
+	cmd := testutil.PingCmd()
+	if err := r.StartArgv(cmd.Args, ".", nil); err != nil {
+		t.Fatalf("startargv: %v", err)
+	}
+	if !r.IsRunning() {
+		t.Fatal("debería estar running tras StartArgv")
+	}
+	if r.PID() <= 0 {
+		t.Fatal("PID debe ser positivo")
+	}
+
+	waitFor(t, 5*time.Second, func() bool {
+		mu.Lock()
+		defer mu.Unlock()
+		return len(lines) > 0
+	})
+
+	r.Stop()
+	select {
+	case <-finished:
+	case <-time.After(8 * time.Second):
+		t.Fatal("Stop no produjo OnFinished en 8s")
+	}
+	if r.IsRunning() {
+		t.Error("tras Stop no debe seguir running")
+	}
+}
+
+func TestRunnerStartArgvEmpty(t *testing.T) {
+	r := NewRunner(RunnerCallbacks{})
+	if err := r.StartArgv(nil, ".", nil); err == nil {
+		t.Error("argv vacío debería fallar")
+	}
+}

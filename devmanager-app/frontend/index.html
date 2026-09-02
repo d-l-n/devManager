@@ -69,6 +69,7 @@
                 <button class="tab" data-tab="scripts" role="tab" aria-selected="false">Scripts</button>
                 <button class="tab" data-tab="git" role="tab" aria-selected="false">Git</button>
                 <button class="tab" data-tab="evidence" role="tab" aria-selected="false">Evidence</button>
+                <button class="tab" data-tab="obscura" role="tab" aria-selected="false">Obscura</button>
                 <button class="tab" data-tab="backlog" role="tab" aria-selected="false">Backlog</button>
             </nav>
             <section id="panel-logs" class="panel active" role="tabpanel">
@@ -172,6 +173,52 @@
                 </div>
                 <div id="ev-empty" class="dim center padded" hidden>
                     No evidence found.<br>Run Playwright tests to generate screenshots, videos and traces.
+                </div>
+            </section>
+
+            <section id="panel-obscura" class="panel" role="tabpanel" aria-labelledby="tab-obscura">
+                <div class="group">
+                    <div class="group-title">Obscura Status</div>
+                    <div class="row-between">
+                        <span id="obs-status-label" class="dim">Status: Idle</span>
+                        <span id="obs-bin-info" class="dim"></span>
+                    </div>
+                </div>
+                <div class="group">
+                    <div class="group-title">Target URL</div>
+                    <div class="row-gap">
+                        <input id="obs-url" type="text" class="text-input mono" aria-label="Target URL"
+                               placeholder="http://localhost:5173">
+                        <button id="obs-open-url" class="btn btn-accent">Open in browser</button>
+                    </div>
+                </div>
+                <div class="group">
+                    <div class="group-title">Capture</div>
+                    <div class="btn-row">
+                        <button id="obs-screenshot" class="btn btn-success">Take Screenshot</button>
+                        <button id="obs-dump-text" class="btn btn-primary">Dump as Text</button>
+                        <button id="obs-dump-markdown" class="btn btn-primary">Dump as Markdown</button>
+                    </div>
+                </div>
+                <div class="group">
+                    <div class="group-title">Evaluate JS</div>
+                    <div class="row-gap">
+                        <input id="obs-eval" type="text" class="text-input mono" aria-label="Evaluate JS expression"
+                               placeholder="document.title">
+                        <button id="obs-eval-run" class="btn btn-warn">Evaluate</button>
+                    </div>
+                </div>
+                <div class="group grow">
+                    <div class="group-title">Free Fetch Command</div>
+                    <div class="row-gap">
+                        <input id="obs-fetch" type="text" class="text-input mono" aria-label="Free fetch command"
+                               placeholder="<url> --dump links / --proxy http://127.0.0.1:8888 <url>">
+                        <button id="obs-fetch-run" class="btn btn-primary">Run Fetch</button>
+                    </div>
+                    <div class="btn-row">
+                        <button id="obs-stop" class="btn btn-danger">Stop Execution</button>
+                    </div>
+                    <div id="obs-output" class="log-output" role="log" aria-live="polite"></div>
                 </div>
             </section>
 

@@ -38,6 +38,8 @@ export function GetGitStatus(arg1:number):Promise<git.Status>;
 
 export function GetMonitorData():Promise<main.MonitorData>;
 
+export function GetObscuraStatus(arg1:number):Promise<main.ObscuraStatus>;
+
 export function GetPlaywrightStatus(arg1:number):Promise<main.PlaywrightStatus>;
 
 export function GetProjects():Promise<Array<models.Project>>;
@@ -55,6 +57,14 @@ export function GitAction(arg1:number,arg2:string):Promise<void>;
 export function KillTree(arg1:number):Promise<main.NotifyResult>;
 
 export function MoveBacklogItem(arg1:number,arg2:string,arg3:number):Promise<void>;
+
+export function ObscuraDump(arg1:number,arg2:string,arg3:string):Promise<void>;
+
+export function ObscuraEval(arg1:number,arg2:string,arg3:string):Promise<void>;
+
+export function ObscuraFetch(arg1:number,arg2:string):Promise<void>;
+
+export function ObscuraScreenshot(arg1:number,arg2:string):Promise<void>;
 
 export function OpenContainingFolder(arg1:string):Promise<void>;
 
@@ -99,6 +109,8 @@ export function SetSetting(arg1:string,arg2:string):Promise<Array<string>>;
 export function ShowReport(arg1:number):Promise<void>;
 
 export function StartServer(arg1:number):Promise<void>;
+
+export function StopObscura(arg1:number):Promise<void>;
 
 export function StopPlaywright(arg1:number):Promise<void>;
 

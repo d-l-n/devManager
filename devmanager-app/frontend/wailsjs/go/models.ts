@@ -294,6 +294,22 @@ export namespace main {
 	        this.message = source["message"];
 	    }
 	}
+	export class ObscuraStatus {
+	    state: string;
+	    binaryExists: boolean;
+	    binaryPath: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ObscuraStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.state = source["state"];
+	        this.binaryExists = source["binaryExists"];
+	        this.binaryPath = source["binaryPath"];
+	    }
+	}
 	export class PlaywrightStatus {
 	    state: string;
 	
@@ -355,10 +371,8 @@ export namespace models {
 	    description: string;
 	    status: string;
 	    priority: string;
-	    // Go type: time
-	    created_at: any;
-	    // Go type: time
-	    updated_at: any;
+	    created_at: string;
+	    updated_at: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new BacklogItem(source);
@@ -371,27 +385,9 @@ export namespace models {
 	        this.description = source["description"];
 	        this.status = source["status"];
 	        this.priority = source["priority"];
-	        this.created_at = this.convertValues(source["created_at"], null);
-	        this.updated_at = this.convertValues(source["updated_at"], null);
+	        this.created_at = source["created_at"];
+	        this.updated_at = source["updated_at"];
 	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
 	}
 	export class PlaywrightConfig {
 	    enabled: boolean;

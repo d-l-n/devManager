@@ -51,13 +51,25 @@ func (r *Runner) PID() int {
 
 // Start ejecuta command via platform shell (cmd.exe on Windows, /bin/sh on Unix).
 func (r *Runner) Start(command, workingDir string, extraEnv map[string]string) error {
+	return r.start(shellCommand(command), workingDir, extraEnv)
+}
+
+// StartArgv ejecuta argv[0] directamente sin shell. Necesario para comandos
+// cuyo contenido no debe pasar por el quoting del shell (p.ej. --eval con JS).
+func (r *Runner) StartArgv(argv []string, workingDir string, extraEnv map[string]string) error {
+	if len(argv) == 0 {
+		return errors.New("empty argv")
+	}
+	return r.start(exec.Command(argv[0], argv[1:]...), workingDir, extraEnv)
+}
+
+func (r *Runner) start(cmd *exec.Cmd, workingDir string, extraEnv map[string]string) error {
 	r.mu.Lock()
 	if r.starting || r.running {
 		r.mu.Unlock()
 		return errors.New("process is already running")
 	}
 	r.starting = true
-	cmd := shellCommand(command)
 	cmd.Dir = workingDir
 	if extraEnv != nil {
 		env := os.Environ()

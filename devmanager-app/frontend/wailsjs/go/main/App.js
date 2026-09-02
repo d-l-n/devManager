@@ -62,6 +62,10 @@ export function GetMonitorData() {
   return window['go']['main']['App']['GetMonitorData']();
 }
 
+export function GetObscuraStatus(arg1) {
+  return window['go']['main']['App']['GetObscuraStatus'](arg1);
+}
+
 export function GetPlaywrightStatus(arg1) {
   return window['go']['main']['App']['GetPlaywrightStatus'](arg1);
 }
@@ -96,6 +100,22 @@ export function KillTree(arg1) {
 
 export function MoveBacklogItem(arg1, arg2, arg3) {
   return window['go']['main']['App']['MoveBacklogItem'](arg1, arg2, arg3);
+}
+
+export function ObscuraDump(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ObscuraDump'](arg1, arg2, arg3);
+}
+
+export function ObscuraEval(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ObscuraEval'](arg1, arg2, arg3);
+}
+
+export function ObscuraFetch(arg1, arg2) {
+  return window['go']['main']['App']['ObscuraFetch'](arg1, arg2);
+}
+
+export function ObscuraScreenshot(arg1, arg2) {
+  return window['go']['main']['App']['ObscuraScreenshot'](arg1, arg2);
 }
 
 export function OpenContainingFolder(arg1) {
@@ -184,6 +204,10 @@ export function ShowReport(arg1) {
 
 export function StartServer(arg1) {
   return window['go']['main']['App']['StartServer'](arg1);
+}
+
+export function StopObscura(arg1) {
+  return window['go']['main']['App']['StopObscura'](arg1);
 }
 
 export function StopPlaywright(arg1) {
