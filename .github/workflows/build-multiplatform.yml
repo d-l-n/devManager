@@ -35,11 +35,13 @@ jobs:
           # macOS builds
           - os: macos-latest
             platform: darwin
+            label: macos
             arch: amd64
             artifact_name: devmanager-macos-amd64
             artifact_zip: devmanager-macos-amd64.zip
           - os: macos-latest
             platform: darwin
+            label: macos
             arch: arm64
             artifact_name: devmanager-macos-arm64
             artifact_zip: devmanager-macos-arm64.zip
@@ -169,15 +171,17 @@ jobs:
         shell: bash
         run: |
           mkdir -p status
-          echo "${{ job.status }}" > "status/${{ matrix.platform }}-${{ matrix.arch }}.txt"
-          cat "status/${{ matrix.platform }}-${{ matrix.arch }}.txt"
+          # label (platform mostrada al usuario) > matrix.platform interna (darwin)
+          cell="${{ matrix.label || matrix.platform }}-${{ matrix.arch }}"
+          echo "${{ job.status }}" > "status/${cell}.txt"
+          cat "status/${cell}.txt"
 
       - name: Upload build status
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-status-${{ matrix.platform }}-${{ matrix.arch }}
-          path: status/${{ matrix.platform }}-${{ matrix.arch }}.txt
+          name: build-status-${{ matrix.label || matrix.platform }}-${{ matrix.arch }}
+          path: status/${{ matrix.label || matrix.platform }}-${{ matrix.arch }}.txt
           retention-days: 7
 
   release:
