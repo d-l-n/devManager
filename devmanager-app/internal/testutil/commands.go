@@ -61,6 +61,16 @@ func PingCmdStr() string {
 	return "ping -c 30 127.0.0.1"
 }
 
+// SlowEchoCmdStr returns a shell command that waits roughly delaySec seconds
+// then echoes msg. Linux: sleep N && echo M (ping -c is 1/sec — too slow).
+// Windows: ping -n N+1 127.0.0.1 > nul, ~1s for ping, then echo.
+func SlowEchoCmdStr(delaySec int, msg string) string {
+	if runtime.GOOS == "windows" {
+		return "ping -n " + itoa(delaySec+1) + " 127.0.0.1 > nul && echo " + msg
+	}
+	return "sleep " + itoa(delaySec) + " && echo " + msg
+}
+
 // EchoEnvCmdStr returns a command string that echoes an env var named varName.
 func EchoEnvCmdStr(varName string) string {
 	if runtime.GOOS == "windows" {

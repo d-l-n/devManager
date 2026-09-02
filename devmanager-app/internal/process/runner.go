@@ -27,6 +27,8 @@ type Runner struct {
 	mu       sync.Mutex
 	cb       RunnerCallbacks
 	cmd      *exec.Cmd
+	running  bool
+	pid      int
 	starting bool
 	waitDone chan struct{}
 }
@@ -38,22 +40,19 @@ func NewRunner(cb RunnerCallbacks) *Runner {
 func (r *Runner) IsRunning() bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	return r.cmd != nil && r.cmd.Process != nil && r.cmd.ProcessState == nil
+	return r.running
 }
 
 func (r *Runner) PID() int {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if r.cmd != nil && r.cmd.Process != nil {
-		return r.cmd.Process.Pid
-	}
-	return 0
+	return r.pid
 }
 
 // Start ejecuta command via platform shell (cmd.exe on Windows, /bin/sh on Unix).
 func (r *Runner) Start(command, workingDir string, extraEnv map[string]string) error {
 	r.mu.Lock()
-	if r.starting || (r.cmd != nil && r.cmd.Process != nil && r.cmd.ProcessState == nil) {
+	if r.starting || r.running {
 		r.mu.Unlock()
 		return errors.New("process is already running")
 	}
@@ -88,6 +87,8 @@ func (r *Runner) Start(command, workingDir string, extraEnv map[string]string) e
 		return fmt.Errorf("start: %w", err)
 	}
 	r.cmd = cmd
+	r.pid = cmd.Process.Pid
+	r.running = true
 	r.waitDone = make(chan struct{})
 	r.mu.Unlock()
 
@@ -116,6 +117,7 @@ func (r *Runner) Start(command, workingDir string, extraEnv map[string]string) e
 		}
 		r.mu.Lock()
 		r.cmd = nil
+		r.running = false
 		r.starting = false
 		close(r.waitDone)
 		r.waitDone = nil
@@ -143,11 +145,11 @@ func scanLines(wg *sync.WaitGroup, f interface{ Read([]byte) (int, error) }, emi
 // up to 5 seconds for clean exit.
 func (r *Runner) Stop() {
 	r.mu.Lock()
-	if r.cmd == nil || r.cmd.Process == nil || r.cmd.ProcessState != nil {
+	if !r.running || r.cmd == nil {
 		r.mu.Unlock()
 		return
 	}
-	pid := r.cmd.Process.Pid
+	pid := r.pid
 	done := r.waitDone
 	r.mu.Unlock()
 

@@ -169,7 +169,7 @@ func TestAutoStartWaitsForServerThenRuns(t *testing.T) {
 		Name: "t", Path: ".",
 		Server: models.ServerConfig{
 			Enabled: true,
-			Command: testutil.PingCmdStr() + " && " + testutil.EchoCmdStr("Local: http://localhost:5173/"),
+			Command: testutil.SlowEchoCmdStr(2, "Local: http://localhost:5173/"),
 			Port:    5173, URL: "http://localhost:5173", StartupTimeout: 15000,
 		},
 		Playwright: models.PlaywrightConfig{
