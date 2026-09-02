@@ -317,6 +317,7 @@ jobs:
 
   # Build summary
   build-summary:
+    name: 📊 Resultado
     needs: [validate, test, build]
     if: always()
     runs-on: ubuntu-latest

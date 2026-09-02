@@ -208,6 +208,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-summary:
+    name: 📊 Resultado
     if: always()
     needs: build
     runs-on: ubuntu-latest
