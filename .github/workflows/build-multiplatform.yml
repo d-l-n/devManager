@@ -109,7 +109,7 @@ jobs:
           CGO_ENABLED: 1
 
       - name: Build Wails application (non-Linux)
-        if: !startsWith(matrix.os, 'ubuntu')
+        if: ${{ !startsWith(matrix.os, 'ubuntu') }}
         working-directory: ./devmanager-app
         run: |
           wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean
