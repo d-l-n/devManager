@@ -52,7 +52,10 @@ jobs:
             arch: amd64
             artifact_name: devmanager-linux-amd64
             artifact_zip: devmanager-linux-amd64.zip
-          - os: ubuntu-22.04
+          # Runner arm64 NATIVO: cross-compilar linux/arm64 con CGO (GTK+WebKit)
+          # desde runner x64 falla en el ensamblado gcc_arm64.S (toolchain x86 no
+          # soporta AArch64). En un runner arm64 la celda compila nativo.
+          - os: ubuntu-22.04-arm
             platform: linux
             arch: arm64
             artifact_name: devmanager-linux-arm64
