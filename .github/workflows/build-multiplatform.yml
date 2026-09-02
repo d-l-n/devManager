@@ -159,6 +159,27 @@ jobs:
           path: ${{ matrix.artifact_zip }}
           retention-days: 30
 
+      # Estado por celda del matrix para el resumen: corre SIEMPRE (if: always)
+      # para que una variante fallida también se reporte. Escribe su propio
+      # artifact para que build-summary pueda leer el resultado de cada
+      # plataforma de forma determinista (los outputs de un job matrix no se
+      # pueden combinar por celda; GitHub Actions solo expone uno arbitrario).
+      - name: Record build status
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p status
+          echo "${{ job.status }}" > "status/${{ matrix.platform }}-${{ matrix.arch }}.txt"
+          cat "status/${{ matrix.platform }}-${{ matrix.arch }}.txt"
+
+      - name: Upload build status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-status-${{ matrix.platform }}-${{ matrix.arch }}
+          path: status/${{ matrix.platform }}-${{ matrix.arch }}.txt
+          retention-days: 7
+
   release:
     if: startsWith(github.ref, 'refs/tags/')
     needs: build
@@ -186,16 +207,38 @@ jobs:
     if: always()
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
     steps:
+      - name: Download build status artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: build-status-*
+          path: status
+
       - name: Build Summary
         run: |
           echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Platform | Architecture | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|-------------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Windows | amd64 | ${{ needs.build.outputs.windows-amd64 || '✅' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Windows | arm64 | ${{ needs.build.outputs.windows-arm64 || '✅' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| macOS | amd64 | ${{ needs.build.outputs.macos-amd64 || '✅' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| macOS | arm64 | ${{ needs.build.outputs.macos-arm64 || '✅' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Linux | amd64 | ${{ needs.build.outputs.linux-amd64 || '✅' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Linux | arm64 | ${{ needs.build.outputs.linux-arm64 || '✅' }} |" >> $GITHUB_STEP_SUMMARY
+
+          # Devuelve ⚠ skipped/n/a si el archivo de estado no existe, o el
+          # resultado real (success/failure) leído del artifact por celda.
+          status() {
+            local f="status/build-status-$1/$1.txt"
+            if [ ! -f "$f" ]; then
+              echo "n/a"
+              return
+            fi
+            cat "$f"
+          }
+
+          for cell in "windows:amd64" "windows:arm64" "macos:amd64" "macos:arm64" "linux:amd64" "linux:arm64"; do
+            plat="${cell%%:*}"
+            arch="${cell##*:}"
+            echo "| $plat | $arch | $(status "${plat}-${arch}") |" >> $GITHUB_STEP_SUMMARY
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Build job: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
