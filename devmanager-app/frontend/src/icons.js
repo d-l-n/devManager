@@ -17,6 +17,7 @@ import {
     Moon,
     Monitor,
     Notification,
+    Palette,
     Play,
     PowerOff,
     Refresh,
@@ -55,6 +56,7 @@ const ICONS = {
     down: ArrowDown,
     monitor: Monitor,
     notification: Notification,
+    palette: Palette,
     logo: logoSvg,
 };
 

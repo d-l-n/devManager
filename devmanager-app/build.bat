@@ -5,22 +5,23 @@ setlocal enabledelayedexpansion
 :: Features: version checking, build types, smart caching, disk space check
 :: Usage: build.bat [clean|rebuild] [debug|release]
 
-:: Enable VT processing for ANSI colors (Windows 10+)
-for /f "delims=" %%a in ('powershell -NoProfile -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $handle = [Console]::Out.Handle; $mode = 0; [void][Kernel32]::GetConsoleMode($handle, [ref]$mode); [void][Kernel32]::SetConsoleMode($handle, ($mode -bor 0x0004))"') do rem .
-:: Fallback: also try the prompt trick
-for /f "delims=" %%a in ('echo prompt $E ^| cmd') do set "ESC=%%a"
+:: NOTE: ANSI color codes were removed from this script.
+:: Using ESC/$E prompt tricks and VT processing in .bat proved unreliable
+:: across Windows consoles, producing literal escape garbage instead of colors.
+:: All color variables below are empty (no-op) so any %VAR% / !VAR! reference
+:: renders as plain text. Output stays clean and predictable everywhere.
 
-:: Color codes
-set "R=%ESC%[0m"
-set "DIM=%ESC%[2m"
-set "GRN=%ESC%[32m"
-set "YLW=%ESC%[33m"
-set "RED=%ESC%[31m"
-set "GRY=%ESC%[90m"
-set "BCYN=%ESC%[1;36m"
-set "BGRN=%ESC%[1;32m"
-set "BRED=%ESC%[1;31m"
-set "WHT=%ESC%[37m"
+:: Color codes (deliberately empty - colors removed)
+set "R="
+set "DIM="
+set "GRN="
+set "YLW="
+set "RED="
+set "GRY="
+set "BCYN="
+set "BGRN="
+set "BRED="
+set "WHT="
 
 :: Default configuration
 set "BUILD_TYPE=release"
@@ -173,7 +174,7 @@ if %CLEAN_BUILD% neq 0 (
     echo   !GRN![SUCCESS] Clean completed!R!
 ) else (
     echo.
-    echo !DIM![STEP 4] Skipping clean (use 'build.bat clean' to force clean)!R!
+    echo   !DIM![STEP 4] Skipping clean ^(use 'build.bat clean' to force clean^)!R!
 )
 
 :: Step 5 - Frontend dependencies
