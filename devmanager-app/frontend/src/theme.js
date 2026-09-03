@@ -5,6 +5,24 @@ export const THEME_CYCLE = ['light', 'dark', 'system'];
 export const SETTINGS_THEMES = ['light', 'dark', 'system'];
 export const SETTINGS_STYLES = ['standard', 'brutalist', 'glassmorphism', 'retro', 'dracula'];
 
+// Maps each style to the CSS custom property that controls its accent color.
+export const STYLE_ACCENT_VAR = {
+    standard:     '--accent',
+    brutalist:    '--brutalist-accent',
+    glassmorphism:'--accent',
+    retro:        '--retro-green',
+    dracula:      '--dracula-purple',
+};
+
+// Default accent colors per style (used when user resets to default).
+export const STYLE_DEFAULT_ACCENT = {
+    standard:     '#6366f1',
+    brutalist:    '#ff006e',
+    glassmorphism:'#6366f1',
+    retro:        '#39ff14',
+    dracula:      '#bd93f9',
+};
+
 const systemThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
 let themePreference = 'dark';
 let oledMode = false;
@@ -30,6 +48,8 @@ export function applyStyle(style, { persist = true } = {}) {
     }, 350);
     root.dataset.style = value;
     if (persist) api.setSetting('style', value);
+    // Re-apply accent override for the new style
+    applyAccentOverrides();
 }
 
 export function currentTheme() {
@@ -87,3 +107,67 @@ systemThemeQuery.addEventListener('change', () => {
         document.documentElement.dataset.theme = getActualTheme(themePreference);
     }
 });
+
+// ---- Accent color overrides (Issue #48) ----
+
+let _accentOverrides = {};
+let _accentGlobal = false;
+let _accentGlobalColor = '';
+
+// Apply accent overrides to the root element via CSS custom properties.
+// If global mode is on, the global color overrides every style.
+// Otherwise, each style uses its own override (or the default).
+export function applyAccentOverrides() {
+    const root = document.documentElement;
+    const currentStyle = root.dataset.style || 'standard';
+
+    // Determine which color to use
+    let accentColor = null;
+    if (_accentGlobal && _accentGlobalColor) {
+        accentColor = _accentGlobalColor;
+    } else if (_accentOverrides[currentStyle]) {
+        accentColor = _accentOverrides[currentStyle];
+    }
+
+    const cssVar = STYLE_ACCENT_VAR[currentStyle] || '--accent';
+    if (accentColor) {
+        root.style.setProperty(cssVar, accentColor);
+    } else {
+        root.style.removeProperty(cssVar);
+    }
+}
+
+// Set accent overrides from settings object
+export function setAccentOverrides(overrides, globalMode, globalColor) {
+    _accentOverrides = overrides || {};
+    _accentGlobal = !!globalMode;
+    _accentGlobalColor = globalColor || '';
+    applyAccentOverrides();
+}
+
+// Get current accent overrides state
+export function getAccentOverrides() {
+    return {
+        overrides: { ..._accentOverrides },
+        global: _accentGlobal,
+        globalColor: _accentGlobalColor,
+    };
+}
+
+// Get the current effective accent color for a given style
+export function getEffectiveAccent(style) {
+    if (_accentGlobal && _accentGlobalColor) return _accentGlobalColor;
+    if (_accentOverrides[style]) return _accentOverrides[style];
+    return STYLE_DEFAULT_ACCENT[style] || '#6366f1';
+}
+
+// Hex color validation (matches Go isValidHexColor)
+export function isValidHexColor(s) {
+    if (!s || s[0] !== '#' || s.length < 4) return false;
+    for (let i = 1; i < s.length; i++) {
+        const c = s.charCodeAt(i);
+        if (!((c >= 48 && c <= 57) || (c >= 65 && c <= 70) || (c >= 97 && c <= 102))) return false;
+    }
+    const l = s.length;
+    return l === 4 || l === 5 || l === 7 || l === 9;
+}

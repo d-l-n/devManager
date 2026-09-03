@@ -1,6 +1,10 @@
 // Settings View - replaces the popup dialog with a full screen view
 import { api, events } from '../api.js';
-import { applyTheme, applyStyle, setOledMode, isValidTheme, isValidStyle } from '../theme.js';
+import {
+    applyTheme, applyStyle, setOledMode, isValidTheme, isValidStyle,
+    setAccentOverrides, getAccentOverrides, getEffectiveAccent,
+    isValidHexColor, STYLE_DEFAULT_ACCENT,
+} from '../theme.js';
 import { setToastsEnabled, showToast } from '../widgets/toast.js';
 import { icon, hydrateIcons } from '../icons.js';
 
@@ -114,6 +118,9 @@ export function mountSettingsView() {
         monitor_polling: true,
         toasts_enabled: true,
         oled_mode: false,
+        accent_overrides: {},
+        accent_global: false,
+        accent_global_color: '',
     };
 
     // Store references to elements
@@ -122,6 +129,10 @@ export function mountSettingsView() {
     let monitorPollingCheckbox = null;
     let toastsEnabledCheckbox = null;
     let oledModeCheckbox = null;
+    let accentColorInput = null;
+    let accentGlobalCheckbox = null;
+    let accentGlobalColorInput = null;
+    let accentResetBtn = null;
 
 function render() {
     // Don't render if the view is not visible
@@ -333,6 +344,73 @@ function render() {
         monitoringSection.appendChild(monitorContainer);
         }
 
+        // Accent Color Section
+        const accentSection = $('settings-accent-section');
+        if (accentSection) {
+            accentSection.innerHTML = '';
+            accentSection.appendChild(sectionDescription('Customize the accent color used across buttons, links, and highlights for each visual style.'));
+
+            // Create accent color inputs if not already done
+            if (!accentColorInput) {
+                accentColorInput = el('input');
+                accentColorInput.type = 'color';
+                accentColorInput.id = 'accent-color-picker';
+                accentColorInput.style.cssText = 'width:48px;height:32px;padding:2px;cursor:pointer;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);';
+            }
+            if (!accentGlobalCheckbox) {
+                accentGlobalCheckbox = el('input');
+                accentGlobalCheckbox.type = 'checkbox';
+                accentGlobalCheckbox.id = 'accent-global';
+            }
+            if (!accentGlobalColorInput) {
+                accentGlobalColorInput = el('input');
+                accentGlobalColorInput.type = 'color';
+                accentGlobalColorInput.id = 'accent-global-color';
+                accentGlobalColorInput.style.cssText = 'width:48px;height:32px;padding:2px;cursor:pointer;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);';
+            }
+            if (!accentResetBtn) {
+                accentResetBtn = el('button', 'btn btn-small');
+                accentResetBtn.textContent = 'Reset to default';
+            }
+
+            // Per-style color picker
+            const perStyleRow = el('div', 'settings-options');
+            const currentDefault = STYLE_DEFAULT_ACCENT[state.style] || '#6366f1';
+            accentColorInput.value = state.accent_overrides[state.style] || currentDefault;
+            const accentLabel = el('label', 'settings-option');
+            accentLabel.appendChild(accentColorInput);
+            const accentCopy = el('span', 'settings-option-copy');
+            accentCopy.appendChild(el('span', 'settings-option-label', 'Accent color for ' + state.style));
+            accentCopy.appendChild(el('span', 'settings-option-description', 'Choose the accent color used by the current visual style'));
+            accentLabel.appendChild(accentCopy);
+            perStyleRow.appendChild(accentLabel);
+            perStyleRow.appendChild(accentResetBtn);
+            accentSection.appendChild(perStyleRow);
+
+            // Global toggle
+            const globalRow = el('div', 'settings-options');
+            const globalLabel = optionRow(
+                'Apply to all styles',
+                'Override the accent color for every visual style at once',
+                accentGlobalCheckbox
+            );
+            globalRow.appendChild(globalLabel);
+            accentSection.appendChild(globalRow);
+
+            // Global color picker (shown when global is checked)
+            const globalColorRow = el('div', 'settings-options');
+            const globalColorLabel = el('label', 'settings-option');
+            globalColorLabel.appendChild(accentGlobalColorInput);
+            const gcCopy = el('span', 'settings-option-copy');
+            gcCopy.appendChild(el('span', 'settings-option-label', 'Global accent color'));
+            gcCopy.appendChild(el('span', 'settings-option-description', 'Color applied to all styles when "Apply to all styles" is enabled'));
+            globalColorLabel.appendChild(gcCopy);
+            globalColorRow.appendChild(globalColorLabel);
+            globalColorRow.style.display = state.accent_global ? '' : 'none';
+            globalColorRow.id = 'accent-global-color-row';
+            accentSection.appendChild(globalColorRow);
+        }
+
         syncUI();
     }
 
@@ -351,6 +429,18 @@ function render() {
         monitorPollingCheckbox.checked = state.monitor_polling;
         toastsEnabledCheckbox.checked = state.toasts_enabled;
         oledModeCheckbox.checked = state.oled_mode;
+
+        // Accent state
+        if (accentColorInput) {
+            const currentDefault = STYLE_DEFAULT_ACCENT[state.style] || '#6366f1';
+            accentColorInput.value = state.accent_overrides[state.style] || currentDefault;
+        }
+        if (accentGlobalCheckbox) accentGlobalCheckbox.checked = state.accent_global;
+        if (accentGlobalColorInput) {
+            accentGlobalColorInput.value = state.accent_global_color || '#6366f1';
+        }
+        const globalColorRow = $('accent-global-color-row');
+        if (globalColorRow) globalColorRow.style.display = state.accent_global ? '' : 'none';
 }
 
     function setupEventListeners() {
@@ -378,6 +468,8 @@ function render() {
                             state.style = radio.value;
                             await api.setSetting('style', state.style);
                             applyStyle(state.style);
+                            // Update accent picker to reflect new style's color
+                            syncUI();
                         }
                     });
                     radio.setAttribute('data-listener-added', 'true');
@@ -412,6 +504,54 @@ function render() {
                 });
                 oledModeCheckbox.setAttribute('data-listener-added', 'true');
             }
+
+            // Accent color per-style picker
+            if (accentColorInput && !accentColorInput.hasAttribute('data-listener-added')) {
+                accentColorInput.addEventListener('input', async () => {
+                    const val = accentColorInput.value;
+                    if (isValidHexColor(val)) {
+                        state.accent_overrides[state.style] = val;
+                        await api.setSetting('accent_override.' + state.style, val);
+                        setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
+                    }
+                });
+                accentColorInput.setAttribute('data-listener-added', 'true');
+            }
+
+            // Accent reset button
+            if (accentResetBtn && !accentResetBtn.hasAttribute('data-listener-added')) {
+                accentResetBtn.addEventListener('click', async () => {
+                    delete state.accent_overrides[state.style];
+                    await api.setSetting('accent_override.' + state.style, 'default');
+                    setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
+                    syncUI();
+                });
+                accentResetBtn.setAttribute('data-listener-added', 'true');
+            }
+
+            // Accent global toggle
+            if (accentGlobalCheckbox && !accentGlobalCheckbox.hasAttribute('data-listener-added')) {
+                accentGlobalCheckbox.addEventListener('change', async () => {
+                    state.accent_global = accentGlobalCheckbox.checked;
+                    await api.setSetting('accent_global', String(state.accent_global));
+                    setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
+                    syncUI();
+                });
+                accentGlobalCheckbox.setAttribute('data-listener-added', 'true');
+            }
+
+            // Accent global color picker
+            if (accentGlobalColorInput && !accentGlobalColorInput.hasAttribute('data-listener-added')) {
+                accentGlobalColorInput.addEventListener('input', async () => {
+                    const val = accentGlobalColorInput.value;
+                    if (isValidHexColor(val)) {
+                        state.accent_global_color = val;
+                        await api.setSetting('accent_global_color', val);
+                        setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
+                    }
+                });
+                accentGlobalColorInput.setAttribute('data-listener-added', 'true');
+            }
         }
 
     // Eco desde Go: actualizar estado local SIN re-persistir (evitar bucle).
@@ -440,6 +580,20 @@ function render() {
             if (window.updateThemeButtonIcon) {
                 window.updateThemeButtonIcon();
             }
+        } else if (key === 'accent_global') {
+            state.accent_global = normBool(value);
+            setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
+        } else if (key === 'accent_global_color') {
+            state.accent_global_color = value;
+            setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
+        } else if (key && key.startsWith('accent_override.')) {
+            const style = key.slice('accent_override.'.length);
+            if (value && value !== '') {
+                state.accent_overrides[style] = value;
+            } else {
+                delete state.accent_overrides[style];
+            }
+            setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
         } else {
             return;
         }
@@ -455,6 +609,9 @@ async function init() {
                 if (typeof s.monitor_polling === 'boolean') state.monitor_polling = s.monitor_polling;
                 if (typeof s.toasts_enabled === 'boolean') state.toasts_enabled = s.toasts_enabled;
                 if (typeof s.oled_mode === 'boolean') state.oled_mode = s.oled_mode;
+                if (s.accent_overrides && typeof s.accent_overrides === 'object') state.accent_overrides = s.accent_overrides;
+                if (typeof s.accent_global === 'boolean') state.accent_global = s.accent_global;
+                if (typeof s.accent_global_color === 'string') state.accent_global_color = s.accent_global_color;
             }
         } catch (error) {
             console.warn('Failed to load settings, using defaults', error);
@@ -465,6 +622,7 @@ async function init() {
         applyStyle(state.style, { persist: false });
         setToastsEnabled(state.toasts_enabled);
         setOledMode(state.oled_mode, { persist: false });
+        setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
         
         // Don't render here - let switchView handle rendering when the view is actually shown
         // This prevents rendering issues when the view is hidden

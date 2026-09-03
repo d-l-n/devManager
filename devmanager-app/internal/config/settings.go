@@ -9,10 +9,13 @@ import (
 // Settings porta app/config/settings.py: preferencias de app persistidas
 // en JSON (schema propio Go, keys snake_case — no es projects.json).
 type Settings struct {
-	Theme          string `json:"theme"`
-	Style          string `json:"style"`
-	MonitorPolling bool   `json:"monitor_polling"`
-	ToastsEnabled  bool   `json:"toasts_enabled"`
+	Theme             string            `json:"theme"`
+	Style             string            `json:"style"`
+	MonitorPolling    bool              `json:"monitor_polling"`
+	ToastsEnabled     bool              `json:"toasts_enabled"`
+	AccentOverrides   map[string]string `json:"accent_overrides"`
+	AccentGlobal      bool              `json:"accent_global"`
+	AccentGlobalColor string            `json:"accent_global_color"`
 }
 
 func validStyle(s string) bool {
@@ -35,7 +38,15 @@ func validTheme(t string) bool {
 // DefaultSettings replica los defaults efectivos de Python:
 // theme "dark", polling true, toasts true.
 func DefaultSettings() Settings {
-	return Settings{Theme: "dark", Style: "standard", MonitorPolling: true, ToastsEnabled: true}
+	return Settings{
+		Theme:             "dark",
+		Style:             "standard",
+		MonitorPolling:    true,
+		ToastsEnabled:     true,
+		AccentOverrides:   make(map[string]string),
+		AccentGlobal:      false,
+		AccentGlobalColor: "",
+	}
 }
 
 // LoadSettings lee el archivo; ausente/corrupto → defaults sin backup.
@@ -52,6 +63,10 @@ func LoadSettings(path string) Settings {
 		s.Theme = "dark"
 	}
 	if !validStyle(s.Style) { s.Style = "standard" }
+	// Ensure AccentOverrides is never nil for JSON serialization.
+	if s.AccentOverrides == nil {
+		s.AccentOverrides = make(map[string]string)
+	}
 	return s
 }
 
