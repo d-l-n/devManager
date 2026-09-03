@@ -6,10 +6,24 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/d-l-n/devmanager/internal/models"
 	"github.com/d-l-n/devmanager/internal/utils/ports"
 )
+
+// normalizePath normaliza una ruta para comparación: Abs + Clean + lower + forward slash.
+func normalizePath(p string) string {
+	p = strings.TrimSpace(p)
+	if p == "" {
+		return ""
+	}
+	abs, err := filepath.Abs(p)
+	if err != nil {
+		return strings.ToLower(filepath.ToSlash(filepath.Clean(p)))
+	}
+	return strings.ToLower(filepath.ToSlash(filepath.Clean(abs)))
+}
 
 type Options struct {
 	OnProjectsChanged func()
@@ -119,7 +133,28 @@ func (m *Manager) Projects() []models.Project {
 
 func (m *Manager) Count() int { return len(m.projects) }
 
+// findDuplicatePath returns the index of an existing project with the same
+// normalized path, or -1 if none. excludeIndex is skipped (for UpdateProject).
+func (m *Manager) findDuplicatePath(path string, excludeIndex int) int {
+	norm := normalizePath(path)
+	if norm == "" {
+		return -1
+	}
+	for i, p := range m.projects {
+		if i == excludeIndex {
+			continue
+		}
+		if normalizePath(p.Path) == norm {
+			return i
+		}
+	}
+	return -1
+}
+
 func (m *Manager) AddProject(p models.Project) error {
+	if idx := m.findDuplicatePath(p.Path, -1); idx >= 0 {
+		return fmt.Errorf("a project pointing to this directory already exists (%s)", m.projects[idx].Name)
+	}
 	m.projects = append(m.projects, p)
 	if err := m.Save(); err != nil {
 		return err
@@ -131,6 +166,9 @@ func (m *Manager) AddProject(p models.Project) error {
 func (m *Manager) UpdateProject(index int, p models.Project) error {
 	if index < 0 || index >= len(m.projects) {
 		return fmt.Errorf("index %d out of range", index)
+	}
+	if idx := m.findDuplicatePath(p.Path, index); idx >= 0 {
+		return fmt.Errorf("a project pointing to this directory already exists (%s)", m.projects[idx].Name)
 	}
 	m.projects[index] = p
 	if err := m.Save(); err != nil {

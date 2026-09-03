@@ -70,6 +70,13 @@ type App struct {
 	notifyMu       sync.Mutex
 	windowHidden   bool   // oculta a bandeja via beforeClose (paridad isVisible)
 	traySig        string // firma del menú de bandeja (evita rebuilds innecesarios)
+
+	// Cache del monitor (Issue #44): debounce 500ms para que ráfagas de
+	// GetMonitorData no apilen scans de puertos + árboles de proceso.
+	monitorCache    MonitorData
+	monitorCachedAt time.Time
+	monitorValid    bool
+	monitorMu       sync.Mutex
 }
 
 // pendingTrayNotify guarda la última notificación durante el cooldown;
@@ -1039,7 +1046,17 @@ func (a *App) runningServersSnapshot() []runningServer {
 	return out
 }
 
+const monitorDebounce = 500 * time.Millisecond
+
 func (a *App) GetMonitorData() MonitorData {
+	a.monitorMu.Lock()
+	if a.monitorValid && time.Since(a.monitorCachedAt) < monitorDebounce {
+		cached := a.monitorCache
+		a.monitorMu.Unlock()
+		return cached
+	}
+	a.monitorMu.Unlock()
+
 	running := a.runningServersSnapshot()
 
 	// Mapa puerto activo → nombre de proyecto (solo servers RUNNING propios).
@@ -1090,6 +1107,11 @@ func (a *App) GetMonitorData() MonitorData {
 			})
 		}
 	}
+	a.monitorMu.Lock()
+	a.monitorCache = data
+	a.monitorCachedAt = time.Now()
+	a.monitorValid = true
+	a.monitorMu.Unlock()
 	return data
 }
 

@@ -50,7 +50,7 @@ export function mount(ctx) {
             const st = await api.getObscuraStatus(i);
             setStatus(st.state || 'idle');
             setBinInfo(st);
-        } catch { /* project sin manager */ }
+        } catch (e) { console.warn('[obscura status]', e?.message || e); }
     }
 
     async function runAction(fn, okMessage) {

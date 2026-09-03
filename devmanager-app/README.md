@@ -36,10 +36,9 @@ Todos se ejecutan desde `devmanager-app/`:
 | `npm run build`            | Build release (via `build.js --clean`) |
 | `npm run build:debug`      | Build debug (`build.js --debug`) |
 | `npm run build:clean`      | Build release limpio (`build.js --clean`) |
-| `npm run build:parallel`   | Build con paralelismo (`build.js --parallel`) |
 | `npm run build:dev`        | Debug + limpio |
 | `npm run build:release`    | Release + limpio |
-| `npm run dev`              | Live-reload (`build.js --debug --parallel`) |
+| `npm run dev`              | Live-reload (`build.js --debug`) |
 | `npm run test`             | Build debug + tests frontend y backend |
 | `npm run test:frontend`    | Tests del frontend |
 | `npm run test:backend`     | `go test -v -race -coverprofile` sobre `./...` |
@@ -48,10 +47,10 @@ Todos se ejecutan desde `devmanager-app/`:
 | `npm run clean`            | Limpia build dirs (sin version check) |
 | `npm run clean:deep`       | Clean + purga caches Go (`go clean -cache -modcache -testcache`) |
 | `npm run ci`               | Build limpio + verbose (ideal CI) |
-| `npm run release`          | Build release + paralelo |
+| `npm run release`          | Build release limpio |
 
 > `build.js` es el wrapper multiplataforma (sustituye a `build-desktop.bat`). Opciones:
-> `--clean -c`, `--debug -d`, `--parallel -p`, `--no-version-check`, `--verbose -v`, `--help -h`.
+> `--clean -c`, `--debug -d`, `--no-version-check`, `--verbose -v`, `--help -h`.
 
 ---
 

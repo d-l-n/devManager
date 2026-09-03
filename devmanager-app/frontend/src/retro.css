@@ -556,3 +556,22 @@
 :root[data-style="retro"] .mono {
     font-family: "Cascadia Code", "Fira Code", monospace;
 }
+
+/* ---- Custom checkboxes (Issue #52): square, neon glow ---- */
+:root[data-style="retro"] input[type="checkbox"] {
+    border-radius: 0;
+    background: var(--retro-bg);
+    border: 1px solid var(--retro-border);
+}
+:root[data-style="retro"] input[type="checkbox"]:hover {
+    border-color: var(--retro-green);
+    box-shadow: var(--retro-glow-sm) var(--retro-green);
+}
+:root[data-style="retro"] input[type="checkbox"]:checked {
+    background: var(--retro-green);
+    border-color: var(--retro-green);
+    box-shadow: var(--retro-glow-sm) var(--retro-green);
+}
+:root[data-style="retro"] input[type="checkbox"]:focus-visible {
+    outline-color: var(--retro-green);
+}

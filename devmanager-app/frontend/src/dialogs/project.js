@@ -34,14 +34,23 @@ function field(id, labelText, value, type = 'text') {
     const wrap = el('div');
     const lb = el('label', 'pf-label', labelText);
     lb.htmlFor = id; // asocia el label al input (a11y)
-    const input = document.createElement(type === 'number' ? 'input' : 'input');
+    const input = document.createElement('input');
     input.type = type;
     input.id = id;
     input.className = 'text-input mono';
     if (value !== undefined) input.value = value;
+    const err = el('span', 'pf-error');
+    err.id = id + '-error';
     wrap.appendChild(lb);
     wrap.appendChild(input);
-    return { wrap, input };
+    wrap.appendChild(err);
+    return { wrap, input, err };
+}
+
+// Muestra/limpia errores inline por campo.
+function setFieldError(err, message) {
+    if (err) err.textContent = message || '';
+    if (err) err.style.display = (message ? 'block' : 'none');
 }
 
 function sectionTitle(text) {
@@ -66,11 +75,14 @@ export function mountProjectDialog(onSaved) {
     // --- General ---
     body.appendChild(sectionTitle('General'));
     const nameField = field('pf-name', 'Name', '', 'text');
+    nameField.input.required = true;
+    nameField.input.setAttribute('aria-describedby', 'pf-name-error');
     body.appendChild(nameField.wrap);
 
     const pathRow = el('div', 'pf-path-row');
     const pathField = field('pf-path', 'Path', '', 'text');
-    pathRow.appendChild(pathField.wrap);
+    pathField.input.required = true;
+    body.appendChild(pathField.wrap);
     const btnBrowse = el('button', 'btn btn-accent pf-inline-btn', 'Browse...');
     const btnDetect = el('button', 'btn btn-accent pf-inline-btn', 'Detect Auto');
     pathRow.appendChild(btnBrowse);
@@ -87,9 +99,14 @@ export function mountProjectDialog(onSaved) {
     chkServer.id = 'pf-server-enabled';
     body.appendChild(labelRow('Enable server management', chkServer));
     body.appendChild(field('pf-server-command', 'Command', 'npm run dev').wrap);
-    body.appendChild(field('pf-server-port', 'Port', 5173, 'number').wrap);
-    body.appendChild(field('pf-server-url', 'URL', 'http://localhost:5173').wrap);
-    body.appendChild(field('pf-server-timeout', 'Startup Timeout (ms)', 15000, 'number').wrap);
+    const portField = field('pf-server-port', 'Port', 5173, 'number');
+    portField.input.min = 1;
+    portField.input.max = 65535;
+    body.appendChild(portField.wrap);
+    const urlField = field('pf-server-url', 'URL', 'http://localhost:5173', 'url');
+    body.appendChild(urlField.wrap);
+    const timeoutField = field('pf-server-timeout', 'Startup Timeout (ms)', 15000, 'number');
+    body.appendChild(timeoutField.wrap);
 
     // --- Playwright ---
     body.appendChild(sectionTitle('Playwright'));
@@ -167,6 +184,11 @@ export function mountProjectDialog(onSaved) {
         resetDefaults();
         overlay.hidden = false;
         isOpen = true;
+        setFieldError(nameField.err, '');
+        setFieldError(pathField.err, '');
+        setFieldError(portField.err, '');
+        setFieldError(urlField.err, '');
+        setFieldError(timeoutField.err, '');
         $('pf-name').focus();
     }
 
@@ -192,6 +214,11 @@ export function mountProjectDialog(onSaved) {
         detectStatus.textContent = '';
         overlay.hidden = false;
         isOpen = true;
+        setFieldError(nameField.err, '');
+        setFieldError(pathField.err, '');
+        setFieldError(portField.err, '');
+        setFieldError(urlField.err, '');
+        setFieldError(timeoutField.err, '');
     }
 
     function close() {
@@ -220,20 +247,57 @@ export function mountProjectDialog(onSaved) {
         };
     }
 
+    function validate() {
+        const errors = [];
+        setFieldError(nameField.err, '');
+        setFieldError(pathField.err, '');
+        setFieldError(portField.err, '');
+        setFieldError(urlField.err, '');
+        setFieldError(timeoutField.err, '');
+
+        if (!$('pf-name').value.trim()) {
+            setFieldError(nameField.err, 'Name is required');
+            errors.push('Name is required');
+        }
+        if (!$('pf-path').value.trim()) {
+            setFieldError(pathField.err, 'Path is required');
+            errors.push('Path is required');
+        }
+        const port = parseInt($('pf-server-port').value, 10);
+        if (isNaN(port) || port < 1 || port > 65535) {
+            setFieldError(portField.err, 'Port must be 1-65535');
+            errors.push('Port must be 1-65535');
+        }
+        const pUrl = $('pf-server-url').value.trim();
+        if (pUrl && !/^https?:\/\/.+/i.test(pUrl)) {
+            setFieldError(urlField.err, 'URL must start with http:// or https://');
+            errors.push('URL must be a valid http(s) URL');
+        }
+        const to = parseInt($('pf-server-timeout').value, 10);
+        if (isNaN(to) || to < 0) {
+            setFieldError(timeoutField.err, 'Timeout must be a positive number');
+            errors.push('Startup timeout must be a non-negative number');
+        }
+        return errors;
+    }
+
     async function save() {
+        const errors = validate();
+        if (errors.length) return false;
+
         const proj = collect();
         if (!proj.name) return window.messageDialog.alert({ title: 'Project name required', message: 'Enter a name before saving the project.', trigger: btnOk });
         if (!proj.path) return window.messageDialog.alert({ title: 'Project path required', message: 'Enter a path before saving the project.', trigger: btnOk });
 
-        let errors = [];
+        let errs = [];
         if (state.isEdit) {
-            errors = await api.updateProject(state.index, proj);
+            errs = await api.updateProject(state.index, proj);
         } else {
-            errors = await api.addProject(proj);
+            errs = await api.addProject(proj);
         }
-        if (errors && errors.length) return window.messageDialog.alert({ title: 'Could not save project', message: errors.join('\n'), trigger: btnOk });
+        if (errs && errs.length) return window.messageDialog.alert({ title: 'Could not save project', message: errs.join('\n'), trigger: btnOk });
         close();
-        if (onSaved) onSaved();
+        if (onSaved) onSaved(state.isEdit ? state.index : -1);
         return { saved: true };
     }
 

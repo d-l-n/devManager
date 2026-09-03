@@ -65,9 +65,9 @@
             </div>
             <nav id="tabs" role="tablist" aria-label="Project panels">
                 <button class="tab active" data-tab="logs" role="tab" aria-selected="true">Logs</button>
-                <button class="tab" data-tab="playwright" role="tab" aria-selected="false">Playwright</button>
                 <button class="tab" data-tab="scripts" role="tab" aria-selected="false">Scripts</button>
                 <button class="tab" data-tab="git" role="tab" aria-selected="false">Git</button>
+                <button class="tab" data-tab="playwright" role="tab" aria-selected="false">Playwright</button>
                 <button class="tab" data-tab="evidence" role="tab" aria-selected="false">Evidence</button>
                 <button class="tab" data-tab="obscura" role="tab" aria-selected="false">Obscura</button>
                 <button class="tab" data-tab="backlog" role="tab" aria-selected="false">Backlog</button>
@@ -85,25 +85,6 @@
                 </div>
                 <div id="log-output"></div>
             </section>
-            <section id="panel-playwright" class="panel" role="tabpanel">
-                <div class="group">
-                    <div class="group-title">Test Status</div>
-                    <div id="pw-status-label" class="pw-status">Status: Idle</div>
-                </div>
-                <div class="group">
-                    <div class="group-title">Test Runners</div>
-                    <div class="btn-row">
-                        <button id="pw-run" class="btn btn-success">Run Tests</button>
-                        <button id="pw-ui" class="btn btn-primary">UI Mode</button>
-                        <button id="pw-debug" class="btn btn-warn">Debug Mode</button>
-                    </div>
-                    <div class="btn-row">
-                        <button id="pw-report" class="btn btn-accent">View Test Report</button>
-                        <button id="pw-stop" class="btn btn-danger">Stop Execution</button>
-                    </div>
-                </div>
-            </section>
-
             <section id="panel-scripts" class="panel" role="tabpanel">
                 <div class="group">
                     <div class="group-title">Active Script Execution</div>
@@ -152,6 +133,25 @@
                 <div id="git-result" class="result-strip" hidden></div>
                 <div id="git-empty" class="dim center padded">
                     Not a git repository.<br>Open a project folder containing a .git directory.
+                </div>
+            </section>
+
+            <section id="panel-playwright" class="panel" role="tabpanel">
+                <div class="group">
+                    <div class="group-title">Test Status</div>
+                    <div id="pw-status-label" class="pw-status">Status: Idle</div>
+                </div>
+                <div class="group">
+                    <div class="group-title">Test Runners</div>
+                    <div class="btn-row">
+                        <button id="pw-run" class="btn btn-success">Run Tests</button>
+                        <button id="pw-ui" class="btn btn-primary">UI Mode</button>
+                        <button id="pw-debug" class="btn btn-warn">Debug Mode</button>
+                    </div>
+                    <div class="btn-row">
+                        <button id="pw-report" class="btn btn-accent">View Test Report</button>
+                        <button id="pw-stop" class="btn btn-danger">Stop Execution</button>
+                    </div>
                 </div>
             </section>
 

@@ -47,8 +47,6 @@ Se han implementado mejoras significativas en el sistema de build de devManager 
 # Build limpio en modo debug
 .\build-desktop-v2.bat clean debug
 
-# Build paralelo
-.\build-desktop-v2.bat parallel
 ```
 
 ### Cross-Platform (Recomendado)
@@ -56,7 +54,7 @@ Se han implementado mejoras significativas en el sistema de build de devManager 
 # Usando Node.js (todas las plataformas)
 node build.js
 node build.js --clean --debug
-node build.js --parallel --verbose
+node build.js --verbose
 
 # Usando wrapper (Linux/macOS)
 ./build.sh clean debug

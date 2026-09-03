@@ -153,7 +153,7 @@ export function mount(ctx) {
 
     api.getSettings()
         .then((s) => { if (s) pollEnabled = !!s.monitor_polling; })
-        .catch(() => {});
+        .catch((error) => console.warn('Could not load monitor polling setting', error));
 
     return {
         refresh,

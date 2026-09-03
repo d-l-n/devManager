@@ -42,7 +42,10 @@ export function mount(ctx) {
         if (!f._url) {
             try {
                 f._url = await api.getEvidenceThumbnail(f.path);
-            } catch { f._url = ''; }
+            } catch (error) {
+                console.warn('Could not load evidence thumbnail, using placeholder', error);
+                f._url = '';
+            }
         }
         if (!f._url) return; // sin datos (<2MB): se queda el placeholder
         previewImg.src = f._url;
@@ -122,7 +125,7 @@ export function mount(ctx) {
                     img.src = url;
                     card.querySelector('.ev-thumb').replaceChildren(img);
                 })
-                .catch(() => {})
+                .catch((error) => console.debug('Thumbnail unavailable, placeholder kept', error))
                 .finally(() => { inFlight -= 1; pump(); });
         }
     }
@@ -186,7 +189,7 @@ export function mount(ctx) {
         if (i < 0) return;
 
         let list = [];
-        try { list = await api.getEvidence(i) || []; } catch { list = []; }
+        try { list = await api.getEvidence(i) || []; } catch (e) { console.warn('[evidence load]', e?.message || e); list = []; }
         if (seq !== loadSeq) return;
         files = list;
 

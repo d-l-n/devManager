@@ -7,7 +7,6 @@
   "build": {
     "defaultType": "release",
     "supportedTypes": ["debug", "release"],
-    "parallelBuild": true,
     "cleanBuild": false,
     "versionCheck": true,
     "verboseOutput": false,

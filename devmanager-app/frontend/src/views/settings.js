@@ -1,7 +1,7 @@
 // Settings View - replaces the popup dialog with a full screen view
 import { api, events } from '../api.js';
 import { applyTheme, applyStyle, setOledMode, isValidTheme, isValidStyle } from '../theme.js';
-import { setToastsEnabled } from '../widgets/toast.js';
+import { setToastsEnabled, showToast } from '../widgets/toast.js';
 import { icon, hydrateIcons } from '../icons.js';
 
 const $ = (id) => document.getElementById(id);
@@ -456,7 +456,10 @@ async function init() {
                 if (typeof s.toasts_enabled === 'boolean') state.toasts_enabled = s.toasts_enabled;
                 if (typeof s.oled_mode === 'boolean') state.oled_mode = s.oled_mode;
             }
-        } catch { /* defaults */ }
+        } catch (error) {
+            console.warn('Failed to load settings, using defaults', error);
+            showToast('Settings', 'Could not load settings, using defaults', 'warning');
+        }
         
         applyTheme(state.theme, { persist: false });
         applyStyle(state.style, { persist: false });

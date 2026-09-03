@@ -8,7 +8,6 @@
     "build": "node build.js",
     "build:debug": "node build.js --debug",
     "build:clean": "node build.js --clean",
-    "build:parallel": "node build.js --parallel",
     "build:dev": "node build.js --debug --clean",
     "build:release": "node build.js --clean",
     "build:help": "node build.js --help",
@@ -23,8 +22,8 @@
     "security": "npm run security:frontend && npm run security:backend",
     "security:frontend": "cd frontend && npm audit --audit-level=moderate",
     "security:backend": "gosec ./...",
-    "dev": "node build.js --debug --parallel",
-    "release": "node build.js --clean --parallel",
+    "dev": "node build.js --debug",
+    "release": "node build.js --clean",
     "ci": "node build.js --clean --no-version-check --verbose"
   },
   "keywords": [

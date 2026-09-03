@@ -249,6 +249,7 @@ async function refreshStatus() {
         $(id).disabled = status.state === 'running' || status.state === 'starting';
     });
     $('btn-stop').disabled = status.state === 'stopped';
+    $('btn-open-url').disabled = status.state !== 'running';
 
     const up = $('uptime-label');
     if (status.uptimeSeconds > 0) {
@@ -278,7 +279,7 @@ async function refreshStatus() {
             pw.className = `badge ${st}`;
             pw.textContent = `Playwright: ${st}`;
         }
-    } catch { /* sin playwright configurado */ }
+    } catch (e) { console.warn('[playwright status]', e?.message || e); }
 
     // Badge Git: rama actual y estado del árbol; '—' cuando no es repo.
     try {
@@ -293,7 +294,7 @@ async function refreshStatus() {
                 bg.textContent = 'Git: —';
             }
         }
-    } catch { /* no es repo git */ }
+    } catch (e) { console.warn('[git status]', e?.message || e); }
 
     updateDots();
 }
@@ -713,7 +714,22 @@ ctx.panels = { playwrightPanel, scriptsPanel, gitPanel, evidencePanel, obscuraPa
 
 const settingsView = mountSettingsView();
 window.settingsView = settingsView;
-const projectDialog = mountProjectDialog(async () => refreshProjects());
+const projectDialog = mountProjectDialog(async (savedIndex) => {
+    await refreshProjects(false);
+    // Auto-select the newly added/edited project
+    if (typeof savedIndex === 'number' && savedIndex >= 0) {
+        state.selected = savedIndex;
+        renderList();
+        renderDetail();
+    } else {
+        // For adds without known index, select the last project
+        if (state.projects.length > 0) {
+            state.selected = state.projects.length - 1;
+            renderList();
+            renderDetail();
+        }
+    }
+});
 const appLogDialog = mountAppLogDialog();
 const contextMenu = mountContextMenu();
 const backlogItemDialog = mountBacklogItemDialog();

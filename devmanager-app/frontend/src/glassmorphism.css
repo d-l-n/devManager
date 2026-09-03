@@ -394,3 +394,23 @@
 :root[data-style="glassmorphism"] .settings-divider {
     background: var(--glass-border);
 }
+
+/* ---- Custom checkboxes (Issue #52): frosted translucent ---- */
+:root[data-style="glassmorphism"] input[type="checkbox"] {
+    border-radius: 6px;
+    background: var(--glass-surface);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(var(--glass-blur));
+}
+:root[data-style="glassmorphism"] input[type="checkbox"]:hover {
+    border-color: var(--glass-border-active);
+    box-shadow: var(--glass-glow);
+}
+:root[data-style="glassmorphism"] input[type="checkbox"]:checked {
+    background: var(--glass-border-active);
+    border-color: var(--glass-border-active);
+    box-shadow: var(--glass-glow);
+}
+:root[data-style="glassmorphism"] input[type="checkbox"]:focus-visible {
+    outline-color: var(--glass-border-active);
+}

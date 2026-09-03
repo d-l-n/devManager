@@ -9,7 +9,6 @@
  * Options:
  *   --clean, -c        Clean build directories before building
  *   --debug, -d        Build in debug mode (default: release)
- *   --parallel, -p     Enable parallel builds where possible
  *   --no-version-check Skip version checking
  *   --verbose, -v       Verbose output
  *   --help, -h         Show this help message
@@ -40,7 +39,6 @@ const args = process.argv.slice(2);
 const options = {
   clean: false,
   debug: false,
-  parallel: false,
   versionCheck: true,
   verbose: false,
   help: false,
@@ -56,10 +54,6 @@ for (let i = 0; i < args.length; i++) {
     case '--debug':
     case '-d':
       options.debug = true;
-      break;
-    case '--parallel':
-    case '-p':
-      options.parallel = true;
       break;
     case '--no-version-check':
       options.versionCheck = false;
@@ -135,7 +129,6 @@ function logHeader() {
   console.log(`Platform: ${CONFIG.PLATFORM}-${CONFIG.ARCH}`);
   console.log(`Build Type: ${options.debug ? 'debug' : 'release'}`);
   console.log(`Clean Build: ${options.clean}`);
-  console.log(`Parallel Build: ${options.parallel}`);
   console.log(`Version Check: ${options.versionCheck}`);
   console.log(`Started: ${new Date().toISOString()}`);
   console.log();
@@ -150,7 +143,6 @@ Usage: node build.js [options]
 Options:
   --clean, -c        Clean build directories before building
   --debug, -d        Build in debug mode (default: release)
-  --parallel, -p     Enable parallel builds where possible
   --no-version-check Skip version checking
   --verbose, -v       Verbose output
   --help, -h         Show this help message
@@ -158,7 +150,6 @@ Options:
 Examples:
   node build.js                    # Standard release build
   node build.js --clean --debug    # Clean debug build
-  node build.js -c -p              # Clean parallel build
 `);
 }
 

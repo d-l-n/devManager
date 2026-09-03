@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,7 +16,13 @@ func tempPath(t *testing.T) string {
 }
 
 func sample(name string) models.Project {
-	p, _ := models.ParseProject([]byte(`{"name":"` + name + `","path":"C:/x","server":{"port":4000}}`))
+	p, _ := models.ParseProject([]byte(`{"name":"` + name + `","path":"C:/x` + name + `","server":{"port":4000}}`))
+	return p
+}
+
+func sampleAt(name, path string, port int) models.Project {
+	data := fmt.Sprintf(`{"name":"%s","path":"%s","server":{"port":%d}}`, name, path, port)
+	p, _ := models.ParseProject([]byte(data))
 	return p
 }
 
@@ -156,6 +163,128 @@ func TestConfiguredPortsIncludesDisabled(t *testing.T) {
 	got := m.ConfiguredPorts()
 	if len(got) != 2 || got[0] != 4000 || got[1] != 9999 {
 		t.Errorf("ConfiguredPorts = %v", got)
+	}
+}
+
+func TestAddDuplicatePathRejected(t *testing.T) {
+	path := tempPath(t)
+	m, _ := NewManager(path, Options{})
+
+	a := sample("A")
+	if err := m.AddProject(a); err != nil {
+		t.Fatalf("first add: %v", err)
+	}
+
+	// Same path, different name → must be rejected
+	b := sampleAt("B", "C:/xA", 4001)
+	if err := m.AddProject(b); err == nil {
+		t.Error("AddProject with duplicate path must fail")
+	} else if !strings.Contains(err.Error(), "already exists") {
+		t.Errorf("error should mention 'already exists': %q", err.Error())
+	}
+	if m.Count() != 1 {
+		t.Errorf("count should remain 1 after rejected add, got %d", m.Count())
+	}
+}
+
+func TestUpdateDuplicatePathRejected(t *testing.T) {
+	path := tempPath(t)
+	m, _ := NewManager(path, Options{})
+
+	a := sample("A")
+	a.Path = "C:/alpha"
+	b := sample("B")
+	b.Path = "C:/beta"
+	m.AddProject(a)
+	m.AddProject(b)
+
+	// Try to change B's path to A's path → must be rejected
+	b.Path = "C:/alpha"
+	if err := m.UpdateProject(1, b); err == nil {
+		t.Error("UpdateProject with duplicate path must fail")
+	} else if !strings.Contains(err.Error(), "already exists") {
+		t.Errorf("error should mention 'already exists': %q", err.Error())
+	}
+	// B should still have original path
+	if m.Projects()[1].Path != "C:/beta" {
+		t.Errorf("B's path should not have changed, got %q", m.Projects()[1].Path)
+	}
+}
+
+func TestUpdateSamePathAllowed(t *testing.T) {
+	path := tempPath(t)
+	m, _ := NewManager(path, Options{})
+
+	a := sample("A")
+	a.Path = "C:/alpha"
+	m.AddProject(a)
+
+	// Update A with same path but different name → allowed
+	a.Name = "A2"
+	if err := m.UpdateProject(0, a); err != nil {
+		t.Errorf("UpdateProject with same path on same index should succeed: %v", err)
+	}
+	if m.Projects()[0].Name != "A2" {
+		t.Error("name should be updated")
+	}
+}
+
+func TestNormalizePathVariants(t *testing.T) {
+	path := tempPath(t)
+	m, _ := NewManager(path, Options{})
+
+	a := sampleAt("A", "C:/projects/myapp", 5173)
+	if err := m.AddProject(a); err != nil {
+		t.Fatalf("first add: %v", err)
+	}
+
+	// Same path with trailing slash → should still be duplicate
+	b := sampleAt("B", "C:/projects/myapp/", 5174)
+	if err := m.AddProject(b); err == nil {
+		t.Error("trailing slash variant should be rejected as duplicate")
+	}
+
+	// Different case on Windows → should be duplicate (case-insensitive via normalizePath)
+	c := sampleAt("C", "C:/Projects/MyApp", 5175)
+	if err := m.AddProject(c); err == nil {
+		t.Error("case-insensitive variant should be rejected as duplicate")
+	}
+}
+
+func TestNormalizePathDifferentDirsAllowed(t *testing.T) {
+	path := tempPath(t)
+	m, _ := NewManager(path, Options{})
+
+	a := sample("A")
+	a.Path = "C:/projects/app-a/frontend"
+	if err := m.AddProject(a); err != nil {
+		t.Fatalf("first add: %v", err)
+	}
+
+	b := sample("B")
+	b.Path = "C:/projects/app-b/frontend"
+	if err := m.AddProject(b); err != nil {
+		t.Errorf("different directories with same name should be allowed: %v", err)
+	}
+	if m.Count() != 2 {
+		t.Errorf("count should be 2, got %d", m.Count())
+	}
+}
+
+func TestNormalizePathEmptySkipped(t *testing.T) {
+	// Empty path should not trigger duplicate detection
+	n1 := normalizePath("")
+	n2 := normalizePath("")
+	if n1 != "" || n2 != "" {
+		t.Errorf("empty path normalization should yield empty, got %q, %q", n1, n2)
+	}
+	// findDuplicatePath with empty path should return -1
+	path := tempPath(t)
+	m, _ := NewManager(path, Options{})
+	a := sampleAt("A", "C:/real", 5173)
+	_ = m.AddProject(a)
+	if idx := m.findDuplicatePath("", -1); idx != -1 {
+		t.Errorf("empty path should not find duplicate, got index %d", idx)
 	}
 }
 

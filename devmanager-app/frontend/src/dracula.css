@@ -450,3 +450,20 @@
 :root[data-style="dracula"] .pw-status.error {
     color: var(--dracula-red);
 }
+
+/* ---- Custom checkboxes (Issue #52): rounded, purple accent ---- */
+:root[data-style="dracula"] input[type="checkbox"] {
+    border-radius: 5px;
+    background: var(--dracula-bg);
+    border: 1px solid var(--dracula-border);
+}
+:root[data-style="dracula"] input[type="checkbox"]:hover {
+    border-color: var(--dracula-purple);
+}
+:root[data-style="dracula"] input[type="checkbox"]:checked {
+    background: var(--dracula-purple);
+    border-color: var(--dracula-purple);
+}
+:root[data-style="dracula"] input[type="checkbox"]:focus-visible {
+    outline-color: var(--dracula-purple);
+}

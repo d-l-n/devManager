@@ -74,10 +74,17 @@ export function mountBacklogItemDialog() {
     card.appendChild(header);
 
     const form = el('form', 'dialog-form');
+    form.noValidate = true;
 
     // Title field
     const titleInput = createInput('backlog-title', 'text', '', 'Enter item title...');
-    form.appendChild(formRow('Title *', titleInput));
+    titleInput.required = true;
+    const titleError = el('span', 'form-error');
+    titleError.id = 'backlog-title-error';
+    titleError.style.display = 'none';
+    const titleRow = formRow('Title *', titleInput);
+    titleRow.appendChild(titleError);
+    form.appendChild(titleRow);
 
     // Description field
     const descriptionTextarea = createTextarea('backlog-description', '', 'Enter description (optional)...');
@@ -112,6 +119,8 @@ export function mountBacklogItemDialog() {
         const title = titleInput.value.trim();
         if (!title) {
             titleInput.classList.add('error');
+            titleError.textContent = 'Title is required';
+            titleError.style.display = 'block';
             titleInput.focus();
             return;
         }
@@ -142,6 +151,8 @@ export function mountBacklogItemDialog() {
 
         // Reset form
         titleInput.classList.remove('error');
+        titleError.textContent = '';
+        titleError.style.display = 'none';
         
         if (item) {
             // Edit mode
