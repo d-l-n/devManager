@@ -349,6 +349,61 @@ body {
 .mon-usage { width: 170px; min-width: 170px; text-align: right; white-space: pre; }
 .mon-row .btn-danger { padding: 4px 14px; font-size: 12px; }
 
+/* ---- Monitor: port/resource rows (Issue #51) ---- */
+.mon-row {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.mon-row:last-child { margin-bottom: 0; }
+.mon-row:hover { border-color: var(--border-focus); }
+.mon-row .mono.dim { color: var(--fg-dim); }
+
+/* Port state badges: ours (green), foreign (warn), free (dim) */
+.mon-row .mini-badge.primary {
+    background: color-mix(in srgb, var(--ok) 16%, transparent);
+    color: var(--ok);
+    border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent);
+}
+.mon-row .mini-badge.warn {
+    background: color-mix(in srgb, var(--warn) 16%, transparent);
+    color: var(--warn);
+    border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+}
+.mon-row .dim { color: var(--fg-dim); }
+
+/* CPU/RSS bars: themed fill + track */
+.cpu-bar {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+.cpu-fill {
+    background: var(--accent);
+    border-radius: 4px;
+}
+
+/* Kill button: themed danger */
+.mon-row .btn-danger {
+    background: color-mix(in srgb, var(--err) 18%, transparent);
+    color: var(--err);
+    border: 1px solid color-mix(in srgb, var(--err) 45%, transparent);
+}
+.mon-row .btn-danger:hover:not(:disabled) {
+    background: var(--err);
+    color: #fff;
+}
+
+/* Monitor toolbar */
+#monitor-toolbar .btn { margin-right: 0; }
+#monitor-toolbar label { color: var(--fg-dim); }
+
+/* Empty states */
+#mon-ports-empty, #mon-res-empty { color: var(--fg-dim); }
+
 /* ---- Fase 3: tab Evidence ---- */
 #ev-toolbar {
     display: flex; align-items: center; gap: 8px; margin-bottom: 12px;

@@ -723,6 +723,53 @@
     border-right: 2px solid var(--brutalist-border);
 }
 
+/* ---- Monitor: port/resource rows (Issue #51) ---- */
+:root[data-style="brutalist"] .mon-row {
+    background: var(--brutalist-surface);
+    border: 2px solid var(--brutalist-border);
+    border-radius: 0;
+    box-shadow: var(--brutalist-shadow-sm);
+    margin-bottom: var(--brutalist-space-sm);
+    transition: all var(--brutalist-transition-fast);
+}
+:root[data-style="brutalist"] .mon-row:hover {
+    border-color: var(--brutalist-accent);
+    box-shadow: var(--brutalist-shadow-md);
+    transform: translate(-2px, -2px);
+}
+:root[data-style="brutalist"] .mon-row .mini-badge.primary {
+    background: var(--brutalist-bg);
+    color: var(--brutalist-success);
+    border: 2px solid var(--brutalist-success);
+    border-radius: 0;
+}
+:root[data-style="brutalist"] .mon-row .mini-badge.warn {
+    background: var(--brutalist-bg);
+    color: var(--brutalist-warning);
+    border: 2px solid var(--brutalist-warning);
+    border-radius: 0;
+}
+:root[data-style="brutalist"] .mon-row .btn-danger {
+    background: var(--brutalist-error);
+    color: var(--brutalist-bg);
+    border: 2px solid var(--brutalist-error);
+    border-radius: 0;
+}
+:root[data-style="brutalist"] .mon-row .btn-danger:hover:not(:disabled) {
+    box-shadow: var(--brutalist-shadow-md);
+}
+:root[data-style="brutalist"] #monitor-toolbar .btn {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+:root[data-style="brutalist"] #mon-ports-empty,
+:root[data-style="brutalist"] #mon-res-empty {
+    color: var(--brutalist-text-secondary);
+    font-weight: var(--brutalist-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
 /* Enhanced Brutalist Native Dialogs */
 :root[data-style="brutalist"] .dialog-overlay {
     position: fixed;

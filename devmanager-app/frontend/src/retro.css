@@ -557,6 +557,55 @@
     font-family: "Cascadia Code", "Fira Code", monospace;
 }
 
+/* ---- Monitor: port/resource rows (Issue #51) ---- */
+:root[data-style="retro"] .mon-row {
+    background: var(--retro-card);
+    border: 1px solid var(--retro-border);
+    border-radius: 0;
+    margin-bottom: 6px;
+}
+:root[data-style="retro"] .mon-row:hover {
+    border-color: var(--retro-green);
+    box-shadow: var(--retro-glow-sm) var(--retro-green);
+}
+:root[data-style="retro"] .mon-row .mini-badge.primary {
+    background: rgba(57, 255, 20, 0.12);
+    color: var(--retro-green);
+    border: 1px solid rgba(57, 255, 20, 0.4);
+}
+:root[data-style="retro"] .mon-row .mini-badge.warn {
+    background: rgba(255, 170, 0, 0.12);
+    color: var(--retro-amber);
+    border: 1px solid rgba(255, 170, 0, 0.4);
+}
+:root[data-style="retro"] .cpu-fill {
+    background: var(--retro-green);
+    box-shadow: var(--retro-glow-sm) var(--retro-green);
+}
+:root[data-style="retro"] .cpu-bar {
+    background: var(--retro-surface);
+    border: 1px solid var(--retro-border);
+    border-radius: 0;
+}
+:root[data-style="retro"] .mon-row .btn-danger {
+    background: rgba(255, 50, 50, 0.15);
+    color: var(--retro-red);
+    border: 1px solid rgba(255, 50, 50, 0.4);
+}
+:root[data-style="retro"] .mon-row .btn-danger:hover:not(:disabled) {
+    background: var(--retro-red);
+    color: var(--retro-bg);
+    box-shadow: var(--retro-glow-sm) var(--retro-red);
+}
+:root[data-style="retro"] #monitor-toolbar .btn {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+:root[data-style="retro"] #mon-ports-empty,
+:root[data-style="retro"] #mon-res-empty {
+    color: var(--retro-text-dim);
+}
+
 /* ---- Custom checkboxes (Issue #52): square, neon glow ---- */
 :root[data-style="retro"] input[type="checkbox"] {
     border-radius: 0;

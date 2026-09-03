@@ -467,3 +467,44 @@
 :root[data-style="dracula"] input[type="checkbox"]:focus-visible {
     outline-color: var(--dracula-purple);
 }
+
+/* ---- Monitor: port/resource rows (Issue #51) ---- */
+:root[data-style="dracula"] .mon-row {
+    background: var(--dracula-surface);
+    border: 1px solid var(--dracula-border);
+    border-radius: 8px;
+    margin-bottom: 6px;
+}
+:root[data-style="dracula"] .mon-row:hover {
+    border-color: var(--dracula-current);
+}
+:root[data-style="dracula"] .mon-row .mini-badge.primary {
+    background: rgba(80, 250, 123, 0.15);
+    color: var(--dracula-green);
+    border: 1px solid rgba(80, 250, 123, 0.35);
+}
+:root[data-style="dracula"] .mon-row .mini-badge.warn {
+    background: rgba(255, 185, 52, 0.15);
+    color: var(--dracula-yellow);
+    border: 1px solid rgba(255, 185, 52, 0.35);
+}
+:root[data-style="dracula"] .cpu-fill {
+    background: var(--dracula-purple);
+}
+:root[data-style="dracula"] .cpu-bar {
+    background: var(--dracula-current);
+    border: 1px solid var(--dracula-border);
+}
+:root[data-style="dracula"] .mon-row .btn-danger {
+    background: rgba(255, 85, 85, 0.2);
+    color: var(--dracula-red);
+    border: 1px solid rgba(255, 85, 85, 0.4);
+}
+:root[data-style="dracula"] .mon-row .btn-danger:hover:not(:disabled) {
+    background: var(--dracula-red);
+    color: var(--dracula-bg);
+}
+:root[data-style="dracula"] #mon-ports-empty,
+:root[data-style="dracula"] #mon-res-empty {
+    color: var(--dracula-comment);
+}
