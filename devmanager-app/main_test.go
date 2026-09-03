@@ -137,3 +137,54 @@ func TestServerStatusZeroValue(t *testing.T) {
 		t.Error("zero ServerStatus should have 0 uptime")
 	}
 }
+
+// ---- compareVersions (Issue #58) ----
+
+func TestCompareVersions(t *testing.T) {
+	tests := []struct {
+		a, b string
+		want int // positive if a>b, 0 equal, negative a<b
+	}{
+		{"v2.0.1", "v2.0.0", 1},
+		{"v2.0.0", "v2.0.1", -1},
+		{"v2.0.1", "v2.0.1", 0},
+		{"v2.1.0", "v2.0.9", 1},
+		{"v2.0.9", "v2.1.0", -1},
+		{"v3.0.0", "v2.9.9", 1},
+		{"1.0.0", "1.0.0", 0},
+		{"2.0.1", "2.0.0", 1},
+		{"dev", "2.0.1", -1}, // "dev" parses as 0.0.0
+		{"v0.0.0", "0.0.0", 0},
+		{"v10.0.0", "v9.99.9", 1},
+	}
+	for _, tt := range tests {
+		got := compareVersions(tt.a, tt.b)
+		var sign int
+		if got > 0 {
+			sign = 1
+		} else if got < 0 {
+			sign = -1
+		}
+		if sign != tt.want {
+			t.Errorf("compareVersions(%q, %q) = %d (sign=%d), want sign=%d", tt.a, tt.b, got, sign, tt.want)
+		}
+	}
+}
+
+func TestLooseGet(t *testing.T) {
+	parts := []string{"2", "0", "1"}
+	if looseGet(parts, 0) != "2" {
+		t.Error("index 0 should be '2'")
+	}
+	if looseGet(parts, 3) != "0" {
+		t.Error("out-of-bounds index should return '0'")
+	}
+}
+
+func TestGetVersionReturnsNonEmpty(t *testing.T) {
+	a := &App{}
+	v := a.GetVersion()
+	if v == "" {
+		t.Error("GetVersion should return non-empty string")
+	}
+}

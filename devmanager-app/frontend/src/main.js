@@ -758,6 +758,17 @@ async function boot() {
     wireKeyboardShortcuts();
     await refreshProjects(false);
     await settingsView.init(); // carga settings: tema + gate de toasts
+    // Background update check (Issue #58)
+    checkForUpdateOnBoot();
+}
+
+async function checkForUpdateOnBoot() {
+    try {
+        const info = await api.checkForUpdate();
+        if (info && !info.isUpToDate && !info.error) {
+            showToast('Update Available', `v${info.latestVersion} is available (current: ${info.currentVersion})`, 'info');
+        }
+    } catch { /* silent — don't bother user on network errors */ }
 }
 
 boot();

@@ -11,6 +11,10 @@ import { icon, hydrateIcons } from '../icons.js';
 const $ = (id) => document.getElementById(id);
 const normBool = (v) => v === true || v === 'true';
 
+function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function el(tag, className, text) {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -623,6 +627,55 @@ async function init() {
         setToastsEnabled(state.toasts_enabled);
         setOledMode(state.oled_mode, { persist: false });
         setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
+        
+        // Version display and update check
+        try {
+            const ver = await api.getVersion();
+            const versionEl = $('app-version');
+            if (versionEl) versionEl.textContent = 'v' + ver;
+        } catch { /* ignore */ }
+        const updateBtn = $('btn-check-update');
+        if (updateBtn && !updateBtn.hasAttribute('data-listener-added')) {
+            updateBtn.addEventListener('click', async () => {
+                updateBtn.disabled = true;
+                updateBtn.textContent = 'Checking...';
+                try {
+                    const info = await api.checkForUpdate();
+                    const resultEl = $('update-result');
+                    if (resultEl) {
+                        resultEl.hidden = false;
+                        if (info.error) {
+                            resultEl.className = 'result-strip err';
+                            resultEl.textContent = 'Error: ' + info.error;
+                        } else if (info.isUpToDate) {
+                            resultEl.className = 'result-strip ok';
+                            resultEl.textContent = 'You are running the latest version (' + info.currentVersion + ')';
+                        } else {
+                            resultEl.className = 'result-strip info';
+                            resultEl.innerHTML = 'Update available: <strong>' + info.latestVersion + '</strong> (current: ' + info.currentVersion + ')' +
+                                (info.downloadURL ? '<br><a href="#" id="update-download-link" style="color:var(--accent);text-decoration:underline;cursor:pointer;">Download</a>' : '') +
+                                (info.releaseNotes ? '<br><details style="margin-top:6px"><summary style="cursor:pointer;color:var(--fg-dim)">Release notes</summary><div style="margin-top:4px;white-space:pre-wrap;font-size:12px;max-height:200px;overflow-y:auto;">' + escapeHtml(info.releaseNotes) + '</div></details>' : '');
+                            if (info.downloadURL) {
+                                setTimeout(() => {
+                                    const link = $('update-download-link');
+                                    if (link) link.addEventListener('click', (e) => { e.preventDefault(); api.openURL(info.downloadURL); });
+                                }, 0);
+                            }
+                        }
+                    }
+                } catch (err) {
+                    const resultEl = $('update-result');
+                    if (resultEl) {
+                        resultEl.hidden = false;
+                        resultEl.className = 'result-strip err';
+                        resultEl.textContent = 'Failed to check for updates: ' + err;
+                    }
+                }
+                updateBtn.disabled = false;
+                updateBtn.textContent = 'Check for Updates';
+            });
+            updateBtn.setAttribute('data-listener-added', 'true');
+        }
         
         // Don't render here - let switchView handle rendering when the view is actually shown
         // This prevents rendering issues when the view is hidden

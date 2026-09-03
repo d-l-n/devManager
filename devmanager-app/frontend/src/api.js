@@ -73,6 +73,9 @@ export const api = {
     obscuraEval: (i, url, js) => app().ObscuraEval(i, url, js),
     obscuraFetch: (i, command) => app().ObscuraFetch(i, command),
     stopObscura: (i) => app().StopObscura(i),
+    // Updater (Issue #58)
+    checkForUpdate: () => app().CheckForUpdate(),
+    getVersion: () => app().GetVersion(),
 };
 
 export const events = () => window.runtime;
