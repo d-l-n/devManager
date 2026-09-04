@@ -37,6 +37,9 @@ export const api = {
     gitCreateTag: (i, name) => app().GitCreateTag(i, name),
     gitDeleteTag: (i, name) => app().GitDeleteTag(i, name),
     gitPushTag: (i, name) => app().GitPushTag(i, name),
+    // Deps (Issue #61/#62: dashboard + audit)
+    getDeps: (i) => app().GetDeps(i),
+    getDepsAudit: (i) => app().GetDepsAudit(i),
     // Monitor
     getMonitorData: () => app().GetMonitorData(),
     killTree: (pid) => app().KillTree(pid),
