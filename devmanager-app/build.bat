@@ -269,7 +269,87 @@ echo   Application:   build\bin\devmanager.exe
 echo.
 
 :: Show popup notification
-powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show([string]::Join([Environment]::NewLine, @('Build completado exitosamente!', '', 'Tipo: %BUILD_TYPE%', 'Duracion: %BUILD_DURATION%', '', 'Aplicacion: build\bin\devmanager.exe')), 'devManager Builder', 'OK', 'Information')"
+powershell -NoProfile -Command ^
+  "Add-Type -AssemblyName System.Windows.Forms; ^
+   Add-Type -AssemblyName System.Drawing; ^
+   $form = New-Object System.Windows.Forms.Form; ^
+   $form.Text = 'devManager Builder - Success'; ^
+   $form.Width = 480; ^
+   $form.Height = 300; ^
+   $form.FormBorderStyle = 'FixedDialog'; ^
+   $form.MaximizeBox = $false; ^
+   $form.StartPosition = 'CenterScreen'; ^
+   $form.BackColor = [System.Drawing.Color]::White; ^
+   $titleLabel = New-Object System.Windows.Forms.Label; ^
+   $titleLabel.Text = 'Build Completed Successfully'; ^
+   $titleLabel.Font = New-Object System.Drawing.Font('Segoe UI', 12, [System.Drawing.FontStyle]::Bold); ^
+   $titleLabel.ForeColor = [System.Drawing.Color]::FromArgb(34, 139, 34); ^
+   $titleLabel.AutoSize = $true; ^
+   $titleLabel.Left = 20; ^
+   $titleLabel.Top = 15; ^
+   $form.Controls.Add($titleLabel); ^
+   $msgLabel = New-Object System.Windows.Forms.Label; ^
+   $msgLabel.Text = 'Your application has been built and is ready to use.'; ^
+   $msgLabel.Font = New-Object System.Drawing.Font('Segoe UI', 9); ^
+   $msgLabel.AutoSize = $true; ^
+   $msgLabel.Left = 20; ^
+   $msgLabel.Top = 48; ^
+   $form.Controls.Add($msgLabel); ^
+   $sep = New-Object System.Windows.Forms.Label; ^
+    $sep.BorderStyle = 'Fixed3D'; ^
+    $sep.Left = 20; ^
+    $sep.Top = 74; ^
+    $sep.Width = 425; ^
+   $sep.Height = 2; ^
+   $form.Controls.Add($sep); ^
+   $details = 'Build ID:    %BUILD_ID%' + [Environment]::NewLine + ^
+              'Build Type:  %BUILD_TYPE%' + [Environment]::NewLine + ^
+              'Duration:    %BUILD_DURATION%' + [Environment]::NewLine + ^
+              'Artifact:    !EXE_SIZE_MB! MB' + [Environment]::NewLine + ^
+              'Output:      build\bin\devmanager.exe' + [Environment]::NewLine + ^
+              'Date/Time:   %date%  %BUILD_END_TIME%'; ^
+   $detLabel = New-Object System.Windows.Forms.Label; ^
+   $detLabel.Text = $details; ^
+   $detLabel.Font = New-Object System.Drawing.Font('Consolas', 9); ^
+   $detLabel.ForeColor = [System.Drawing.Color]::FromArgb(51, 51, 51); ^
+   $detLabel.Multiline = $true; ^
+   $detLabel.AutoSize = $true; ^
+   $detLabel.Left = 20; ^
+   $detLabel.Top = 86; ^
+   $form.Controls.Add($detLabel); ^
+   $btnPanel = New-Object System.Windows.Forms.FlowLayoutPanel; ^
+   $btnPanel.Left = 20; ^
+   $btnPanel.Top = 225; ^
+   $btnPanel.Width = 425; ^
+   $btnPanel.Height = 35; ^
+   $btnPanel.FlowDirection = 'RightToLeft'; ^
+   $form.Controls.Add($btnPanel); ^
+   $btnOK = New-Object System.Windows.Forms.Button; ^
+   $btnOK.Text = 'OK'; ^
+   $btnOK.Width = 80; ^
+   $btnOK.Height = 28; ^
+   $btnOK.DialogResult = [System.Windows.Forms.DialogResult]::OK; ^
+   $btnPanel.Controls.Add($btnOK); ^
+   $btnApp = New-Object System.Windows.Forms.Button; ^
+   $btnApp.Text = 'Open App'; ^
+   $btnApp.Width = 90; ^
+   $btnApp.Height = 28; ^
+   $btnApp.DialogResult = [System.Windows.Forms.DialogResult]::Yes; ^
+   $btnPanel.Controls.Add($btnApp); ^
+   $btnFolder = New-Object System.Windows.Forms.Button; ^
+   $btnFolder.Text = 'Open Folder'; ^
+   $btnFolder.Width = 100; ^
+   $btnFolder.Height = 28; ^
+   $btnFolder.DialogResult = [System.Windows.Forms.DialogResult]::Retry; ^
+   $btnPanel.Controls.Add($btnFolder); ^
+   $form.AcceptButton = $btnOK; ^
+   $result = $form.ShowDialog(); ^
+   $form.Dispose(); ^
+   if ($result -eq [System.Windows.Forms.DialogResult]::Retry) { ^
+     Start-Process explorer.exe 'build\bin'; ^
+   } elseif ($result -eq [System.Windows.Forms.DialogResult]::Yes) { ^
+     Start-Process 'build\bin\devmanager.exe'; ^
+   }"
 goto :end
 
 :: ============================================================
@@ -345,7 +425,69 @@ echo.
 echo !BRED![FATAL] Build failed due to errors above!R!
 echo   Check build-report-%BUILD_ID%.txt for details
 echo.
-powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('Build fallido. Revisa la consola para mas detalles.', 'devManager Builder', 'OK', 'Error')"
+powershell -NoProfile -Command ^
+  "Add-Type -AssemblyName System.Windows.Forms; ^
+   Add-Type -AssemblyName System.Drawing; ^
+   $form = New-Object System.Windows.Forms.Form; ^
+   $form.Text = 'devManager Builder - Failed'; ^
+   $form.Width = 420; ^
+   $form.Height = 220; ^
+   $form.FormBorderStyle = 'FixedDialog'; ^
+   $form.MaximizeBox = $false; ^
+   $form.StartPosition = 'CenterScreen'; ^
+   $form.BackColor = [System.Drawing.Color]::White; ^
+   $titleLabel = New-Object System.Windows.Forms.Label; ^
+   $titleLabel.Text = 'Build Failed'; ^
+   $titleLabel.Font = New-Object System.Drawing.Font('Segoe UI', 12, [System.Drawing.FontStyle]::Bold); ^
+   $titleLabel.ForeColor = [System.Drawing.Color]::FromArgb(220, 53, 69); ^
+   $titleLabel.AutoSize = $true; ^
+   $titleLabel.Left = 20; ^
+   $titleLabel.Top = 15; ^
+   $form.Controls.Add($titleLabel); ^
+   $sep = New-Object System.Windows.Forms.Label; ^
+    $sep.BorderStyle = 'Fixed3D'; ^
+    $sep.Left = 20; ^
+    $sep.Top = 44; ^
+    $sep.Width = 365; ^
+   $sep.Height = 2; ^
+   $form.Controls.Add($sep); ^
+   $details = 'Build ID:   %BUILD_ID%' + [Environment]::NewLine + ^
+              'Build Type: %BUILD_TYPE%' + [Environment]::NewLine + [Environment]::NewLine + ^
+              'Check the console output above for error details.'; ^
+   $detLabel = New-Object System.Windows.Forms.Label; ^
+   $detLabel.Text = $details; ^
+   $detLabel.Font = New-Object System.Drawing.Font('Segoe UI', 9); ^
+   $detLabel.ForeColor = [System.Drawing.Color]::FromArgb(51, 51, 51); ^
+   $detLabel.Multiline = $true; ^
+   $detLabel.AutoSize = $true; ^
+   $detLabel.Left = 20; ^
+   $detLabel.Top = 56; ^
+   $form.Controls.Add($detLabel); ^
+   $btnPanel = New-Object System.Windows.Forms.FlowLayoutPanel; ^
+   $btnPanel.Left = 20; ^
+   $btnPanel.Top = 145; ^
+   $btnPanel.Width = 365; ^
+   $btnPanel.Height = 35; ^
+   $btnPanel.FlowDirection = 'RightToLeft'; ^
+   $form.Controls.Add($btnPanel); ^
+   $btnOK = New-Object System.Windows.Forms.Button; ^
+   $btnOK.Text = 'OK'; ^
+   $btnOK.Width = 80; ^
+   $btnOK.Height = 28; ^
+   $btnOK.DialogResult = [System.Windows.Forms.DialogResult]::OK; ^
+   $btnPanel.Controls.Add($btnOK); ^
+   $btnLog = New-Object System.Windows.Forms.Button; ^
+   $btnLog.Text = 'Open Build Dir'; ^
+   $btnLog.Width = 110; ^
+   $btnLog.Height = 28; ^
+   $btnLog.DialogResult = [System.Windows.Forms.DialogResult]::Retry; ^
+   $btnPanel.Controls.Add($btnLog); ^
+   $form.AcceptButton = $btnOK; ^
+   $result = $form.ShowDialog(); ^
+   $form.Dispose(); ^
+   if ($result -eq [System.Windows.Forms.DialogResult]::Retry) { ^
+     Start-Process explorer.exe '.'; ^
+   }"
 exit /b 1
 
 :end

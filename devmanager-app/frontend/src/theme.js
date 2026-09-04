@@ -10,7 +10,7 @@ export const STYLE_ACCENT_VAR = {
     standard:     '--accent',
     brutalist:    '--brutalist-accent',
     glassmorphism:'--accent',
-    retro:        '--retro-green',
+    retro:        '--retro-accent',
     dracula:      '--dracula-purple',
 };
 

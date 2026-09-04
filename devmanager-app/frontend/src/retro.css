@@ -9,6 +9,7 @@
     --retro-text: #e0e0e0;
     --retro-text-dim: #777777;
     --retro-green: #39ff14;
+    --retro-accent: var(--retro-green);
     --retro-amber: #ffb000;
     --retro-cyan: #00ffff;
     --retro-magenta: #ff00ff;
@@ -137,9 +138,9 @@
 :root[data-style="retro"] #btn-stop:hover:not(:disabled),
 :root[data-style="retro"] #btn-restart:hover:not(:disabled) {
     background: var(--retro-card);
-    border-color: var(--retro-green);
-    color: var(--retro-green);
-    box-shadow: var(--retro-glow-sm) var(--retro-green), 2px 2px 0 var(--retro-border);
+    border-color: var(--retro-accent);
+    color: var(--retro-accent);
+    box-shadow: var(--retro-glow-sm) var(--retro-accent), 2px 2px 0 var(--retro-border);
 }
 
 :root[data-style="retro"] .btn:active:not(:disabled) {
@@ -154,18 +155,18 @@
 
 :root[data-style="retro"] .btn-primary {
     background: rgba(57, 255, 20, 0.15);
-    border-color: var(--retro-green);
-    color: var(--retro-green);
+    border-color: var(--retro-accent);
+    color: var(--retro-accent);
 }
 :root[data-style="retro"] .btn-primary:hover:not(:disabled) {
     background: rgba(57, 255, 20, 0.25);
-    box-shadow: var(--retro-glow-md) var(--retro-green), 2px 2px 0 var(--retro-border);
+    box-shadow: var(--retro-glow-md) var(--retro-accent), 2px 2px 0 var(--retro-border);
 }
 
 :root[data-style="retro"] .btn-success {
     background: rgba(57, 255, 20, 0.2);
-    border-color: var(--retro-green);
-    color: var(--retro-green);
+    border-color: var(--retro-accent);
+    color: var(--retro-accent);
 }
 
 :root[data-style="retro"] .btn-danger {
@@ -208,16 +209,16 @@
 :root[data-style="retro"] .dialog-card,
 :root[data-style="retro"] .message-card {
     background: var(--retro-card);
-    border: 2px solid var(--retro-green);
+    border: 2px solid var(--retro-accent);
     border-radius: 0;
-    box-shadow: var(--retro-glow-sm) var(--retro-green), 4px 4px 0 var(--retro-border);
+    box-shadow: var(--retro-glow-sm) var(--retro-accent), 4px 4px 0 var(--retro-border);
 }
 
 :root[data-style="retro"] .context-menu {
     background: var(--retro-card);
-    border: 2px solid var(--retro-green);
+    border: 2px solid var(--retro-accent);
     border-radius: 0;
-    box-shadow: var(--retro-glow-sm) var(--retro-green), 4px 4px 0 var(--retro-border);
+    box-shadow: var(--retro-glow-sm) var(--retro-accent), 4px 4px 0 var(--retro-border);
 }
 
 /* ---- Inputs ---- */

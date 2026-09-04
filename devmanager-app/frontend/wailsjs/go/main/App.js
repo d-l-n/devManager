@@ -22,6 +22,10 @@ export function BrowseWorkspaceFolder() {
   return window['go']['main']['App']['BrowseWorkspaceFolder']();
 }
 
+export function CheckForUpdate() {
+  return window['go']['main']['App']['CheckForUpdate']();
+}
+
 export function ClearAppLog() {
   return window['go']['main']['App']['ClearAppLog']();
 }
@@ -46,12 +50,24 @@ export function GetBacklog(arg1) {
   return window['go']['main']['App']['GetBacklog'](arg1);
 }
 
+export function GetDeps(arg1) {
+  return window['go']['main']['App']['GetDeps'](arg1);
+}
+
+export function GetDepsAudit(arg1) {
+  return window['go']['main']['App']['GetDepsAudit'](arg1);
+}
+
 export function GetEvidence(arg1) {
   return window['go']['main']['App']['GetEvidence'](arg1);
 }
 
 export function GetEvidenceThumbnail(arg1) {
   return window['go']['main']['App']['GetEvidenceThumbnail'](arg1);
+}
+
+export function GetGitDiff(arg1) {
+  return window['go']['main']['App']['GetGitDiff'](arg1);
 }
 
 export function GetGitStatus(arg1) {
@@ -90,8 +106,48 @@ export function GetSettings() {
   return window['go']['main']['App']['GetSettings']();
 }
 
+export function GetVersion() {
+  return window['go']['main']['App']['GetVersion']();
+}
+
 export function GitAction(arg1, arg2) {
   return window['go']['main']['App']['GitAction'](arg1, arg2);
+}
+
+export function GitBranches(arg1) {
+  return window['go']['main']['App']['GitBranches'](arg1);
+}
+
+export function GitCheckout(arg1, arg2) {
+  return window['go']['main']['App']['GitCheckout'](arg1, arg2);
+}
+
+export function GitCreateBranch(arg1, arg2) {
+  return window['go']['main']['App']['GitCreateBranch'](arg1, arg2);
+}
+
+export function GitCreateTag(arg1, arg2) {
+  return window['go']['main']['App']['GitCreateTag'](arg1, arg2);
+}
+
+export function GitDeleteBranch(arg1, arg2) {
+  return window['go']['main']['App']['GitDeleteBranch'](arg1, arg2);
+}
+
+export function GitDeleteTag(arg1, arg2) {
+  return window['go']['main']['App']['GitDeleteTag'](arg1, arg2);
+}
+
+export function GitPushTag(arg1, arg2) {
+  return window['go']['main']['App']['GitPushTag'](arg1, arg2);
+}
+
+export function GitRenameBranch(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GitRenameBranch'](arg1, arg2, arg3);
+}
+
+export function GitTags(arg1) {
+  return window['go']['main']['App']['GitTags'](arg1);
 }
 
 export function KillTree(arg1) {

@@ -560,10 +560,14 @@ function render() {
 
     // Eco desde Go: actualizar estado local SIN re-persistir (evitar bucle).
     events().EventsOn('settings:changed', ({ key, value }) => {
+        // Track whether a visual rebuild is needed (theme/style/accent changes
+        // affect labels, previews and section content that syncUI alone can't update).
+        let needsRender = false;
         if (key === 'style') {
             if (!isValidStyle(value)) return;
             state.style = value;
             applyStyle(value, { persist: false });
+            needsRender = true;
         } else if (key === 'theme') {
             if (!isValidTheme(value)) return;
             state.theme = value;
@@ -572,10 +576,11 @@ function render() {
             if (window.updateThemeButtonIcon) {
                 window.updateThemeButtonIcon();
             }
+            needsRender = true;
         } else if (key === 'toasts_enabled') {
             state.toasts_enabled = normBool(value);
             setToastsEnabled(state.toasts_enabled);
-} else if (key === 'monitor_polling') {
+        } else if (key === 'monitor_polling') {
             state.monitor_polling = normBool(value);
         } else if (key === 'oled_mode') {
             state.oled_mode = normBool(value);
@@ -584,12 +589,15 @@ function render() {
             if (window.updateThemeButtonIcon) {
                 window.updateThemeButtonIcon();
             }
+            needsRender = true;
         } else if (key === 'accent_global') {
             state.accent_global = normBool(value);
             setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
+            needsRender = true;
         } else if (key === 'accent_global_color') {
             state.accent_global_color = value;
             setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
+            needsRender = true;
         } else if (key && key.startsWith('accent_override.')) {
             const style = key.slice('accent_override.'.length);
             if (value && value !== '') {
@@ -598,10 +606,17 @@ function render() {
                 delete state.accent_overrides[style];
             }
             setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
+            needsRender = true;
         } else {
             return;
         }
-        syncUI();
+        // Re-render when visual properties change so labels, previews and accent
+        // section content stay in sync; plain syncUI for non-visual toggles.
+        if (needsRender && isVisible()) {
+            render();
+        } else {
+            syncUI();
+        }
     });
 
 async function init() {

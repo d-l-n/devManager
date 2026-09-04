@@ -5,6 +5,9 @@ export namespace config {
 	    style: string;
 	    monitor_polling: boolean;
 	    toasts_enabled: boolean;
+	    accent_overrides: Record<string, string>;
+	    accent_global: boolean;
+	    accent_global_color: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -16,7 +19,117 @@ export namespace config {
 	        this.style = source["style"];
 	        this.monitor_polling = source["monitor_polling"];
 	        this.toasts_enabled = source["toasts_enabled"];
+	        this.accent_overrides = source["accent_overrides"];
+	        this.accent_global = source["accent_global"];
+	        this.accent_global_color = source["accent_global_color"];
 	    }
+	}
+
+}
+
+export namespace deps {
+	
+	export class Vuln {
+	    name: string;
+	    severity: string;
+	    title: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Vuln(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.severity = source["severity"];
+	        this.title = source["title"];
+	    }
+	}
+	export class AuditResult {
+	    manager: string;
+	    vulns: Vuln[];
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new AuditResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.manager = source["manager"];
+	        this.vulns = this.convertValues(source["vulns"], Vuln);
+	        this.error = source["error"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class Dep {
+	    name: string;
+	    current: string;
+	    latest: string;
+	    outdated: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new Dep(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.current = source["current"];
+	        this.latest = source["latest"];
+	        this.outdated = source["outdated"];
+	    }
+	}
+	export class ManagerResult {
+	    manager: string;
+	    deps: Dep[];
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ManagerResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.manager = source["manager"];
+	        this.deps = this.convertValues(source["deps"], Dep);
+	        this.error = source["error"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 
 }
@@ -120,6 +233,85 @@ export namespace evidence {
 
 export namespace git {
 	
+	export class Branch {
+	    name: string;
+	    current: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new Branch(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.current = source["current"];
+	    }
+	}
+	export class DiffLine {
+	    kind: string;
+	    text: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DiffLine(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.kind = source["kind"];
+	        this.text = source["text"];
+	    }
+	}
+	export class DiffFile {
+	    path: string;
+	    lines: DiffLine[];
+	
+	    static createFrom(source: any = {}) {
+	        return new DiffFile(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.lines = this.convertValues(source["lines"], DiffLine);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
+	export class GitTag {
+	    name: string;
+	    hash: string;
+	    subject: string;
+	    dateRel: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new GitTag(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.hash = source["hash"];
+	        this.subject = source["subject"];
+	        this.dateRel = source["dateRel"];
+	    }
+	}
 	export class LastCommit {
 	    hash: string;
 	    subject: string;
@@ -358,6 +550,30 @@ export namespace main {
 	        this.uptimeSeconds = source["uptimeSeconds"];
 	        this.failureReason = source["failureReason"];
 	        this.running = source["running"];
+	    }
+	}
+	export class UpdateInfo {
+	    currentVersion: string;
+	    latestVersion: string;
+	    updateUrl: string;
+	    downloadUrl: string;
+	    releaseNotes: string;
+	    isUpToDate: boolean;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new UpdateInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.currentVersion = source["currentVersion"];
+	        this.latestVersion = source["latestVersion"];
+	        this.updateUrl = source["updateUrl"];
+	        this.downloadUrl = source["downloadUrl"];
+	        this.releaseNotes = source["releaseNotes"];
+	        this.isUpToDate = source["isUpToDate"];
+	        this.error = source["error"];
 	    }
 	}
 
