@@ -328,13 +328,10 @@ async function buildFrontend() {
   execCommand('npm install --no-audit --no-fund', frontendDir);
   
   // Build frontend
-  if (options.debug) {
-    console.log('[EXEC] npm run build:dev');
-    execCommand('npm run build:dev', frontendDir);
-  } else {
-    console.log('[EXEC] npm run build');
-    execCommand('npm run build', frontendDir);
-  }
+  // Nota: frontend/package.json solo expone "build" (vite build). No existe
+  // "build:dev"; debug y release embeber dist/ igualmente vía Wails.
+  console.log('[EXEC] npm run build');
+  execCommand('npm run build', frontendDir);
   
   console.log('[SUCCESS] Frontend built successfully');
 }
