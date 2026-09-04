@@ -262,6 +262,24 @@ body {
 }
 .git-list .git-item:hover { background: var(--bg); }
 .git-list .git-item.current { color: var(--accent); font-weight: 600; }
+
+/* Dependencias (Issue #61/#62) */
+.deps-list { max-height: 300px; overflow: auto; }
+.deps-list .dep-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 6px; border-radius: 4px; font-size: 12px;
+}
+.deps-list .dep-row:nth-child(even) { background: var(--bg); }
+.deps-list .dep-row .dep-name { color: var(--fg); }
+.deps-list .dep-row .dep-vers { color: var(--fg-dim); font-family: monospace; }
+.deps-list .dep-outdated .dep-latest { color: var(--ok); font-weight: 600; }
+.dep-outdated .dep-badge { background: var(--warn); color: #201a09; padding: 1px 6px; border-radius: 4px; font-size: 10px; }
+.deps-audit { border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin-bottom: 8px; font-size: 12px; background: var(--bg-input); }
+.deps-audit .audit-vuln { padding: 2px 0; }
+.vuln-low { color: var(--ok); }
+.vuln-moderate { color: var(--warn); }
+.vuln-high { color: #ff9800; }
+.vuln-critical { color: var(--err); font-weight: 700; }
 .row-between { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .row-gap { display: flex; gap: 8px; align-items: center; }
 .row-gap-small { display: flex; gap: 8px; align-items: center; }

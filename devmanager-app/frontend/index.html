@@ -67,6 +67,7 @@
                 <button class="tab active" data-tab="logs" role="tab" aria-selected="true">Logs</button>
                 <button class="tab" data-tab="scripts" role="tab" aria-selected="false">Scripts</button>
                 <button class="tab" data-tab="git" role="tab" aria-selected="false">Git</button>
+                <button class="tab" data-tab="deps" role="tab" aria-selected="false">Deps</button>
                 <button class="tab" data-tab="playwright" role="tab" aria-selected="false">Playwright</button>
                 <button class="tab" data-tab="evidence" role="tab" aria-selected="false">Evidence</button>
                 <button class="tab" data-tab="obscura" role="tab" aria-selected="false">Obscura</button>
@@ -155,6 +156,20 @@
                 <div id="git-result" class="result-strip" hidden></div>
                 <div id="git-empty" class="dim center padded">
                     Not a git repository.<br>Open a project folder containing a .git directory.
+                </div>
+            </section>
+
+            <section id="panel-deps" class="panel" role="tabpanel">
+                <div class="group">
+                    <div class="group-title">Dependencies</div>
+                    <div class="btn-row">
+                        <button id="deps-run-audit" class="btn btn-accent">Audit de seguridad</button>
+                    </div>
+                    <div id="deps-audit" class="deps-audit" hidden></div>
+                    <div id="deps-list" class="deps-list"></div>
+                    <div id="deps-empty" class="dim center padded">
+                        Sin dependencias o proyecto sin gestor de paquetes detectado.
+                    </div>
                 </div>
             </section>
 
