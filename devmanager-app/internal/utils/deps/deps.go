@@ -2,9 +2,11 @@
 package deps
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -150,3 +152,192 @@ type AuditResult struct {
 }
 
 var errGovulncheckMissing = errors.New("govulncheck no está instalado: ejecutá 'go install golang.org/x/vuln/cmd/govulncheck@latest'")
+
+// CheckOutdated rellena Latest/Outdated de cada Dep invocando el gestor.
+func CheckOutdated(dir string, deps []Dep) []Dep {
+	switch DetectManager(dir) {
+	case "npm", "yarn", "pnpm":
+		return checkOutdatedNPM(dir, deps)
+	case "go":
+		return checkOutdatedGo(dir, deps)
+	}
+	return deps
+}
+
+// npmOutdated es la estructura de `npm outdated --json`.
+type npmOutdated map[string]struct {
+	Current string `json:"current"`
+	Latest  string `json:"latest"`
+}
+
+func checkOutdatedNPM(dir string, deps []Dep) []Dep {
+	cmd := exec.Command("npm", "outdated", "--json")
+	cmd.Dir = dir
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	_ = cmd.Run() // sin red o sin outdated: no error de tool
+
+	out := stdout.Bytes()
+	if len(out) == 0 {
+		out = stderr.Bytes()
+	}
+	if len(out) == 0 {
+		// npm sin outdated: salida vacía (o no hay red). Sin cambios.
+		return deps
+	}
+	var m npmOutdated
+	if err := json.Unmarshal(out, &m); err != nil {
+		return deps
+	}
+	for i := range deps {
+		if o, ok := m[deps[i].Name]; ok && o.Latest != "" {
+			deps[i].Latest = o.Latest
+			deps[i].Outdated = true
+		}
+	}
+	return deps
+}
+
+func checkOutdatedGo(dir string, deps []Dep) []Dep {
+	// `go list -m -u -json all` devuelve por módulo: {... "Update": {...}}.
+	cmd := exec.Command("go", "list", "-m", "-u", "-json", "all")
+	cmd.Dir = dir
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	err := cmd.Run()
+	if err != nil {
+		var ee *exec.ExitError
+		if !errors.As(err, &ee) {
+			return deps
+		}
+	}
+	var latest map[string]string
+	dec := json.NewDecoder(strings.NewReader(string(stdout.Bytes())))
+	for {
+		var mod struct {
+			Path   string `json:"Path"`
+			Update *struct {
+				Version string `json:"Version"`
+			} `json:"Update"`
+		}
+		if e := dec.Decode(&mod); e != nil {
+			break
+		}
+		if mod.Update != nil {
+			latest[mod.Path] = mod.Update.Version
+		}
+	}
+	for i := range deps {
+		if lv, ok := latest[deps[i].Name]; ok {
+			deps[i].Latest = lv
+			deps[i].Outdated = true
+		}
+	}
+	return deps
+}
+
+// RunAudit corre audit de seguridad del gestor detectado.
+// npm/yarn/pnpm: `npm audit --json`; go: `govulncheck` (si está instalado).
+func RunAudit(dir string) AuditResult {
+	m := DetectManager(dir)
+	if m == "" {
+		return AuditResult{}
+	}
+	switch m {
+	case "npm", "yarn", "pnpm":
+		return auditNPM(dir, m)
+	case "go":
+		return auditGo(dir)
+	}
+	return AuditResult{Manager: m}
+}
+
+// auditNPM parsea `npm audit --json`.
+func auditNPM(dir, manager string) AuditResult {
+	cmd := exec.Command("npm", "audit", "--json")
+	cmd.Dir = dir
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	_ = cmd.Run() // exit 1 esperado con vulns; no tratamos como fallo
+
+	out := stdout.Bytes()
+	if len(out) == 0 {
+		out = stderr.Bytes()
+	}
+	var report struct {
+		Vulnerabilities map[string]struct {
+			Severity string            `json:"severity"`
+			IsDirect bool              `json:"isDirect"`
+			Via      []json.RawMessage `json:"via"`
+		} `json:"vulnerabilities"`
+	}
+	if err := json.Unmarshal(out, &report); err != nil {
+		return AuditResult{Manager: manager, Error: "npm audit: respuesta inesperada"}
+	}
+	var vulns []Vuln
+	for name, v := range report.Vulnerabilities {
+		if len(v.Via) == 0 {
+			continue // hoja sin falla directa
+		}
+		title := name
+		var first struct {
+			Title string `json:"title"`
+		}
+		if json.Unmarshal(v.Via[0], &first) == nil && first.Title != "" {
+			title = first.Title
+		}
+		vulns = append(vulns, Vuln{
+			Name:     name,
+			Severity: v.Severity,
+			Title:    title,
+		})
+	}
+	return AuditResult{Manager: manager, Vulns: vulns}
+}
+
+// auditGo corre govulncheck --json si está disponible.
+func auditGo(dir string) AuditResult {
+	cmd := exec.Command("govulncheck", "-json", "./...")
+	cmd.Dir = dir
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	if err := cmd.Run(); err != nil {
+		if errors.Is(err, exec.ErrNotFound) {
+			return AuditResult{Manager: "go", Error: errGovulncheckMissing.Error()}
+		}
+		// con vulns govulncheck sale != 0 pero emite JSON: parseamos igual
+	}
+	var rep struct {
+		Findings []struct {
+			OSV *struct {
+				ID      string `json:"id"`
+				Summary string `json:"summary"`
+			} `json:"osv"`
+		} `json:"findings"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &rep); err != nil {
+		return AuditResult{Manager: "go", Error: "govulncheck: respuesta inesperada (o sin vulns)"}
+	}
+	var vulns []Vuln
+	for _, f := range rep.Findings {
+		if f.OSV == nil {
+			continue
+		}
+		vulns = append(vulns, Vuln{
+			Name:     f.OSV.ID,
+			Severity: "high",
+			Title:    firstLine(f.OSV.Summary),
+		})
+	}
+	return AuditResult{Manager: "go", Vulns: vulns}
+}
+
+// firstLine trunca un texto en el primer salto de línea.
+func firstLine(s string) string {
+	if i := strings.IndexByte(s, '\n'); i >= 0 {
+		return s[:i]
+	}
+	return s
+}

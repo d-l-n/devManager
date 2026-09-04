@@ -116,3 +116,33 @@ func TestListDepsNPM(t *testing.T) {
 		t.Errorf("ListDeps npm: %+v", r)
 	}
 }
+
+func TestCheckOutdatedNPM(t *testing.T) {
+	d := t.TempDir()
+	write(t, filepath.Join(d, "package.json"), `{"dependencies":{"lodash":"1.0.0"}}`)
+	deps, _ := ParseNPM(filepath.Join(d, "package.json"))
+	got := CheckOutdated(d, deps)
+	// Lenient: sin red no aseguramos latest; solo que no crashee y mantenga
+	// la misma cantidad de dependencias.
+	if len(got) != len(deps) {
+		t.Errorf("CheckOutdated debe devolver misma cantidad, got %d want %d", len(got), len(deps))
+	}
+}
+
+func TestRunAuditNoManager(t *testing.T) {
+	r := RunAudit(t.TempDir())
+	if r.Manager != "" {
+		t.Errorf("dir sin gestor: %+v", r)
+	}
+}
+
+func TestRunAuditGoMissingGovulncheck(t *testing.T) {
+	d := t.TempDir()
+	write(t, filepath.Join(d, "go.mod"), "module example.com/x\n")
+	r := RunAudit(d)
+	if r.Manager != "go" {
+		t.Errorf("gestor debería ser go, got %+v", r)
+	}
+	// Si govulncheck no está, debe reportar error; si está, vulns vacías.
+	// Ambos aceptables salvo que no haya manager.
+}
