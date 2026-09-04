@@ -26,6 +26,17 @@ export const api = {
     // Git
     getGitStatus: (i) => app().GetGitStatus(i),
     gitAction: (i, action) => app().GitAction(i, action),
+    // Git (Issue #63: diff, branches, tags)
+    getGitDiff: (i) => app().GetGitDiff(i),
+    gitBranches: (i) => app().GitBranches(i),
+    gitCreateBranch: (i, name) => app().GitCreateBranch(i, name),
+    gitRenameBranch: (i, oldName, newName) => app().GitRenameBranch(i, oldName, newName),
+    gitDeleteBranch: (i, name) => app().GitDeleteBranch(i, name),
+    gitCheckout: (i, name) => app().GitCheckout(i, name),
+    gitTags: (i) => app().GitTags(i),
+    gitCreateTag: (i, name) => app().GitCreateTag(i, name),
+    gitDeleteTag: (i, name) => app().GitDeleteTag(i, name),
+    gitPushTag: (i, name) => app().GitPushTag(i, name),
     // Monitor
     getMonitorData: () => app().GetMonitorData(),
     killTree: (pid) => app().KillTree(pid),

@@ -140,6 +140,104 @@ func TestGetStatusFullNoUpstream(t *testing.T) {
 	}
 }
 
+func TestGetDiffEmptyOnCleanRepo(t *testing.T) {
+	repo := initRepo(t)
+	diffs := GetDiff(repo)
+	if len(diffs) != 0 {
+		t.Errorf("repo limpio debe dar diff vacío, got %d files", len(diffs))
+	}
+}
+
+func TestGetDiffDetectsChanges(t *testing.T) {
+	repo := initRepo(t)
+	write(t, filepath.Join(repo, "a.txt"), "bye\nworld\n")
+	diffs := GetDiff(repo)
+	if len(diffs) != 1 {
+		t.Fatalf("esperado 1 archivo con cambios, got %d", len(diffs))
+	}
+	f := diffs[0]
+	if !strings.Contains(f.Path, "a.txt") {
+		t.Errorf("path esperado a.txt, got %q", f.Path)
+	}
+	var hasAdd, hasDel bool
+	for _, l := range f.Lines {
+		switch l.Kind {
+		case "add":
+			hasAdd = true
+		case "del":
+			hasDel = true
+		}
+	}
+	if !hasAdd || !hasDel {
+		t.Errorf("diff debe tener al menos una línea add y del: add=%v del=%v\n%+v", hasAdd, hasDel, f.Lines)
+	}
+}
+
+func TestGetDiffNotARepo(t *testing.T) {
+	if d := GetDiff(t.TempDir()); d != nil {
+		t.Errorf("no-repo debe dar nil, got %+v", d)
+	}
+}
+
+func TestListBranchesAndCreate(t *testing.T) {
+	repo := initRepo(t)
+	gexec(t, repo, "checkout", "-b", "feature/x")
+	branches := ListBranches(repo)
+	if len(branches) < 2 {
+		t.Fatalf("esperado al menos master+feature, got %+v", branches)
+	}
+	var found, current bool
+	for _, b := range branches {
+		if b.Name == "feature/x" {
+			found = true
+		}
+		if b.Name == "feature/x" && b.Current {
+			current = true
+		}
+	}
+	if !found || !current {
+		t.Errorf("feature/x debe existir y ser current: found=%v current=%v", found, current)
+	}
+}
+
+func TestRenameAndDeleteBranch(t *testing.T) {
+	repo := initRepo(t)
+	if err := CreateBranch(repo, "temp"); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if err := RenameBranch(repo, "temp", "temp2"); err != nil {
+		t.Fatalf("rename: %v", err)
+	}
+	if err := CheckoutBranch(repo, "temp2"); err != nil {
+		t.Fatalf("checkout: %v", err)
+	}
+	if err := DeleteBranch(repo, "master"); err != nil {
+		t.Fatalf("delete master: %v", err)
+	}
+	for _, b := range ListBranches(repo) {
+		if b.Name == "master" {
+			t.Error("master no debe existir tras delete")
+		}
+	}
+}
+
+func TestTagsLifecycle(t *testing.T) {
+	repo := initRepo(t)
+	if err := CreateTag(repo, "v1.0.0"); err != nil {
+		t.Fatalf("create tag: %v", err)
+	}
+	tags := ListTags(repo)
+	if len(tags) != 1 || tags[0].Name != "v1.0.0" || tags[0].Hash == "" {
+		t.Fatalf("esperado tag v1.0.0 con hash, got %+v", tags)
+	}
+	if err := DeleteTag(repo, "v1.0.0"); err != nil {
+		t.Fatalf("delete tag: %v", err)
+	}
+	if len(ListTags(repo)) != 0 {
+		t.Error("tags deben quedar vacías tras delete")
+	}
+}
+
 func TestRunGitSuccessAndFailure(t *testing.T) {
 	repo := initRepo(t)
 	code, out, errStr := RunGit(repo, []string{"status", "--porcelain"}, 5*time.Second)

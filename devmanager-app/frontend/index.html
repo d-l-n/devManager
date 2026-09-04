@@ -130,6 +130,28 @@
                         <button id="git-stash" class="btn btn-primary">Stash</button>
                     </div>
                 </div>
+                <div class="group">
+                    <div class="group-title">Diffs</div>
+                    <div id="git-diff" class="git-diff mono" hidden></div>
+                    <div id="git-diff-empty" class="dim small">Sin cambios pendientes.</div>
+                </div>
+                <div class="group">
+                    <div class="group-title">Branches / Tags</div>
+                    <div class="btn-row">
+                        <input id="git-branch-name" class="text-input" placeholder="Nombre de rama / tag" autocomplete="off">
+                        <button id="git-create-branch" class="btn btn-primary">+ Rama</button>
+                        <button id="git-checkout-branch" class="btn btn-accent">Checkout</button>
+                        <button id="git-rename-branch" class="btn btn-accent">Renombrar</button>
+                        <button id="git-delete-branch" class="btn btn-danger">Borrar</button>
+                    </div>
+                    <div id="git-branches" class="git-list"></div>
+                    <div class="btn-row">
+                        <button id="git-create-tag" class="btn btn-primary">+ Tag</button>
+                        <button id="git-push-tag" class="btn btn-accent">Push</button>
+                        <button id="git-delete-tag" class="btn btn-danger">Borrar tag</button>
+                    </div>
+                    <div id="git-tags" class="git-list"></div>
+                </div>
                 <div id="git-result" class="result-strip" hidden></div>
                 <div id="git-empty" class="dim center padded">
                     Not a git repository.<br>Open a project folder containing a .git directory.

@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	wails "github.com/wailsapp/wails/v2/pkg/runtime"
 
@@ -125,4 +126,109 @@ func (a *App) runGitStreaming(index int, action, path string, args []string) (in
 	}
 	cleanStash := action == "Stash" && code == 0 && strings.Contains(stdoutBuf.String(), "No local changes")
 	return code, cleanStash
+}
+
+// ---- Issue #63: diff, branches, tags (núcleo) ----
+
+// projectPath devuelve la ruta del proyecto si el índice es válido.
+func (a *App) projectPath(index int) string {
+	projects := a.cfg.Projects()
+	if index < 0 || index >= len(projects) {
+		return ""
+	}
+	return projects[index].Path
+}
+
+// GetGitDiff devuelve el diff del working tree del proyecto.
+func (a *App) GetGitDiff(index int) []git.DiffFile {
+	p := a.projectPath(index)
+	if p == "" {
+		return nil
+	}
+	return git.GetDiff(p)
+}
+
+// GitBranches lista ramas locales del proyecto.
+func (a *App) GitBranches(index int) []git.Branch {
+	p := a.projectPath(index)
+	if p == "" {
+		return nil
+	}
+	return git.ListBranches(p)
+}
+
+// GitCreateBranch crea una rama nueva desde HEAD.
+func (a *App) GitCreateBranch(index int, name string) error {
+	p := a.projectPath(index)
+	if p == "" {
+		return fmt.Errorf("proyecto inválido")
+	}
+	return git.CreateBranch(p, strings.TrimSpace(name))
+}
+
+// GitRenameBranch renombra una rama local.
+func (a *App) GitRenameBranch(index int, oldName, newName string) error {
+	p := a.projectPath(index)
+	if p == "" {
+		return fmt.Errorf("proyecto inválido")
+	}
+	return git.RenameBranch(p, oldName, strings.TrimSpace(newName))
+}
+
+// GitDeleteBranch borra una rama local (-d).
+func (a *App) GitDeleteBranch(index int, name string) error {
+	p := a.projectPath(index)
+	if p == "" {
+		return fmt.Errorf("proyecto inválido")
+	}
+	return git.DeleteBranch(p, name)
+}
+
+// GitCheckout cambia a una rama o tag.
+func (a *App) GitCheckout(index int, name string) error {
+	p := a.projectPath(index)
+	if p == "" {
+		return fmt.Errorf("proyecto inválido")
+	}
+	return git.CheckoutBranch(p, name)
+}
+
+// GitTags lista tags del proyecto.
+func (a *App) GitTags(index int) []git.GitTag {
+	p := a.projectPath(index)
+	if p == "" {
+		return nil
+	}
+	return git.ListTags(p)
+}
+
+// GitCreateTag crea una tag ligera en HEAD.
+func (a *App) GitCreateTag(index int, name string) error {
+	p := a.projectPath(index)
+	if p == "" {
+		return fmt.Errorf("proyecto inválido")
+	}
+	return git.CreateTag(p, strings.TrimSpace(name))
+}
+
+// GitDeleteTag borra una tag local (y remota si existe origin).
+func (a *App) GitDeleteTag(index int, name string) error {
+	p := a.projectPath(index)
+	if p == "" {
+		return fmt.Errorf("proyecto inválido")
+	}
+	return git.DeleteTag(p, name)
+}
+
+// GitPushTag empuja una tag a origin.
+func (a *App) GitPushTag(index int, name string) error {
+	p := a.projectPath(index)
+	if p == "" {
+		return fmt.Errorf("proyecto inválido")
+	}
+	code, _, stderr := git.RunGit(p, []string{"push", "origin", name}, 10*time.Second)
+	if code != 0 {
+		return fmt.Errorf("git push falló: %s", strings.TrimSpace(stderr))
+	}
+	return nil
 }

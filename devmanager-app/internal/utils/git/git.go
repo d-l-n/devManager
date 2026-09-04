@@ -118,6 +118,196 @@ type Status struct {
 	LastCommit  *LastCommit `json:"lastCommit"`
 }
 
+// DiffLine es una línea de un diff, clasificada para resaltado.
+type DiffLine struct {
+	Kind string `json:"kind"` // ctx | add | del | hunk
+	Text string `json:"text"`
+}
+
+// DiffFile agrupa líneas de diff de un archivo.
+type DiffFile struct {
+	Path  string     `json:"path"`
+	Lines []DiffLine `json:"lines"`
+}
+
+// GetDiff devuelve el diff del working tree (git diff, sin --cached).
+// Vacío si no es repo o no hay cambios.
+func GetDiff(projectPath string) []DiffFile {
+	if !IsRepo(projectPath) {
+		return nil
+	}
+	code, out, _ := RunGit(projectPath, []string{"diff", "--no-color"}, 5*time.Second)
+	if code != 0 {
+		return nil
+	}
+	return parseDiff(out)
+}
+
+// parseDiff convierte salida de git diff a []DiffFile agrupando por archivo.
+func parseDiff(raw string) []DiffFile {
+	var files []DiffFile
+	var cur *DiffFile
+	for _, line := range strings.Split(raw, "\n") {
+		switch {
+		case strings.HasPrefix(line, "diff --git "):
+			if cur != nil {
+				files = append(files, *cur)
+			}
+			name := strings.TrimPrefix(line, "diff --git ")
+			name = strings.TrimPrefix(name, "a/")
+			if i := strings.Index(name, " b/"); i >= 0 {
+				name = name[:i]
+			}
+			cur = &DiffFile{Path: name}
+		case cur == nil:
+			continue
+		case strings.HasPrefix(line, "@@"):
+			cur.Lines = append(cur.Lines, DiffLine{Kind: "hunk", Text: line})
+		case strings.HasPrefix(line, "+++") || strings.HasPrefix(line, "---"):
+			// marcadores de cabecera de archivo; se omiten como contexto
+			cur.Lines = append(cur.Lines, DiffLine{Kind: "hunk", Text: line})
+		case strings.HasPrefix(line, "+"):
+			cur.Lines = append(cur.Lines, DiffLine{Kind: "add", Text: line})
+		case strings.HasPrefix(line, "-"):
+			cur.Lines = append(cur.Lines, DiffLine{Kind: "del", Text: line})
+		default:
+			cur.Lines = append(cur.Lines, DiffLine{Kind: "ctx", Text: line})
+		}
+	}
+	if cur != nil {
+		files = append(files, *cur)
+	}
+	return files
+}
+
+// Branch es una rama local del repo.
+type Branch struct {
+	Name    string `json:"name"`
+	Current bool   `json:"current"`
+}
+
+// ListBranches lista ramas locales; la actual marcada. Vacío si no es repo.
+func ListBranches(projectPath string) []Branch {
+	if !IsRepo(projectPath) {
+		return nil
+	}
+	code, out, _ := RunGit(projectPath, []string{"branch", "--no-color"}, 3*time.Second)
+	if code != 0 {
+		return nil
+	}
+	var branches []Branch
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimRight(line, "\r")
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		cur := strings.HasPrefix(line, "*")
+		name := strings.TrimSpace(strings.TrimPrefix(line, "*"))
+		// quita estados tipo " (detached)"
+		if i := strings.Index(name, " "); i >= 0 {
+			name = name[:i]
+		}
+		branches = append(branches, Branch{Name: name, Current: cur})
+	}
+	return branches
+}
+
+// CreateBranch crea una rama nueva a partir de HEAD.
+func CreateBranch(projectPath, name string) error {
+	code, _, stderr := RunGit(projectPath, []string{"branch", name}, 3*time.Second)
+	if code != 0 {
+		return errors.New(strings.TrimSpace(stderr))
+	}
+	return nil
+}
+
+// RenameBranch renombra una rama local.
+func RenameBranch(projectPath, oldName, newName string) error {
+	code, _, stderr := RunGit(projectPath, []string{"branch", "-m", oldName, newName}, 3*time.Second)
+	if code != 0 {
+		return errors.New(strings.TrimSpace(stderr))
+	}
+	return nil
+}
+
+// DeleteBranch borra una rama local (-d, falla si no está mergeada).
+func DeleteBranch(projectPath, name string) error {
+	code, _, stderr := RunGit(projectPath, []string{"branch", "-d", name}, 3*time.Second)
+	if code != 0 {
+		return errors.New(strings.TrimSpace(stderr))
+	}
+	return nil
+}
+
+// CheckoutBranch cambia a una rama o tag existente.
+func CheckoutBranch(projectPath, name string) error {
+	code, _, stderr := RunGit(projectPath, []string{"checkout", name}, 5*time.Second)
+	if code != 0 {
+		return errors.New(strings.TrimSpace(stderr))
+	}
+	return nil
+}
+
+// GitTag es una tag con metadata del commit al que apunta.
+type GitTag struct {
+	Name    string `json:"name"`
+	Hash    string `json:"hash"`
+	Subject string `json:"subject"`
+	DateRel string `json:"dateRel"`
+}
+
+// ListTags lista tags ordenadas (--sort=-creatordate). Vacío si no es repo.
+func ListTags(projectPath string) []GitTag {
+	if !IsRepo(projectPath) {
+		return nil
+	}
+	code, out, _ := RunGit(projectPath, []string{
+		"for-each-ref", "refs/tags",
+		"--sort=-creatordate",
+		"--format=%(refname:short)|%(objectname:short)|%(subject)|%(creatordate:relative)",
+	}, 3*time.Second)
+	if code != 0 {
+		return nil
+	}
+	var tags []GitTag
+	for _, line := range strings.Split(out, "\n") {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		parts := strings.SplitN(strings.TrimRight(line, "\r"), "|", 4)
+		if len(parts) != 4 {
+			continue
+		}
+		tags = append(tags, GitTag{
+			Name:    strings.TrimSpace(parts[0]),
+			Hash:    strings.TrimSpace(parts[1]),
+			Subject: strings.TrimSpace(parts[2]),
+			DateRel: strings.TrimSpace(parts[3]),
+		})
+	}
+	return tags
+}
+
+// CreateTag crea una tag ligera apuntando a HEAD.
+func CreateTag(projectPath, name string) error {
+	code, _, stderr := RunGit(projectPath, []string{"tag", name}, 3*time.Second)
+	if code != 0 {
+		return errors.New(strings.TrimSpace(stderr))
+	}
+	return nil
+}
+
+// DeleteTag borra una tag local; si existe en origin la borra también.
+func DeleteTag(projectPath, name string) error {
+	code, _, stderr := RunGit(projectPath, []string{"tag", "-d", name}, 3*time.Second)
+	if code != 0 {
+		return errors.New(strings.TrimSpace(stderr))
+	}
+	// intento de borrado remoto; no falla en local si no hay remote
+	RunGit(projectPath, []string{"push", "origin", ":refs/tags/" + name}, 3*time.Second)
+	return nil
+}
+
 // GetStatusFull replica get_git_status_full: extiende GetGitInfo con
 // ahead/behind y metadata del último commit.
 func GetStatusFull(projectPath string) Status {

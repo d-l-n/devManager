@@ -244,6 +244,24 @@ body {
     text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px;
 }
 .btn-row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+
+/* Git diff y listas (Issue #63) */
+.git-diff {
+    max-height: 260px; overflow: auto;
+    background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px; font-size: 12px; line-height: 1.5; white-space: pre; color: var(--fg-dim);
+}
+.git-diff .df-add { color: var(--ok); background: color-mix(in srgb, var(--ok) 10%, transparent); }
+.git-diff .df-del { color: var(--err); background: color-mix(in srgb, var(--err) 12%, transparent); }
+.git-diff .df-hunk { color: var(--accent); font-weight: 600; }
+.git-diff .df-file { color: var(--accent); font-weight: 700; margin-top: 2px; }
+.git-list { max-height: 180px; overflow: auto; margin-top: 6px; }
+.git-list .git-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 6px; border-radius: 4px; cursor: pointer; color: var(--fg);
+}
+.git-list .git-item:hover { background: var(--bg); }
+.git-list .git-item.current { color: var(--accent); font-weight: 600; }
 .row-between { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .row-gap { display: flex; gap: 8px; align-items: center; }
 .row-gap-small { display: flex; gap: 8px; align-items: center; }
