@@ -119,16 +119,13 @@ jobs:
           name: codecov-umbrella
 
   # Build applications
-  # NOTA: build NO depende de test. Si test queda skipped por su propio `if`
-  # (p.ej. push solo-docs), un job dependiente con `always()` a veces no se
-  # programa en el grafo y el run falla sin construir nada (ghost skip).
-  # Desacoplado: test corre en paralelo; si falla, el run queda en failure igual.
   build:
-    needs: [validate]
-    if: ${{ !cancelled() }}
+    needs: [validate, test]
+    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped')
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.validate.outputs.build_matrix) }}
+      matrix:
+        include: ${{ fromJson(needs.validate.outputs.build_matrix) }}
     runs-on: ${{ matrix.os }}
 
     steps:
