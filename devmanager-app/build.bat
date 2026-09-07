@@ -280,6 +280,7 @@ set "PS_SCRIPT=%TEMP%\devmanager-popup-success.ps1"
     echo $form.FormBorderStyle = 'FixedDialog'
     echo $form.MaximizeBox = $false
     echo $form.StartPosition = 'CenterScreen'
+    echo $form.Icon = [System.Drawing.SystemIcons]::Information
     echo $form.BackColor = [System.Drawing.Color]::White
     echo $titleLabel = New-Object System.Windows.Forms.Label
     echo $titleLabel.Text = 'Build Completed Successfully'
@@ -342,6 +343,14 @@ set "PS_SCRIPT=%TEMP%\devmanager-popup-success.ps1"
     echo $btnFolder.Height = 28
     echo $btnFolder.DialogResult = [System.Windows.Forms.DialogResult]::Retry
     echo $btnPanel.Controls.Add($btnFolder^)
+    echo $copyAction = { [System.Windows.Forms.Clipboard]::SetText(^$details^) }
+    echo $btnCopy = New-Object System.Windows.Forms.Button
+    echo $btnCopy.Text = 'Copy Details'
+    echo $btnCopy.Width = 100
+    echo $btnCopy.Height = 28
+    echo $btnCopy.DialogResult = [System.Windows.Forms.DialogResult]::None
+    echo $btnPanel.Controls.Add($btnCopy^)
+    echo $btnCopy.Add_Click($copyAction^)
     echo $form.AcceptButton = $btnOK
     echo $form.ActiveControl = $btnOK
     echo $result = $form.ShowDialog(^)
@@ -356,6 +365,7 @@ set "PS_SCRIPT=%TEMP%\devmanager-popup-success.ps1"
 )
 powershell -NoProfile -ExecutionPolicy Bypass -File "!PS_SCRIPT!"
 del "!PS_SCRIPT!" >nul 2>&1
+powershell -NoProfile -Command "[Console]::Beep(800, 200)"
 goto :end
 
 :: ============================================================
@@ -438,11 +448,12 @@ set "PS_SCRIPT=%TEMP%\devmanager-popup-error.ps1"
     echo Add-Type -AssemblyName System.Drawing
     echo $form = New-Object System.Windows.Forms.Form
     echo $form.Text = 'devManager Builder - Failed'
-    echo $form.Width = 420
-    echo $form.Height = 250
+    echo $form.Width = 480
+    echo $form.Height = 280
     echo $form.FormBorderStyle = 'FixedDialog'
     echo $form.MaximizeBox = $false
     echo $form.StartPosition = 'CenterScreen'
+    echo $form.Icon = [System.Drawing.SystemIcons]::Error
     echo $form.BackColor = [System.Drawing.Color]::White
     echo $titleLabel = New-Object System.Windows.Forms.Label
     echo $titleLabel.Text = 'Build Failed'
@@ -456,7 +467,7 @@ set "PS_SCRIPT=%TEMP%\devmanager-popup-error.ps1"
     echo $sep.BorderStyle = 'Fixed3D'
     echo $sep.Left = 20
     echo $sep.Top = 44
-    echo $sep.Width = 365
+    echo $sep.Width = 440
     echo $sep.Height = 2
     echo $form.Controls.Add($sep^)
     echo $details = 'Build ID:   %BUILD_ID%' + [Environment]::NewLine + 'Build Type: %BUILD_TYPE%' + [Environment]::NewLine + [Environment]::NewLine + 'Check the console output above for error details.'
@@ -470,13 +481,13 @@ set "PS_SCRIPT=%TEMP%\devmanager-popup-error.ps1"
     echo $detLabel.Multiline = $true
     echo $detLabel.Left = 20
     echo $detLabel.Top = 56
-    echo $detLabel.Width = 365
+    echo $detLabel.Width = 440
     echo $detLabel.Height = 60
     echo $form.Controls.Add($detLabel^)
     echo $btnPanel = New-Object System.Windows.Forms.FlowLayoutPanel
     echo $btnPanel.Left = 20
     echo $btnPanel.Top = 170
-    echo $btnPanel.Width = 365
+    echo $btnPanel.Width = 440
     echo $btnPanel.Height = 35
     echo $btnPanel.FlowDirection = 'RightToLeft'
     echo $form.Controls.Add($btnPanel^)
@@ -498,6 +509,14 @@ set "PS_SCRIPT=%TEMP%\devmanager-popup-error.ps1"
     echo $btnLog.Height = 28
     echo $btnLog.DialogResult = [System.Windows.Forms.DialogResult]::Retry
     echo $btnPanel.Controls.Add($btnLog^)
+    echo $copyErrAction = { [System.Windows.Forms.Clipboard]::SetText(^$details^) }
+    echo $btnCopy = New-Object System.Windows.Forms.Button
+    echo $btnCopy.Text = 'Copy Details'
+    echo $btnCopy.Width = 100
+    echo $btnCopy.Height = 28
+    echo $btnCopy.DialogResult = [System.Windows.Forms.DialogResult]::None
+    echo $btnPanel.Controls.Add($btnCopy^)
+    echo $btnCopy.Add_Click($copyErrAction^)
     echo $form.AcceptButton = $btnOK
     echo $form.ActiveControl = $btnOK
     echo $result = $form.ShowDialog(^)

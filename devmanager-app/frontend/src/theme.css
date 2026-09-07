@@ -231,7 +231,7 @@ body {
 .log-line.err { color: var(--err); }
 
 /* ---- Fase 2: groups, buttons, panels ---- */
-.panel > .group, #monitor-view > .group, #settings-view > .group {
+.panel > .group, .group {
     background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: 8px;
