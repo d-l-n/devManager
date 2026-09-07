@@ -60,7 +60,9 @@ func (r *Runner) StartArgv(argv []string, workingDir string, extraEnv map[string
 	if len(argv) == 0 {
 		return errors.New("empty argv")
 	}
-	return r.start(exec.Command(argv[0], argv[1:]...), workingDir, extraEnv)
+	cmd := exec.Command(argv[0], argv[1:]...)
+	hideConsole(cmd) // sin ventana de consola en la app GUI (p.ej. Obscura)
+	return r.start(cmd, workingDir, extraEnv)
 }
 
 func (r *Runner) start(cmd *exec.Cmd, workingDir string, extraEnv map[string]string) error {

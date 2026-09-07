@@ -172,6 +172,7 @@ type npmOutdated map[string]struct {
 
 func checkOutdatedNPM(dir string, deps []Dep) []Dep {
 	cmd := exec.Command("npm", "outdated", "--json")
+	hideCmd(cmd) // sin ventana de consola (app GUI)
 	cmd.Dir = dir
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -202,6 +203,7 @@ func checkOutdatedNPM(dir string, deps []Dep) []Dep {
 func checkOutdatedGo(dir string, deps []Dep) []Dep {
 	// `go list -m -u -json all` devuelve por módulo: {... "Update": {...}}.
 	cmd := exec.Command("go", "list", "-m", "-u", "-json", "all")
+	hideCmd(cmd) // sin ventana de consola (app GUI)
 	cmd.Dir = dir
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
@@ -256,6 +258,7 @@ func RunAudit(dir string) AuditResult {
 // auditNPM parsea `npm audit --json`.
 func auditNPM(dir, manager string) AuditResult {
 	cmd := exec.Command("npm", "audit", "--json")
+	hideCmd(cmd) // sin ventana de consola (app GUI)
 	cmd.Dir = dir
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -300,6 +303,7 @@ func auditNPM(dir, manager string) AuditResult {
 // auditGo corre govulncheck --json si está disponible.
 func auditGo(dir string) AuditResult {
 	cmd := exec.Command("govulncheck", "-json", "./...")
+	hideCmd(cmd) // sin ventana de consola (app GUI)
 	cmd.Dir = dir
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout

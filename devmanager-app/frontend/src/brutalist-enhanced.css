@@ -315,13 +315,26 @@
 /* Enhanced Brutalist Cards and Panels */
 :root[data-style="brutalist"] .settings-card,
 :root[data-style="brutalist"] .dialog-card,
-:root[data-style="brutalist"] .message-card,
-:root[data-style="brutalist"] .context-menu {
+:root[data-style="brutalist"] .message-card {
     background: var(--brutalist-surface);
     border: 2px solid var(--brutalist-border);
     border-radius: 0;
     box-shadow: var(--brutalist-shadow-lg);
     padding: var(--brutalist-space-lg);
+}
+
+/* Context menu: keep it fixed at the cursor and compact (no card padding/flow). */
+:root[data-style="brutalist"] .context-menu {
+    background: var(--brutalist-surface);
+    border: 2px solid var(--brutalist-border);
+    border-radius: 0;
+    box-shadow: var(--brutalist-shadow-lg);
+}
+
+/* Iconos del menú contextual: alineados a la izquierda con su etiqueta,
+   sin el margin centrador que aplica el bloque de iconos brutalist. */
+:root[data-style="brutalist"] .context-menu-item .reicon-icon {
+    margin: 0;
 }
 
 :root[data-style="brutalist"] .group,
@@ -935,8 +948,7 @@
 /* Enhanced Brutalist Cards - More Prominent */
 :root[data-style="brutalist"] .settings-card,
 :root[data-style="brutalist"] .dialog-card,
-:root[data-style="brutalist"] .message-card,
-:root[data-style="brutalist"] .context-menu {
+:root[data-style="brutalist"] .message-card {
     background: var(--brutalist-surface);
     border: 3px solid var(--brutalist-border);
     border-radius: 0;

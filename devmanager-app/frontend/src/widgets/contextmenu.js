@@ -57,16 +57,15 @@ export function mountContextMenu() {
         root.style.left = `${px}px`;
         root.style.top = `${py}px`;
         // Keyboard navigation: arrow keys to move, Enter to activate
-        let focusIdx = 0;
-        if (menuButtons.length > 0) menuButtons[0].focus();
+        let focusIdx = -1;
         root.onkeydown = (e) => {
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                focusIdx = (focusIdx + 1) % menuButtons.length;
+                focusIdx = focusIdx < 0 ? 0 : (focusIdx + 1) % menuButtons.length;
                 menuButtons[focusIdx].focus();
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                focusIdx = (focusIdx - 1 + menuButtons.length) % menuButtons.length;
+                focusIdx = focusIdx < 0 ? menuButtons.length - 1 : (focusIdx - 1 + menuButtons.length) % menuButtons.length;
                 menuButtons[focusIdx].focus();
             } else if (e.key === 'Escape') {
                 root.hidden = true;

@@ -343,10 +343,16 @@ set "PS_SCRIPT=%TEMP%\devmanager-popup-success.ps1"
     echo $btnFolder.DialogResult = [System.Windows.Forms.DialogResult]::Retry
     echo $btnPanel.Controls.Add($btnFolder^)
     echo $form.AcceptButton = $btnOK
+    echo $form.ActiveControl = $btnOK
     echo $result = $form.ShowDialog(^)
     echo $form.Dispose(^)
     echo if ($result -eq [System.Windows.Forms.DialogResult]::Retry^) { Start-Process explorer.exe 'build\bin' }
-    echo elseif ($result -eq [System.Windows.Forms.DialogResult]::Yes^) { Start-Process 'build\bin\devmanager.exe' }
+    echo elseif ($result -eq [System.Windows.Forms.DialogResult]::Yes^) {
+    echo   Add-Type -Namespace Win32 -Name Native -MemberDefinition '[DllImport("user32.dll"^)] public static extern bool SetForegroundWindow(IntPtr hWnd^);'
+    echo   $proc = Start-Process 'build\bin\devmanager.exe' -PassThru
+    echo   $proc.WaitForInputIdle(5000^) ^| Out-Null
+    echo   [Win32.Native]::SetForegroundWindow($proc.MainWindowHandle^) ^| Out-Null
+    echo }
 )
 powershell -NoProfile -ExecutionPolicy Bypass -File "!PS_SCRIPT!"
 del "!PS_SCRIPT!" >nul 2>&1
@@ -433,7 +439,7 @@ set "PS_SCRIPT=%TEMP%\devmanager-popup-error.ps1"
     echo $form = New-Object System.Windows.Forms.Form
     echo $form.Text = 'devManager Builder - Failed'
     echo $form.Width = 420
-    echo $form.Height = 220
+    echo $form.Height = 250
     echo $form.FormBorderStyle = 'FixedDialog'
     echo $form.MaximizeBox = $false
     echo $form.StartPosition = 'CenterScreen'
@@ -469,7 +475,7 @@ set "PS_SCRIPT=%TEMP%\devmanager-popup-error.ps1"
     echo $form.Controls.Add($detLabel^)
     echo $btnPanel = New-Object System.Windows.Forms.FlowLayoutPanel
     echo $btnPanel.Left = 20
-    echo $btnPanel.Top = 145
+    echo $btnPanel.Top = 170
     echo $btnPanel.Width = 365
     echo $btnPanel.Height = 35
     echo $btnPanel.FlowDirection = 'RightToLeft'
@@ -480,6 +486,12 @@ set "PS_SCRIPT=%TEMP%\devmanager-popup-error.ps1"
     echo $btnOK.Height = 28
     echo $btnOK.DialogResult = [System.Windows.Forms.DialogResult]::OK
     echo $btnPanel.Controls.Add($btnOK^)
+    echo $btnRetry = New-Object System.Windows.Forms.Button
+    echo $btnRetry.Text = 'Retry Build'
+    echo $btnRetry.Width = 100
+    echo $btnRetry.Height = 28
+    echo $btnRetry.DialogResult = [System.Windows.Forms.DialogResult]::Abort
+    echo $btnPanel.Controls.Add($btnRetry^)
     echo $btnLog = New-Object System.Windows.Forms.Button
     echo $btnLog.Text = 'Open Build Dir'
     echo $btnLog.Width = 110
@@ -487,15 +499,19 @@ set "PS_SCRIPT=%TEMP%\devmanager-popup-error.ps1"
     echo $btnLog.DialogResult = [System.Windows.Forms.DialogResult]::Retry
     echo $btnPanel.Controls.Add($btnLog^)
     echo $form.AcceptButton = $btnOK
+    echo $form.ActiveControl = $btnOK
     echo $result = $form.ShowDialog(^)
     echo $form.Dispose(^)
     echo if ($result -eq [System.Windows.Forms.DialogResult]::Retry^) { Start-Process '.' }
+    echo elseif ($result -eq [System.Windows.Forms.DialogResult]::Abort^) {
+    echo   $batPath = Join-Path $env:BUILD_DIR 'build.bat'
+    echo   if (Test-Path $batPath^) { Start-Process -FilePath $batPath }
+    echo }
 )
+set "BUILD_DIR=%~dp0"
 powershell -NoProfile -ExecutionPolicy Bypass -File "!PS_SCRIPT!"
 del "!PS_SCRIPT!" >nul 2>&1
 exit /b 1
 
 :end
-if "%1"=="nopause" goto :eof
-pause
 exit /b 0

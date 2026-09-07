@@ -207,7 +207,7 @@ body {
 .panel.active { display: flex; }
 .log-toolbar {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 8px 0; color: var(--fg-dim);
+    padding: 8px 10px; color: var(--fg-dim);
 }
 .log-toolbar button {
     background: var(--bg-input); color: var(--fg);

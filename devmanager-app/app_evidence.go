@@ -132,7 +132,7 @@ func (a *App) OpenInExplorer(index int) {
 	if project.Path == "" {
 		return
 	}
-	openWithRundll32(project.Path)
+	_ = exec.Command("explorer.exe", project.Path).Start()
 }
 
 func (a *App) OpenTerminal(index int) {

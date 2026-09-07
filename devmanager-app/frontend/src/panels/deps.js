@@ -73,6 +73,11 @@ export function mount(ctx) {
         });
     }
 
+    function panelActive() {
+        const panel = $('panel-deps');
+        return !!panel && panel.classList.contains('active');
+    }
+
     async function refresh() {
         const i = ctx.selectedIndex();
         if (i < 0) return;
@@ -85,8 +90,17 @@ export function mount(ctx) {
         renderAudit(await api.getDepsAudit(i));
     });
 
+    // Carga diferida: `npm outdated`/`go list` solo se ejecutan cuando el tab
+    // Deps está visible (al abrirlo o al cambiar de proyecto con el tab activo).
+    // Antes cada selección de proyecto disparaba GetDeps aunque el tab estuviera
+    // oculto, abriendo consolas de npm en la app empaquetada.
+    const depsTab = document.querySelector('.tab[data-tab="deps"]');
+    if (depsTab) depsTab.addEventListener('click', refresh);
+
     return {
-        onProjectChanged: refresh,
+        onProjectChanged: () => {
+            if (panelActive()) refresh();
+        },
         refresh,
     };
 }

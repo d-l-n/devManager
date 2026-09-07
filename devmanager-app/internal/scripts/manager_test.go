@@ -161,6 +161,16 @@ func TestOutputPrefixedWithScriptName(t *testing.T) {
 	}
 }
 
+func TestRunScriptWithEnvInjectsEnvVars(t *testing.T) {
+	m, r := newMgr(t)
+	cmd := testutil.EchoEnvCmdStr("DM_USER_EMAIL")
+	m.RunScriptWithEnv("Create User", cmd, map[string]string{"DM_USER_EMAIL": "ana@example.com"})
+	waitFor(t, 8*time.Second, func() bool { return !m.IsRunning() })
+	if !r.hasLog("[Create User] DM_USER_EMAIL=ana@example.com") {
+		t.Errorf("env var no aplicada al proceso: %v", r.logs)
+	}
+}
+
 func TestStopWhenIdleIsNoop(t *testing.T) {
 	m, r := newMgr(t)
 	m.Stop()

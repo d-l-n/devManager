@@ -1,5 +1,5 @@
 // Settings View - replaces the popup dialog with a full screen view
-import { api, events } from '../api.js';
+import { api, events, formatVersion } from '../api.js';
 import {
     applyTheme, applyStyle, setOledMode, isValidTheme, isValidStyle,
     setAccentOverrides, getAccentOverrides, getEffectiveAccent,
@@ -647,7 +647,7 @@ async function init() {
         try {
             const ver = await api.getVersion();
             const versionEl = $('app-version');
-            if (versionEl) versionEl.textContent = 'v' + ver;
+            if (versionEl) versionEl.textContent = formatVersion(ver);
         } catch { /* ignore */ }
         const updateBtn = $('btn-check-update');
         if (updateBtn && !updateBtn.hasAttribute('data-listener-added')) {

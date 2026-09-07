@@ -10,5 +10,6 @@ import (
 // killProcessTree kills a process and its children on Windows.
 func killProcessTree(pid int) {
 	kill := exec.Command("taskkill", "/T", "/F", "/PID", strconv.Itoa(pid))
+	hideConsole(kill)
 	_ = kill.Run()
 }
