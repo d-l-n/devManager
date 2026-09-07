@@ -109,6 +109,12 @@ jobs:
         working-directory: ./devmanager-app
         run: |
           eval "$(dbus-launch --sh-syntax)"
+          # Versión del binario: tag vX.Y.Z en push, input "version" en dispatch.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME}"
+          fi
           # En cross-compilación a arm64, Wails regenera los bindings ejecutando
           # un binario del host (amd64) que arranca el systray y crashea en su
           # teardown (godbus SIGSEGV) al morir la sesión dbus sintética. Los
@@ -118,7 +124,7 @@ jobs:
           if [ "${{ matrix.arch }}" = "arm64" ]; then
             SKIP_BINDINGS="-skipbindings"
           fi
-          xvfb-run wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean $SKIP_BINDINGS
+          xvfb-run wails build -ldflags "-X main.Version=${VERSION}" -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean $SKIP_BINDINGS
         env:
           CGO_ENABLED: 1
 
@@ -126,7 +132,12 @@ jobs:
         if: ${{ !startsWith(matrix.os, 'ubuntu') }}
         working-directory: ./devmanager-app
         run: |
-          wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME}"
+          fi
+          wails build -ldflags "-X main.Version=${VERSION}" -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean
         env:
           CGO_ENABLED: 1
 
