@@ -109,37 +109,25 @@ jobs:
         working-directory: ./devmanager-app
         run: |
           eval "$(dbus-launch --sh-syntax)"
-          # Versión del binario: tag vX.Y.Z en push, input "version" en dispatch.
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ inputs.version }}"
-          else
-            VERSION="${GITHUB_REF_NAME}"
-          fi
-          # En cross-compilación a arm64, Wails regenera los bindings ejecutando
-          # un binario del host (amd64) que arranca el systray y crashea en su
-          # teardown (godbus SIGSEGV) al morir la sesión dbus sintética. Los
-          # bindings ya están commiteados en frontend/wailsjs, así que se pueden
-          # saltar sin perder nada. La celda amd64 (nativa) no se toca.
-          SKIP_BINDINGS=""
-          if [ "${{ matrix.arch }}" = "arm64" ]; then
-            SKIP_BINDINGS="-skipbindings"
-          fi
-          xvfb-run wails build -ldflags "-X main.Version=${VERSION}" -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean $SKIP_BINDINGS
+          # Wails regenera los bindings ejecutando un binario temporal que
+          # arranca el systray y crashea en su teardown (godbus SIGSEGV) al
+          # morir la sesión dbus sintética en CI headless. Los bindings ya
+          # están commiteados en frontend/wailsjs, así que se pueden saltar
+          # sin perder nada (aplica a amd64 y arm64 por igual).
+          xvfb-run wails build -ldflags "-X main.Version=$VERSION" -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean -skipbindings
         env:
           CGO_ENABLED: 1
+          VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
 
       - name: Build Wails application (non-Linux)
         if: ${{ !startsWith(matrix.os, 'ubuntu') }}
         working-directory: ./devmanager-app
+        shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ inputs.version }}"
-          else
-            VERSION="${GITHUB_REF_NAME}"
-          fi
-          wails build -ldflags "-X main.Version=${VERSION}" -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean
+          wails build -ldflags "-X main.Version=$VERSION" -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean
         env:
           CGO_ENABLED: 1
+          VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
 
       - name: Verify build output
         working-directory: ./devmanager-app
