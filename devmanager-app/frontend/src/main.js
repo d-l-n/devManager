@@ -16,6 +16,7 @@ import { mountContextMenu } from './widgets/contextmenu.js';
 import { mountBacklogItemDialog } from './dialogs/backlog-item.js';
 import { mountMessageDialog } from './dialogs/message.js';
 import { mountCreateUserDialog } from './dialogs/create-user.js';
+import { mountTabsDialog } from './dialogs/tabs.js';
 import { hydrateIcons, icon, setIcon } from './icons.js';
 
 const $ = (id) => document.getElementById(id);
@@ -239,6 +240,7 @@ function renderDetail() {
     ctx.panels.evidencePanel.onProjectChanged(p);
     ctx.panels.obscuraPanel.onProjectChanged(p);
     ctx.panels.backlogPanel.onProjectChanged(p);
+    applyTabOrder();
     applyTabVisibility();
 }
 
@@ -249,6 +251,7 @@ function renderDetail() {
 // - Git: ya se oculta en refreshStatus() (no repo).
 // - Scripts/Logs/Obscura/Backlog: siempre visibles (custom run + Create User
 //   son genéricos por proyecto, no dependen de npm scripts).
+// - project.tabs.hidden: el usuario puede ocultar tabs manualmente (Logs no).
 // Si el tab activo queda oculto, cae a Logs (misma regla que Git).
 function applyTabVisibility() {
     const i = state.selected;
@@ -277,6 +280,34 @@ function applyTabVisibility() {
     } catch (e) {
         console.warn('[tab visibility]', e?.message || e);
     }
+
+    // Override manual del usuario (project.tabs.hidden). Logs no se oculta.
+    const hidden = new Set((p.tabs && p.tabs.hidden) || []);
+    hidden.delete('logs');
+    hidden.forEach((name) => setTab(name, false));
+}
+
+// Aplica project.tabs.order: los ids listados primero, el resto en orden
+// DOM default al final. Re-monta los botones dentro de #tabs.
+function applyTabOrder() {
+    const i = state.selected;
+    if (i < 0) return;
+    const nav = document.getElementById('tabs');
+    if (!nav) return;
+    const saved = (state.projects[i].tabs && state.projects[i].tabs.order) || [];
+    const known = ['logs', 'scripts', 'git', 'deps', 'playwright', 'evidence', 'obscura', 'backlog'];
+    const byId = (id) => nav.querySelector(`.tab[data-tab="${id}"]`);
+    const seen = new Set();
+    const ordered = [];
+    for (const id of saved) {
+        if (known.includes(id) && !seen.has(id) && byId(id)) { ordered.push(id); seen.add(id); }
+    }
+    for (const id of known) {
+        if (!seen.has(id) && byId(id)) ordered.push(id);
+    }
+    const customize = nav.querySelector('#btn-tab-settings');
+    ordered.forEach((id) => nav.appendChild(byId(id)));
+    if (customize) nav.appendChild(customize);
 }
 
 let uptimeTimer = null;
@@ -766,6 +797,26 @@ createUserDialog.setRunner((index, email, name, password, role) =>
     api.createUser(index, email, name, password, role));
 document.body.appendChild(createUserDialog.getElement());
 ctx.userDialog = createUserDialog;
+
+const tabsDialog = mountTabsDialog(
+    (index) => {
+        // Recargar proyectos: trae project.tabs actualizado del backend.
+        refreshProjects(false).then(() => {
+            if (state.selected === index) { renderList(); renderDetail(); }
+        });
+    },
+    (index, proj) => api.updateProject(index, proj),
+);
+document.body.appendChild(tabsDialog.getElement());
+ctx.tabsDialog = tabsDialog;
+const btnTabSettings = document.getElementById('btn-tab-settings');
+if (btnTabSettings) {
+    btnTabSettings.addEventListener('click', () => {
+        const i = state.selected;
+        if (i < 0 || !state.projects[i]) return;
+        tabsDialog.open(i, state.projects[i]);
+    });
+}
 
 const playwrightPanel = mountPlaywright(ctx);
 const scriptsPanel = mountScripts(ctx);

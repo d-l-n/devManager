@@ -44,6 +44,17 @@ type UserConfig struct {
 	Command string `json:"command"`
 }
 
+// KnownTabs son los ids de tabs del detail view (paridad con index.html).
+// Logs no se puede ocultar: es el fallback del tab activo.
+var KnownTabs = []string{"logs", "scripts", "git", "deps", "playwright", "evidence", "obscura", "backlog"}
+
+// TabsConfig personaliza por proyecto el detail view: tabs ocultos y orden
+// de aparición. Vacío = comportamiento default (todos visibles, orden del DOM).
+type TabsConfig struct {
+	Hidden []string `json:"hidden"`
+	Order  []string `json:"order"`
+}
+
 type BacklogItem struct {
 	ID          string `json:"id"`
 	Title       string `json:"title"`
@@ -60,6 +71,7 @@ type Project struct {
 	Server     ServerConfig     `json:"server"`
 	Playwright PlaywrightConfig `json:"playwright"`
 	User       UserConfig       `json:"user"`
+	Tabs       TabsConfig       `json:"tabs"`
 	Pinned     bool             `json:"pinned"`
 	Backlog    []BacklogItem    `json:"backlog"`
 }
@@ -72,6 +84,45 @@ func (p Project) Validate() []string {
 	}
 	if strings.TrimSpace(p.Path) == "" {
 		errs = append(errs, "Project path cannot be empty")
+	}
+	errs = append(errs, p.validateTabs()...)
+	return errs
+}
+
+func containsString(list []string, s string) bool {
+	for _, item := range list {
+		if item == s {
+			return true
+		}
+	}
+	return false
+}
+
+// validateTabs valida ids conocidos, sin duplicados y logs no ocultable.
+func (p Project) validateTabs() []string {
+	var errs []string
+	seen := map[string]bool{}
+	for _, id := range p.Tabs.Hidden {
+		if id == "logs" {
+			errs = append(errs, `tab "logs" cannot be hidden`)
+		}
+		if !containsString(KnownTabs, id) {
+			errs = append(errs, fmt.Sprintf(`unknown tab %q in hidden`, id))
+		}
+		if seen[id] {
+			errs = append(errs, fmt.Sprintf(`duplicate tab %q in hidden`, id))
+		}
+		seen[id] = true
+	}
+	seen = map[string]bool{}
+	for _, id := range p.Tabs.Order {
+		if !containsString(KnownTabs, id) {
+			errs = append(errs, fmt.Sprintf(`unknown tab %q in order`, id))
+		}
+		if seen[id] {
+			errs = append(errs, fmt.Sprintf(`duplicate tab %q in order`, id))
+		}
+		seen[id] = true
 	}
 	return errs
 }
@@ -109,12 +160,18 @@ type userConfigJSON struct {
 	Command *string `json:"command"`
 }
 
+type tabsConfigJSON struct {
+	Hidden *[]string `json:"hidden"`
+	Order  *[]string `json:"order"`
+}
+
 type projectJSON struct {
 	Name       *string               `json:"name"`
 	Path       *string               `json:"path"`
 	Server     *serverConfigJSON     `json:"server"`
 	Playwright *playwrightConfigJSON `json:"playwright"`
 	User       *userConfigJSON       `json:"user"`
+	Tabs       *tabsConfigJSON       `json:"tabs"`
 	Pinned     *bool                 `json:"pinned"`
 	Backlog    *[]backlogItemJSON    `json:"backlog"`
 }
@@ -229,6 +286,20 @@ func applyBacklogItem(j backlogItemJSON) BacklogItem {
 	return c
 }
 
+func applyTabsConfig(j *tabsConfigJSON) TabsConfig {
+	if j == nil {
+		return TabsConfig{}
+	}
+	t := TabsConfig{}
+	if j.Hidden != nil {
+		t.Hidden = append([]string{}, *j.Hidden...)
+	}
+	if j.Order != nil {
+		t.Order = append([]string{}, *j.Order...)
+	}
+	return t
+}
+
 // ParseProject replica Project.from_dict(): claves ausentes → defaults.
 func ParseProject(data []byte) (Project, error) {
 	var j projectJSON
@@ -239,6 +310,7 @@ func ParseProject(data []byte) (Project, error) {
 		Server:     applyServer(j.Server),
 		Playwright: applyPlaywright(j.Playwright),
 		User:       applyUser(j.User),
+		Tabs:       applyTabsConfig(j.Tabs),
 		Backlog:    []BacklogItem{},
 	}
 	if j.Name != nil {
