@@ -24,7 +24,8 @@ jobs:
     needs: pre
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.pre.outputs.matrix) }}
+      matrix:
+        include: ${{ fromJSON(needs.pre.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     steps:
       - run: echo "hi ${{ matrix.arch }}"
