@@ -181,3 +181,30 @@ func TestFindHTMLReportIndexIsDir(t *testing.T) {
 		t.Errorf("index.html como directorio debe descartarse, got %q", got)
 	}
 }
+
+func TestHasEvidence(t *testing.T) {
+	tests := []struct {
+		name  string
+		files []string // rel a test-results
+		want  bool
+	}{
+		{"sin test-results", nil, false},
+		{"test-results vacío", []string{}, false},
+		{"artefacto directo", []string{"shot.png"}, true},
+		{"artefacto anidado", []string{"a/b/c/video.webm"}, true},
+		{"solo no-clasificable", []string{"notas.txt", "data.json"}, false},
+		{"solo en dirs a saltar", []string{".git/x.png", "venv/v.png", "__pycache__/p.png"}, false},
+		{"mezcla: ignorado + artefacto real", []string{".git/x.png", "real.png"}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root := t.TempDir()
+			for _, rel := range tt.files {
+				writeFileAt(t, filepath.Join(root, "test-results", filepath.FromSlash(rel)), time.Now())
+			}
+			if got := HasEvidence(root); got != tt.want {
+				t.Errorf("HasEvidence = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

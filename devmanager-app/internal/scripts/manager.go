@@ -60,6 +60,13 @@ func (m *Manager) ActiveScriptName() string {
 
 // RunScript replica run_script: un solo script activo por proyecto.
 func (m *Manager) RunScript(name, command string) {
+	m.RunScriptWithEnv(name, command, nil)
+}
+
+// RunScriptWithEnv ejecuta un script inyectando variables de entorno extra
+// (p.ej. DM_USER_* de "Create User"). Evita interpolación de shell: el valor
+// viaja en env vars, nunca concatenado al comando.
+func (m *Manager) RunScriptWithEnv(name, command string, extraEnv map[string]string) {
 	if m.IsRunning() {
 		m.mu.Lock()
 		active := m.activeName
@@ -76,7 +83,7 @@ func (m *Manager) RunScript(name, command string) {
 	m.mu.Unlock()
 
 	m.log("Starting script '"+name+"': "+command, false)
-	_ = m.runner.Start(command, path, nil)
+	_ = m.runner.Start(command, path, extraEnv)
 }
 
 // Stop replica stop(): marca intención ANTES de matar (taskkill => CrashExit

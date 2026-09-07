@@ -2,6 +2,7 @@
 package evidence
 
 import (
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -111,4 +112,34 @@ func FindHTMLReport(projectPath string) string {
 		return candidate
 	}
 	return ""
+}
+
+// errFound corta el walk en cuanto aparece un artefacto clasificable.
+var errFound = errors.New("found")
+
+// HasEvidence informa si <projectPath>/test-results contiene al menos un
+// artefacto clasificable (misma lógica de Scan, sin clasificar ni ordenar).
+// Early-exit para poder consultarlo barato (p.ej. ticker de tab visibility).
+func HasEvidence(projectPath string) bool {
+	resultsRoot := filepath.Join(projectPath, "test-results")
+	info, err := os.Stat(resultsRoot)
+	if err != nil || !info.IsDir() {
+		return false
+	}
+	err = filepath.WalkDir(resultsRoot, func(path string, d fs.DirEntry, err error) error {
+		if d == nil || err != nil {
+			return nil // paridad con Scan: entradas ilegibles se saltan
+		}
+		if d.IsDir() {
+			if _, skipped := skipDirs[d.Name()]; skipped {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if classify(strings.ToLower(filepath.Ext(d.Name()))) != "" {
+			return errFound
+		}
+		return nil
+	})
+	return err == errFound
 }

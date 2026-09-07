@@ -1,4 +1,4 @@
-import { api, events } from './api.js';
+import { api, events, formatVersion } from './api.js';
 import { mount as mountPlaywright } from './panels/playwright.js';
 import { mount as mountScripts } from './panels/scripts.js';
 import { mount as mountGit } from './panels/git.js';
@@ -15,6 +15,7 @@ import { mountAppLogDialog } from './dialogs/applog.js';
 import { mountContextMenu } from './widgets/contextmenu.js';
 import { mountBacklogItemDialog } from './dialogs/backlog-item.js';
 import { mountMessageDialog } from './dialogs/message.js';
+import { mountCreateUserDialog } from './dialogs/create-user.js';
 import { hydrateIcons, icon, setIcon } from './icons.js';
 
 const $ = (id) => document.getElementById(id);
@@ -238,6 +239,44 @@ function renderDetail() {
     ctx.panels.evidencePanel.onProjectChanged(p);
     ctx.panels.obscuraPanel.onProjectChanged(p);
     ctx.panels.backlogPanel.onProjectChanged(p);
+    applyTabVisibility();
+}
+
+// Tab visibility por proyecto (task 8): oculta tabs que no aplican al proyecto.
+// - Playwright: se deriva del config (project.playwright.enabled), síncrono.
+// - Deps: sin gestor de paquetes (go.mod / package.json) -> oculto.
+// - Evidence: sin artefactos en test-results -> oculto.
+// - Git: ya se oculta en refreshStatus() (no repo).
+// - Scripts/Logs/Obscura/Backlog: siempre visibles (custom run + Create User
+//   son genéricos por proyecto, no dependen de npm scripts).
+// Si el tab activo queda oculto, cae a Logs (misma regla que Git).
+function applyTabVisibility() {
+    const i = state.selected;
+    if (i < 0) return;
+    const p = state.projects[i];
+
+    const setTab = (name, show) => {
+        const tab = document.querySelector(`.tab[data-tab="${name}"]`);
+        if (!tab) return;
+        tab.style.display = show ? '' : 'none';
+        if (!show && tab.classList.contains('active')) switchTab('logs');
+    };
+
+    setTab('playwright', !!(p.playwright && p.playwright.enabled));
+
+    // Deps/Evidence: señales asíncronas. Se ignora la respuesta si el usuario
+    // ya cambió de proyecto (race: check el índice al resolver).
+    try {
+        api.getProjectFeatures(i).then((f) => {
+            if (state.selected !== i) return;
+            setTab('deps', !!f && !!f.hasPackageManager);
+            setTab('evidence', !!f && !!f.hasEvidenceFiles);
+        }).catch(() => {
+            /* sin backend (dev): tabs visibles */
+        });
+    } catch (e) {
+        console.warn('[tab visibility]', e?.message || e);
+    }
 }
 
 let uptimeTimer = null;
@@ -296,7 +335,16 @@ async function refreshStatus() {
                 bg.textContent = 'Git: —';
             }
         }
-    } catch (e) { console.warn('[git status]', e?.message || e); }
+        // Ocultar el tab Git cuando el proyecto no es repo; si estaba activo, volver a Logs.
+        const gitTab = document.querySelector('.tab[data-tab="git"]');
+        if (gitTab) {
+            const showRepo = !!gs && !!gs.isRepo;
+            gitTab.style.display = showRepo ? '' : 'none';
+            if (!showRepo && gitTab.classList.contains('active')) switchTab('logs');
+        }
+    } catch (e) {
+        console.warn('[git status]', e?.message || e);
+    }
 
     updateDots();
 }
@@ -561,7 +609,14 @@ $('btn-theme').addEventListener('click', () => {
         if (index === state.selected) refreshStatus();
     });
 
-    setInterval(refreshStatus, 2000); // uptime ticker (2s interval)
+    // Ticker de estado (2s). También refresca tab visibility del proyecto
+    // seleccionado: captura cambios de filesystem en runtime (package.json
+    // recién creado, evidencias nuevas tras correr tests, etc.). El backend es
+    // barato: DetectManager + HasEvidence con early-exit.
+    setInterval(() => {
+        refreshStatus();
+        applyTabVisibility();
+    }, 2000);
 }
 
 function isEditableTarget(e) {
@@ -704,6 +759,13 @@ const messageDialog = mountMessageDialog();
 document.body.appendChild(messageDialog.getElement());
 ctx.messageDialog = messageDialog;
 window.messageDialog = messageDialog;
+window.showToast = showToast;
+
+const createUserDialog = mountCreateUserDialog();
+createUserDialog.setRunner((index, email, name, password, role) =>
+    api.createUser(index, email, name, password, role));
+document.body.appendChild(createUserDialog.getElement());
+ctx.userDialog = createUserDialog;
 
 const playwrightPanel = mountPlaywright(ctx);
 const scriptsPanel = mountScripts(ctx);
@@ -769,7 +831,7 @@ async function checkForUpdateOnBoot() {
     try {
         const info = await api.checkForUpdate();
         if (info && !info.isUpToDate && !info.error) {
-            showToast('Update Available', `v${info.latestVersion} is available (current: ${info.currentVersion})`, 'info');
+            showToast('Update Available', `${formatVersion(info.latestVersion)} is available (current: ${formatVersion(info.currentVersion)})`, 'info');
         }
     } catch { /* silent — don't bother user on network errors */ }
 }

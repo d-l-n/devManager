@@ -1,6 +1,11 @@
 export function mount(ctx) {
     const { $, api, events } = ctx;
     let rows = []; // [{name, command, el}]
+    let currentProject = null;
+
+    function openCreateUser() {
+        if (currentProject) ctx.userDialog.open(ctx.selectedIndex(), currentProject);
+    }
 
     function setActive(name) {
         const label = $('script-active-label');
@@ -97,6 +102,7 @@ export function mount(ctx) {
         if (e.key === 'Enter') $('custom-run').click();
     });
     $('script-stop').addEventListener('click', () => api.stopScript(ctx.selectedIndex()));
+    $('script-create-user').addEventListener('click', openCreateUser);
 
     events().EventsOn('script:started', ({ index, name }) => {
         if (index === ctx.selectedIndex()) setActive(name);
@@ -107,5 +113,20 @@ export function mount(ctx) {
     events().EventsOn('script:log', ({ index, line, isError }) =>
         ctx.appendLog(index, line, isError));
 
-    return { onProjectChanged: load };
+    return {
+        onProjectChanged(project) {
+            currentProject = project;
+            const user = (project && project.user) || { enabled: true, command: '' };
+            const btn = $('script-create-user');
+            if (btn) {
+                // Siempre habilitado: el dialog muestra el estado/hint si el
+                // comando no está configurado (descubrible, sin fricción).
+                btn.disabled = false;
+                btn.title = (user.enabled && (user.command || '').trim())
+                    ? `Create user via: ${user.command}`
+                    : 'Edit Project → User para configurar el comando de creación';
+            }
+            load();
+        },
+    };
 }

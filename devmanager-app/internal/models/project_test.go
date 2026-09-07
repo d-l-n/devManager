@@ -40,6 +40,12 @@ func TestParseProjectFull(t *testing.T) {
 	if p.Playwright.UICommand != "npx playwright test --ui" {
 		t.Errorf("bad ui_command: %+v", p.Playwright)
 	}
+	if !p.User.Enabled {
+		t.Error("user.enabled default debe ser true")
+	}
+	if p.User.Command != "" {
+		t.Errorf("user.command default = %q", p.User.Command)
+	}
 }
 
 func TestParseProjectDefaults(t *testing.T) {
@@ -83,7 +89,7 @@ func TestRoundTripStable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("re-parse: %v", err)
 	}
-	if p.Name != p2.Name || p.Path != p2.Path || p.Server != p2.Server || p.Playwright != p2.Playwright || p.Pinned != p2.Pinned {
+	if p.Name != p2.Name || p.Path != p2.Path || p.Server != p2.Server || p.Playwright != p2.Playwright || p.User != p2.User || p.Pinned != p2.Pinned {
 		t.Errorf("round-trip inestable:\nin=%+v\nout=%+v", p, p2)
 	}
 	
@@ -102,6 +108,33 @@ func TestRoundTripStable(t *testing.T) {
 		if !strings.Contains(s, key) {
 			t.Errorf("falta clave snake_case %s en %s", key, s)
 		}
+	}
+}
+
+func TestParseUserConfig(t *testing.T) {
+	p, err := ParseProject([]byte(`{"name":"x","path":"y","user":{"enabled":false,"command":"npm run create-user"}}`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if p.User.Enabled {
+		t.Error("user.enabled=false debe respetarse")
+	}
+	if p.User.Command != "npm run create-user" {
+		t.Errorf("user.command = %q", p.User.Command)
+	}
+}
+
+func TestParseUserConfigPartial(t *testing.T) {
+	// Solo command, sin enabled: enabled debe quedar en default (true).
+	p, err := ParseProject([]byte(`{"name":"x","path":"y","user":{"command":"tsx scripts/create-user.ts"}}`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !p.User.Enabled {
+		t.Error("user.enabled default debe ser true cuando solo se define command")
+	}
+	if p.User.Command != "tsx scripts/create-user.ts" {
+		t.Errorf("user.command = %q", p.User.Command)
 	}
 }
 

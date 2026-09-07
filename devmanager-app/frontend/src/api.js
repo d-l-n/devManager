@@ -23,6 +23,10 @@ export const api = {
     runScript: (i, name, cmd) => app().RunScript(i, name, cmd),
     stopScript: (i) => app().StopScript(i),
     getScriptStatus: (i) => app().GetScriptStatus(i),
+    // Create User (feature)
+    createUser: (i, email, name, password, role) => app().CreateUser(i, email, name, password, role),
+    // Tab visibility: señales de features por proyecto
+    getProjectFeatures: (i) => app().GetProjectFeatures(i),
     // Git
     getGitStatus: (i) => app().GetGitStatus(i),
     gitAction: (i, action) => app().GitAction(i, action),
@@ -56,6 +60,7 @@ export const api = {
     openOpenCode: (i) => app().OpenOpenCode(i),
     // Detección de config de proyecto (Issue #11) + diálogo nativo
     detectProjectConfig: (path) => app().DetectProjectConfig(path),
+    detectUserCommand: (path) => app().DetectUserCommand(path),
     browseFolder: () => app().BrowseFolder(),
     browseWorkspaceFolder: () => app().BrowseWorkspaceFolder(),
     discoverProjects: (root) => app().DiscoverProjects(root),
@@ -91,5 +96,14 @@ export const api = {
     checkForUpdate: () => app().CheckForUpdate(),
     getVersion: () => app().GetVersion(),
 };
+
+// Normaliza versión para display: "v2.0.1" -> "v2.0.1", "2.0.1" -> "v2.0.1", "dev" -> "dev"
+// Backend devuelve: "v2.0.1" (vía ldflags con "v") o "dev" (sin ldflags). El display
+// no debe duplicar la "v" ni decorar "dev" como "vdev".
+export function formatVersion(v) {
+    if (!v) return '';
+    const s = String(v).replace(/^v/i, '');
+    return s === 'dev' ? 'dev' : 'v' + s;
+}
 
 export const events = () => window.runtime;

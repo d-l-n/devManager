@@ -26,6 +26,7 @@ import {
     Stop,
     Sun,
     Trash,
+    UserAdd,
 } from 'reicon';
 import { default as logoSvg } from './icons/logo.svg?raw';
 
@@ -52,6 +53,7 @@ const ICONS = {
     moon: Moon,
     tests: ListCheck,
     trash: Trash,
+    'user-add': UserAdd,
     up: ArrowUp,
     down: ArrowDown,
     monitor: Monitor,

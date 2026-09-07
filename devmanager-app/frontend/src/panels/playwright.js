@@ -9,6 +9,7 @@ const STATE_TEXT = {
 
 export function mount(ctx) {
     const { $, api, events } = ctx;
+    let currentProject = null;
 
     function apply(state) {
         const label = $('pw-status-label');
@@ -34,6 +35,9 @@ export function mount(ctx) {
     $('pw-debug').addEventListener('click', () => api.runDebug(ctx.selectedIndex()));
     $('pw-report').addEventListener('click', () => api.showReport(ctx.selectedIndex()));
     $('pw-stop').addEventListener('click', () => api.stopPlaywright(ctx.selectedIndex()));
+    $('pw-create-user').addEventListener('click', () => {
+        if (currentProject) ctx.userDialog.open(ctx.selectedIndex(), currentProject);
+    });
 
     events().EventsOn('pw:state', ({ index, state }) => {
         if (index === ctx.selectedIndex()) apply(state);
@@ -43,6 +47,17 @@ export function mount(ctx) {
 
     return {
         onProjectChanged(project) {
+            currentProject = project;
+            const user = (project && project.user) || { enabled: true, command: '' };
+            const btn = $('pw-create-user');
+            if (btn) {
+                // Siempre habilitado: el dialog muestra el estado/hint si el
+                // comando no está configurado (descubrible, sin fricción).
+                btn.disabled = false;
+                btn.title = (user.enabled && (user.command || '').trim())
+                    ? `Create user via: ${user.command}`
+                    : 'Edit Project → User para configurar el comando de creación';
+            }
             if (!project || !project.playwright || !project.playwright.enabled) {
                 const label = $('pw-status-label');
                 label.textContent = 'Status: Playwright disabled';

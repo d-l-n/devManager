@@ -15,6 +15,7 @@ const pwDefaults = () => ({
     debug_command: 'npx playwright test --debug',
     report_command: 'npx playwright show-report',
 });
+const userDefaults = () => ({ enabled: true, command: '' });
 
 function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -119,6 +120,24 @@ export function mountProjectDialog(onSaved) {
     body.appendChild(field('pf-pw-debug', 'Debug Command', 'npx playwright test --debug').wrap);
     body.appendChild(field('pf-pw-report', 'Report Command', 'npx playwright show-report').wrap);
 
+    // --- User (Create User feature) ---
+    body.appendChild(sectionTitle('User'));
+    const chkUser = document.createElement('input');
+    chkUser.type = 'checkbox';
+    chkUser.id = 'pf-user-enabled';
+    body.appendChild(labelRow('Enable user creation', chkUser));
+    const userCmdField = field('pf-user-command', 'Create User Command', '', 'text');
+    userCmdField.input.placeholder = 'npm run create-user';
+    userCmdField.input.title =
+        'Runs from the project folder with env vars: DM_USER_EMAIL, DM_USER_NAME, DM_USER_PASSWORD, DM_USER_ROLE';
+    body.appendChild(userCmdField.wrap);
+    const userCmdRow = el('div', 'pf-path-row');
+    const btnDetectUser = el('button', 'btn btn-accent pf-inline-btn', 'Detect');
+    const userDetectHint = el('span', 'pf-status');
+    userCmdRow.appendChild(btnDetectUser);
+    userCmdRow.appendChild(userDetectHint);
+    body.appendChild(userCmdRow);
+
     // --- Footer ---
     const footer = el('div', 'settings-footer');
     const btnOk = el('button', 'btn btn-accent', 'OK');
@@ -145,12 +164,39 @@ export function mountProjectDialog(onSaved) {
         $('pf-pw-ui').value = pwDefaults().ui_command;
         $('pf-pw-debug').value = pwDefaults().debug_command;
         $('pf-pw-report').value = pwDefaults().report_command;
+        $('pf-user-enabled').checked = userDefaults().enabled;
+        $('pf-user-command').value = userDefaults().command;
+        userDetectHint.textContent = '';
         detectStatus.textContent = '';
     }
 
     function setStatus(text, ok) {
         detectStatus.textContent = text || '';
         detectStatus.style.color = ok ? 'var(--ok)' : 'var(--warn)';
+    }
+
+    // Autodetecta el comando de creación de usuario (user.command) para el
+    // path actual. Prefill solo si el campo está vacío; silent=true no pinta
+    // el hint cuando no hay match (evita ruido en autodetección automática).
+    async function detectUserCommand(silent) {
+        const path = $('pf-path').value.trim();
+        if (!path) return '';
+        try {
+            const cmd = await api.detectUserCommand(path);
+            if (cmd) {
+                if (!$('pf-user-command').value.trim()) $('pf-user-command').value = cmd;
+                userDetectHint.textContent = `Detected: ${cmd}`;
+                userDetectHint.style.color = 'var(--ok)';
+            } else {
+                userDetectHint.textContent = silent ? '' : 'No create-user command found';
+                userDetectHint.style.color = 'var(--warn)';
+            }
+            return cmd;
+        } catch {
+            userDetectHint.textContent = 'Detection failed';
+            userDetectHint.style.color = 'var(--warn)';
+            return '';
+        }
     }
 
     async function autoDetect(silentName) {
@@ -169,6 +215,7 @@ export function mountProjectDialog(onSaved) {
             $('pf-server-url').value = d.url;
             if (d.playwright_enabled) $('pf-pw-enabled').checked = true;
             setStatus(`Detected: port ${d.port}${d.playwright_enabled ? ', Playwright found' : ''}`, true);
+            detectUserCommand(true);
         } catch {
             setStatus('Detection failed', false);
         }
@@ -211,7 +258,13 @@ export function mountProjectDialog(onSaved) {
         $('pf-pw-ui').value = p.ui_command || '';
         $('pf-pw-debug').value = p.debug_command || '';
         $('pf-pw-report').value = p.report_command || '';
+        const u = project.user || userDefaults();
+        $('pf-user-enabled').checked = !!u.enabled;
+        $('pf-user-command').value = u.command || '';
+        userDetectHint.textContent = '';
         detectStatus.textContent = '';
+        // Comando de creación de usuario vacío → intentar autodetección
+        if (!u.command) detectUserCommand(true);
         overlay.hidden = false;
         isOpen = true;
         setFieldError(nameField.err, '');
@@ -243,6 +296,10 @@ export function mountProjectDialog(onSaved) {
                 ui_command: $('pf-pw-ui').value.trim(),
                 debug_command: $('pf-pw-debug').value.trim(),
                 report_command: $('pf-pw-report').value.trim(),
+            },
+            user: {
+                enabled: $('pf-user-enabled').checked,
+                command: $('pf-user-command').value.trim(),
             },
         };
     }
@@ -310,6 +367,7 @@ export function mountProjectDialog(onSaved) {
         }
     });
     btnDetect.addEventListener('click', () => autoDetect(true));
+    btnDetectUser.addEventListener('click', () => detectUserCommand(false));
     btnOk.addEventListener('click', save);
     btnCancel.addEventListener('click', close);
     overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });

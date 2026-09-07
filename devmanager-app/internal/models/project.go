@@ -36,6 +36,14 @@ type PlaywrightConfig struct {
 	ReportCommand string `json:"report_command"`
 }
 
+// UserConfig define el comando de creación de usuarios del proyecto gestionado.
+// Se ejecuta con los datos del usuario en env vars DM_USER_* (sin interpolación
+// de shell); el propio proyecto decide su stack (Firebase, REST, seed DB, ...).
+type UserConfig struct {
+	Enabled bool   `json:"enabled"`
+	Command string `json:"command"`
+}
+
 type BacklogItem struct {
 	ID          string `json:"id"`
 	Title       string `json:"title"`
@@ -51,6 +59,7 @@ type Project struct {
 	Path       string           `json:"path"`
 	Server     ServerConfig     `json:"server"`
 	Playwright PlaywrightConfig `json:"playwright"`
+	User       UserConfig       `json:"user"`
 	Pinned     bool             `json:"pinned"`
 	Backlog    []BacklogItem    `json:"backlog"`
 }
@@ -95,11 +104,17 @@ type backlogItemJSON struct {
 	UpdatedAt   *string `json:"updated_at"`
 }
 
+type userConfigJSON struct {
+	Enabled *bool   `json:"enabled"`
+	Command *string `json:"command"`
+}
+
 type projectJSON struct {
 	Name       *string               `json:"name"`
 	Path       *string               `json:"path"`
 	Server     *serverConfigJSON     `json:"server"`
 	Playwright *playwrightConfigJSON `json:"playwright"`
+	User       *userConfigJSON       `json:"user"`
 	Pinned     *bool                 `json:"pinned"`
 	Backlog    *[]backlogItemJSON    `json:"backlog"`
 }
@@ -162,6 +177,23 @@ func applyPlaywright(j *playwrightConfigJSON) PlaywrightConfig {
 	return c
 }
 
+func applyUser(j *userConfigJSON) UserConfig {
+	c := UserConfig{
+		Enabled: true,
+		Command: "",
+	}
+	if j == nil {
+		return c
+	}
+	if j.Enabled != nil {
+		c.Enabled = *j.Enabled
+	}
+	if j.Command != nil {
+		c.Command = *j.Command
+	}
+	return c
+}
+
 func applyBacklogItem(j backlogItemJSON) BacklogItem {
 	now := time.Now().Format(time.RFC3339Nano)
 	c := BacklogItem{
@@ -206,6 +238,7 @@ func ParseProject(data []byte) (Project, error) {
 	p := Project{
 		Server:     applyServer(j.Server),
 		Playwright: applyPlaywright(j.Playwright),
+		User:       applyUser(j.User),
 		Backlog:    []BacklogItem{},
 	}
 	if j.Name != nil {

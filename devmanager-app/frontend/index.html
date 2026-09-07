@@ -91,7 +91,11 @@
                     <div class="group-title">Active Script Execution</div>
                     <div class="row-between">
                         <span id="script-active-label" class="dim">No script running</span>
-                        <button id="script-stop" class="btn btn-danger" disabled>Stop Script</button>
+                        <div class="row-gap">
+                            <button id="script-create-user" class="btn btn-accent"
+                                    title="Create a user in the project (user.command + env DM_USER_*)"><span data-icon="user-add"></span>Create User</button>
+                            <button id="script-stop" class="btn btn-danger" disabled>Stop Script</button>
+                        </div>
                     </div>
                 </div>
                 <div class="group">
@@ -188,6 +192,13 @@
                     <div class="btn-row">
                         <button id="pw-report" class="btn btn-accent">View Test Report</button>
                         <button id="pw-stop" class="btn btn-danger">Stop Execution</button>
+                    </div>
+                </div>
+                <div class="group">
+                    <div class="group-title">User</div>
+                    <div class="btn-row">
+                        <button id="pw-create-user" class="btn btn-accent"
+                                title="Create a user in the project (user.command + env DM_USER_*)"><span data-icon="user-add"></span>Create User</button>
                     </div>
                 </div>
             </section>
