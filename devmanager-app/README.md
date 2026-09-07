@@ -76,6 +76,10 @@ go test -v -race ./internal/...
 # Un solo paquete
 go test ./internal/server/ -v
 
+# Frontend (vitest, jsdom)
+cd frontend
+npx vitest run
+
 # Suite completa via npm
 npm run test
 ```
@@ -94,19 +98,24 @@ gofmt -l .
 ```text
 devmanager-app/
 ├── main.go              # Punto de entrada + //go:embed all:frontend/dist
-├── app.go               # Bindings Wails y lógica principal
+├── app.go               # Bindings Wails y lógica principal (config path, ciclos)
+├── app_*.go             # Bindings temáticos: app_deps, app_evidence, app_git,
+│                        #   app_log, app_monitor, app_notify, app_playwright,
+│                        #   app_settings, app_user, app_backlog, app_discovery
 ├── tray.go              # Bandeja del sistema
 ├── wails.json           # Configuración de Wails (cgo: true, outputfilename)
 ├── build.js             # Builder multiplataforma
+├── run-desktop.bat      # Lanza el binario compilado desde el escritorio
+├── build.bat            # Build con popups (éxito/error) — ver AGENTS.md
 ├── go.mod / go.sum      # Dependencias Go
 │
 ├── internal/
 │   ├── config/          # Carga/guardado de projects.json y settings
-│   ├── models/          # Structs Project, ServerState, BacklogItem, etc.
+│   ├── models/          # Structs Project, ServerState, BacklogItem, TabsConfig, etc.
 │   ├── server/          # Ciclo de vida del servidor (estados, uptime, puerto)
-│   ├── process/         # Ejecución de procesos (runner) + kill tree por SO
+│   ├── process/         # Ejecución de procesos (runner, consolas ocultas) + kill tree por SO
 │   ├── playwright/      # Orquestación de tests Playwright con auto-start de server
-│   ├── scripts/         # Scripts personalizados por proyecto
+│   ├── scripts/         # Scripts personalizados por proyecto (incl. create-user con env DM_USER_*)
 │   ├── sysmon/          # Monitor: dueño de puerto, CPU/RAM por árbol, kill_tree
 │   ├── logger/          # Logger con RingBuffer de líneas
 │   ├── obscura/         # (pre-existente / experimental)
@@ -114,20 +123,29 @@ devmanager-app/
 │   └── utils/
 │       ├── git/         # Operaciones Git
 │       ├── ports/       # IsPortOpen, WaitForPort, BuildServerCommand
-│       ├── detection/   # Autodetección de proyectos/config
+│       ├── detection/   # Autodetección de proyectos/config y comando create-user
 │       ├── evidence/    # Gestión de evidencias
+│       ├── deps/        # Manifiestos npm/go, outdated y audit (hideCmd por SO)
 │       └── theme/       # Detección de temas
 │
 ├── frontend/            # UI (Vite)
 │   ├── index.html
+│   ├── vitest.config.js # vitest (jsdom, serial por fiabilidad en Windows)
 │   ├── package.json
 │   └── src/
-│       ├── main.js      # Lógica principal de la UI
+│       ├── main.js      # Lógica principal de la UI (tabs, estados, shortcuts)
 │       ├── api.js       # Comunicación con Go
-│       ├── theme.js / theme.css
-│       ├── dialogs/     # settings.js, etc.
-│       ├── panels/      # git.js, monitor.js, playwright.js, scripts.js, evidence.js
-│       └── widgets/     # toast.js
+│       ├── icons.js / icons/  # Iconografía Reicon
+│       ├── theme.js     # Temas (light/dark/OLED) y acentos por estilo
+│       ├── theme.css / brutalist-enhanced.css / glassmorphism.css /
+│       │   retro.css / dracula.css
+│       ├── dialogs/     # project.js, settings.js, tabs.js, create-user.js,
+│       │                #   message.js, applog.js, backlog-item.js
+│       ├── panels/      # git.js, monitor.js, playwright.js, scripts.js,
+│       │                #   evidence.js, deps.js, obscura.js, backlog.js
+│       ├── views/       # settings.js (full-screen)
+│       ├── widgets/     # toast.js, contextmenu.js
+│       └── __tests__/   # theme, toast, tabs, create-user, formatVersion
 │
 └── build/
     ├── bin/             # Binario compilado (devmanager.exe / devmanager)
