@@ -1,0 +1,21 @@
+name: Matrix Debug
+on: [push]
+
+jobs:
+  pre:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - id: m
+        run: echo 'matrix=[{"os":"ubuntu-22.04","arch":"amd64"}]' >> $GITHUB_OUTPUT
+
+  build:
+    needs: pre
+    if: ${{ !cancelled() }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.pre.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - run: echo "hi ${{ matrix.arch }}"
