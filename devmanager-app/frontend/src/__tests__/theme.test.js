@@ -36,7 +36,7 @@ describe('STYLE_ACCENT_VAR', () => {
         expect(STYLE_ACCENT_VAR.standard).toBe('--accent');
         expect(STYLE_ACCENT_VAR.brutalist).toBe('--brutalist-accent');
         expect(STYLE_ACCENT_VAR.glassmorphism).toBe('--accent');
-        expect(STYLE_ACCENT_VAR.retro).toBe('--retro-green');
+        expect(STYLE_ACCENT_VAR.retro).toBe('--retro-accent');
         expect(STYLE_ACCENT_VAR.dracula).toBe('--dracula-purple');
     });
 });
@@ -187,7 +187,7 @@ describe('accent overrides', () => {
     it('global mode overrides per-style', () => {
         document.documentElement.dataset.style = 'retro';
         setAccentOverrides({ retro: '#aaa' }, true, '#00ff00');
-        const val = document.documentElement.style.getPropertyValue('--retro-green');
+        const val = document.documentElement.style.getPropertyValue('--retro-accent');
         expect(val).toBe('#00ff00');
     });
 
