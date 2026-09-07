@@ -12,6 +12,7 @@
     "build:release": "node build.js --clean",
     "build:help": "node build.js --help",
     "test": "node build.js --debug && npm run test:frontend && npm run test:backend",
+    "test:e2e": "playwright test",
     "test:frontend": "cd frontend && npm test --if-present",
     "test:backend": "go test -v -race -coverprofile=coverage.out ./...",
     "clean": "node build.js --clean --no-version-check",
@@ -40,6 +41,7 @@
     "npm": ">=8.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "@types/node": "^20.0.0"
   },
   "repository": {
