@@ -163,6 +163,57 @@ radio.value = value;
     secAccent.appendChild(globalColorRow);
     card.appendChild(secAccent);
 
+    // ---- Backup Section (Issue #71) ----
+    const state = {
+        backupFrequency: 'off',
+        backupRetention: 20,
+    };
+    const secBackup = el('div', 'settings-section');
+    secBackup.appendChild(el('div', 'settings-section-title', 'Backup'));
+
+    const freqSelect = document.createElement('select');
+    freqSelect.className = 'settings-select';
+    freqSelect.id = 'backup-frequency';
+    [
+        ['off', 'Off'],
+        ['hourly', 'Hourly'],
+        ['6h', 'Every 6 hours'],
+        ['daily', 'Daily'],
+        ['weekly', 'Weekly'],
+    ].forEach(([value, label]) => {
+        const opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = label;
+        freqSelect.appendChild(opt);
+    });
+    secBackup.appendChild(optionRow('Automatic backup', 'Create a backup of projects and settings on a schedule.', freqSelect));
+
+    const retentionInput = document.createElement('input');
+    retentionInput.type = 'number';
+    retentionInput.className = 'settings-input';
+    retentionInput.id = 'backup-retention';
+    retentionInput.min = '1';
+    retentionInput.max = '500';
+    retentionInput.value = '20';
+    secBackup.appendChild(optionRow('Backups to keep', 'Older backups are removed automatically when the limit is exceeded.', retentionInput));
+
+    const backupActions = el('div', 'settings-actions');
+    const btnBackupNow = el('button', 'btn btn-primary', 'Backup now');
+    const btnOpenFolder = el('button', 'btn btn-accent', 'Open backups folder');
+    btnBackupNow.id = 'btn-backup-now';
+    btnOpenFolder.id = 'btn-open-backups-folder';
+    backupActions.appendChild(btnBackupNow);
+    backupActions.appendChild(btnOpenFolder);
+    secBackup.appendChild(backupActions);
+
+    const backupHistoryTitle = el('div', 'settings-section-title', 'Backup history');
+    backupHistoryTitle.style.marginTop = '10px';
+    secBackup.appendChild(backupHistoryTitle);
+    const backupHistory = el('div', 'settings-backup-history');
+    backupHistory.id = 'backup-history';
+    secBackup.appendChild(backupHistory);
+    card.appendChild(secBackup);
+
     const footer = el('div', 'settings-footer');
     const btnClose = el('button', 'btn btn-accent', 'Close');
     footer.appendChild(btnClose);
@@ -185,6 +236,8 @@ function syncUI() {
         if (accentGlobalCb) accentGlobalCb.checked = state.accent_global;
         if (accentGlobalColorInput) accentGlobalColorInput.value = state.accent_global_color || '#6366f1';
         if (globalColorRow) globalColorRow.style.display = state.accent_global ? '' : 'none';
+        if (freqSelect) freqSelect.value = state.backupFrequency;
+        if (retentionInput) retentionInput.value = state.backupRetention;
     }
 
     function open() {
@@ -243,6 +296,97 @@ function syncUI() {
             setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
         }
     });
+    freqSelect.addEventListener('change', () => {
+        state.backupFrequency = freqSelect.value;
+        api.setSetting('backup_frequency', freqSelect.value);
+    });
+    retentionInput.addEventListener('change', () => {
+        let val = parseInt(retentionInput.value, 10);
+        if (isNaN(val) || val < 1) val = 1;
+        if (val > 500) val = 500;
+        retentionInput.value = val;
+        state.backupRetention = val;
+        api.setSetting('backup_retention', String(val));
+    });
+    btnBackupNow.addEventListener('click', async () => {
+        btnBackupNow.disabled = true;
+        try {
+            const res = await api.createBackup();
+            if (res && res.ok) {
+                showToast('Backup', res.message || 'Backup created', 'success');
+            } else {
+                showToast('Backup', (res && res.message) || 'Backup failed', 'error');
+            }
+        } catch (e) {
+            showToast('Backup', (e && e.message) || 'Backup failed', 'error');
+        }
+        renderBackupHistory();
+        btnBackupNow.disabled = false;
+    });
+    btnOpenFolder.addEventListener('click', () => api.openBackupsFolder());
+
+    async function renderBackupHistory() {
+        let entries = [];
+        try {
+            entries = await api.listBackups();
+        } catch (e) {
+            console.warn('[backup list]', e?.message || e);
+        }
+        backupHistory.innerHTML = '';
+        if (!entries || entries.length === 0) {
+            const empty = el('div', 'settings-backup-empty dim', 'No backups yet. Click “Backup now” to create one.');
+            backupHistory.appendChild(empty);
+            return;
+        }
+        entries.forEach((entry) => {
+            const row = el('div', 'settings-backup-row');
+            const info = el('div', 'settings-backup-info');
+            const name = el('div', 'settings-backup-name', entry.filename);
+            const meta = el('div', 'settings-backup-meta');
+            const date = new Date(entry.createdAt);
+            const parts = [date.toLocaleString()];
+            if (entry.projectsCount > 0) parts.push(entry.projectsCount + ' projects');
+            if (entry.settingsIncluded) parts.push('settings');
+            if (entry.sizeBytes) parts.push(formatSize(entry.sizeBytes));
+            meta.textContent = parts.join(' · ');
+            info.appendChild(name);
+            info.appendChild(meta);
+            row.appendChild(info);
+            if (!entry.valid) {
+                const badge = el('span', 'settings-backup-badge error', 'invalid');
+                badge.title = entry.error || '';
+                row.appendChild(badge);
+            } else {
+                const restoreBtn = el('button', 'btn btn-small', 'Restore');
+                restoreBtn.addEventListener('click', async () => {
+                    const ok = await window.messageDialog.confirm({
+                        title: 'Restore backup',
+                        message: `Restore projects and settings from ${entry.filename}? Current settings will be backed up first.`,
+                        confirmLabel: 'Restore',
+                        destructive: true,
+                        trigger: restoreBtn,
+                    });
+                    if (!ok) return;
+                    const errs = await api.restoreBackup(entry.filename);
+                    if (errs && errs.length) {
+                        showToast('Restore', errs.join('\n'), 'error');
+                    } else {
+                        showToast('Restore', 'Restored from ' + entry.filename, 'success');
+                        renderBackupHistory();
+                    }
+                });
+                row.appendChild(restoreBtn);
+            }
+            backupHistory.appendChild(row);
+        });
+    }
+
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
     btnClose.addEventListener('click', close);
     overlay.addEventListener('mousedown', (e) => {
         if (e.target === overlay) close();
@@ -291,10 +435,41 @@ function syncUI() {
                 delete state.accent_overrides[style];
             }
             setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
+        } else if (key === 'backup_frequency') {
+            state.backupFrequency = value;
+        } else if (key === 'backup_retention') {
+            const n = parseInt(value, 10);
+            if (!isNaN(n)) state.backupRetention = n;
         } else {
             return;
         }
         syncUI();
+    });
+
+    // Restore desde Go (tras restaurar settings.json): re-aplicar sin persistir.
+    events().EventsOn('settings:reloaded', async () => {
+        try {
+            const s = await api.getSettings();
+            if (s) {
+                if (isValidTheme(s.theme)) state.theme = s.theme;
+                if (isValidStyle(s.style)) state.style = s.style;
+                if (typeof s.monitor_polling === 'boolean') state.monitor_polling = s.monitor_polling;
+                if (typeof s.toasts_enabled === 'boolean') state.toasts_enabled = s.toasts_enabled;
+                if (s.accent_overrides && typeof s.accent_overrides === 'object') state.accent_overrides = s.accent_overrides;
+                if (typeof s.accent_global === 'boolean') state.accent_global = s.accent_global;
+                if (typeof s.accent_global_color === 'string') state.accent_global_color = s.accent_global_color;
+                if (typeof s.backup_frequency === 'string') state.backupFrequency = s.backup_frequency;
+                if (typeof s.backup_retention === 'number') state.backupRetention = s.backup_retention;
+            }
+        } catch (e) {
+            console.warn('[settings reloaded]', e?.message || e);
+        }
+        applyTheme(state.theme, { persist: false });
+        applyStyle(state.style, { persist: false });
+        setToastsEnabled(state.toasts_enabled);
+        setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
+        syncUI();
+        renderBackupHistory();
     });
 
 async function init() {
@@ -308,6 +483,8 @@ async function init() {
                 if (s.accent_overrides && typeof s.accent_overrides === 'object') state.accent_overrides = s.accent_overrides;
                 if (typeof s.accent_global === 'boolean') state.accent_global = s.accent_global;
                 if (typeof s.accent_global_color === 'string') state.accent_global_color = s.accent_global_color;
+                if (typeof s.backup_frequency === 'string') state.backupFrequency = s.backup_frequency;
+                if (typeof s.backup_retention === 'number') state.backupRetention = s.backup_retention;
             }
         } catch (error) {
             console.warn('Failed to load settings, using defaults', error);
@@ -319,6 +496,7 @@ async function init() {
         setToastsEnabled(state.toasts_enabled);
         setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
         syncUI();
+        renderBackupHistory();
     }
 
     return { open, close, init, isOpen: () => isOpen, getState: () => ({ ...state }) };

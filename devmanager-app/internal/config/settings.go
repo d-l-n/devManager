@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+
+	"github.com/d-l-n/devmanager/internal/backup"
 )
 
 // Settings porta app/config/settings.py: preferencias de app persistidas
@@ -16,6 +18,9 @@ type Settings struct {
 	AccentOverrides   map[string]string `json:"accent_overrides"`
 	AccentGlobal      bool              `json:"accent_global"`
 	AccentGlobalColor string            `json:"accent_global_color"`
+	// Backup (Issue #71): frecuencia automática + retención del catálogo.
+	BackupFrequency string `json:"backup_frequency"`
+	BackupRetention int    `json:"backup_retention"`
 }
 
 func validStyle(s string) bool {
@@ -46,6 +51,8 @@ func DefaultSettings() Settings {
 		AccentOverrides:   make(map[string]string),
 		AccentGlobal:      false,
 		AccentGlobalColor: "",
+		BackupFrequency:   backup.FreqOff,
+		BackupRetention:   20,
 	}
 }
 
@@ -62,10 +69,19 @@ func LoadSettings(path string) Settings {
 	if !validTheme(s.Theme) {
 		s.Theme = "dark"
 	}
-	if !validStyle(s.Style) { s.Style = "standard" }
+	if !validStyle(s.Style) {
+		s.Style = "standard"
+	}
 	// Ensure AccentOverrides is never nil for JSON serialization.
 	if s.AccentOverrides == nil {
 		s.AccentOverrides = make(map[string]string)
+	}
+	// Backup: frecuencia inválida → off; retención fuera de rango → default.
+	if !backup.ValidFrequency(s.BackupFrequency) {
+		s.BackupFrequency = backup.FreqOff
+	}
+	if s.BackupRetention < 1 || s.BackupRetention > 500 {
+		s.BackupRetention = 20
 	}
 	return s
 }

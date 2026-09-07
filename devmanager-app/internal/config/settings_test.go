@@ -24,6 +24,7 @@ func TestSettingsRoundTrip(t *testing.T) {
 	custom := Settings{
 		Theme: "oled", Style: "brutalist", MonitorPolling: false, ToastsEnabled: false,
 		AccentOverrides: map[string]string{"brutalist": "#ff0000"},
+		BackupFrequency: "daily", BackupRetention: 7,
 	}
 	if err := SaveSettings(path, custom); err != nil {
 		t.Fatalf("save falló: %v", err)
@@ -69,6 +70,7 @@ func TestSettingsPersistAcrossInstances(t *testing.T) {
 	first := Settings{
 		Theme: "light", Style: "standard", MonitorPolling: true, ToastsEnabled: false,
 		AccentOverrides: map[string]string{},
+		BackupFrequency: "weekly", BackupRetention: 50,
 	}
 	if err := SaveSettings(path, first); err != nil {
 		t.Fatalf("save falló: %v", err)
@@ -102,9 +104,25 @@ func TestSaveSettingsFormat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "{\n  \"theme\": \"dark\",\n  \"style\": \"standard\",\n  \"monitor_polling\": true,\n  \"toasts_enabled\": true,\n  \"accent_overrides\": {},\n  \"accent_global\": false,\n  \"accent_global_color\": \"\"\n}"
+	want := "{\n  \"theme\": \"dark\",\n  \"style\": \"standard\",\n  \"monitor_polling\": true,\n  \"toasts_enabled\": true,\n  \"accent_overrides\": {},\n  \"accent_global\": false,\n  \"accent_global_color\": \"\",\n  \"backup_frequency\": \"off\",\n  \"backup_retention\": 20\n}"
 	if string(data) != want {
 		t.Errorf("formato MarshalIndent 2 espacios:\ngot:\n%s\nwant:\n%s", data, want)
+	}
+}
+
+func TestLoadSettingsBackupSanitize(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "settings.json")
+	raw := []byte(`{"theme":"dark","backup_frequency":"bogus","backup_retention":9999}`)
+	if err := os.WriteFile(path, raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := LoadSettings(path)
+	if got.BackupFrequency != "off" {
+		t.Errorf("frecuencia inválida debe sanear a off, got %q", got.BackupFrequency)
+	}
+	if got.BackupRetention != 20 {
+		t.Errorf("retención fuera de rango debe sanear a 20, got %d", got.BackupRetention)
 	}
 }
 

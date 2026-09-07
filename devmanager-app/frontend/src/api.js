@@ -70,6 +70,12 @@ export const api = {
     // Settings
     getSettings: () => app().GetSettings(),
     setSetting: (key, value) => app().SetSetting(key, value),
+    // Backups (Issue #71)
+    createBackup: () => app().CreateBackup(),
+    listBackups: () => app().ListBackups(),
+    validateBackup: (filename) => app().ValidateBackup(filename),
+    restoreBackup: (filename) => app().RestoreBackup(filename),
+    openBackupsFolder: () => app().OpenBackupsFolder(),
     // App
     reloadProjects: () => app().ReloadProjects(),
     autoAssignPorts: () => app().AutoAssignPorts(),

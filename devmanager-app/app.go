@@ -41,6 +41,9 @@ type App struct {
 	settingsPath string
 	settings     config.Settings
 
+	// Backups (Issue #71): serializa backup manual vs automático.
+	backupMu sync.Mutex
+
 	trayOK    bool // spike tray: Register completó onTrayReady
 	forceExit bool // quit real desde tray/atajo: OnBeforeClose no debe ocultar
 
@@ -118,6 +121,10 @@ func (a *App) startup(ctx context.Context) {
 		}
 	})
 	a.restoreLog = a.appLog.Attach()
+
+	// Backups automáticos (Issue #71): chequeo al arrancar (cubre "la app
+	// estuvo cerrada") + ticker de 15 min mientras la app esté abierta.
+	a.startBackupScheduler()
 
 	// Spike tray (Fase 3 §5.1): el pump se lanza desde main() vía runTray;
 	// onTrayReady marca trayOK y OnBeforeClose oculta salvo forceExit.

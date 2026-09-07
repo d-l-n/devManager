@@ -11,6 +11,7 @@ import (
 
 	wails "github.com/wailsapp/wails/v2/pkg/runtime"
 
+	"github.com/d-l-n/devmanager/internal/backup"
 	"github.com/d-l-n/devmanager/internal/config"
 )
 
@@ -70,6 +71,19 @@ func (a *App) SetSetting(key, value string) []string {
 			return []string{"Invalid accent_global_color value (expected hex color like #ff5500)"}
 		}
 		s.AccentGlobalColor = value
+		normalized = value
+	case "backup_frequency":
+		if !backup.ValidFrequency(value) {
+			return []string{"Invalid backup_frequency value (expected off, hourly, 6h, daily or weekly)"}
+		}
+		s.BackupFrequency = value
+		normalized = value
+	case "backup_retention":
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 1 || n > 500 {
+			return []string{"Invalid backup_retention value (expected integer between 1 and 500)"}
+		}
+		s.BackupRetention = n
 		normalized = value
 	default:
 		// Per-style accent overrides: accent_override.<style>
@@ -196,10 +210,10 @@ func (a *App) CheckForUpdate() UpdateInfo {
 	}
 
 	var release struct {
-		TagName    string `json:"tag_name"`
-		HTMLURL    string `json:"html_url"`
-		Body       string `json:"body"`
-		Assets     []struct {
+		TagName string `json:"tag_name"`
+		HTMLURL string `json:"html_url"`
+		Body    string `json:"body"`
+		Assets  []struct {
 			Name               string `json:"name"`
 			BrowserDownloadURL string `json:"browser_download_url"`
 		} `json:"assets"`
