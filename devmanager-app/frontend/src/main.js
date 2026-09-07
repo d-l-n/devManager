@@ -10,6 +10,7 @@ import { mount as mountMonitor } from './panels/monitor.js';
 import { applyTheme, THEME_CYCLE, currentTheme, getOledMode } from './theme.js';
 import { showToast } from './widgets/toast.js';
 import { mountSettingsView } from './views/settings.js';
+import { mount as mountDashboard } from './views/dashboard.js';
 import { mountProjectDialog } from './dialogs/project.js';
 import { mountAppLogDialog } from './dialogs/applog.js';
 import { mountContextMenu } from './widgets/contextmenu.js';
@@ -430,11 +431,14 @@ function switchView(view) {
     // Handle tab states - only show active for project/monitor, none for settings
     $('view-project').classList.toggle('active', view === 'project');
     $('view-monitor').classList.toggle('active', view === 'monitor');
+    $('view-dashboard').classList.toggle('active', view === 'dashboard');
     
     // Handle view visibility
     $('monitor-view').hidden = view !== 'monitor';
     $('settings-view').hidden = view !== 'settings';
+    $('dashboard-view').hidden = view !== 'dashboard';
     ctx.panels.monitorPanel.setVisible(view === 'monitor');
+    dashboardView.setVisible(view === 'dashboard');
     
     // Render settings view when switching to it
     if (view === 'settings' && window.settingsView && window.settingsView.render) {
@@ -566,6 +570,7 @@ function wireEvents() {
 
     $('view-project').addEventListener('click', () => switchView('project'));
     $('view-monitor').addEventListener('click', () => switchView('monitor'));
+    $('view-dashboard').addEventListener('click', () => switchView('dashboard'));
 
     // Auto-asignar puertos únicos (Task 16)
     $('btn-auto-ports').addEventListener('click', async () => {
@@ -784,6 +789,12 @@ const ctx = {
     events,
     selectedIndex: () => state.selected,
     appendLog,
+    // Dashboard (Issue #64): click en card → seleccionar + volver a Project view.
+    selectProject: (i) => {
+        state.selected = i;
+        renderList();
+        switchView('project');
+    },
 };
 
 const messageDialog = mountMessageDialog();
@@ -830,6 +841,7 @@ ctx.panels = { playwrightPanel, scriptsPanel, gitPanel, depsPanel, evidencePanel
 
 const settingsView = mountSettingsView();
 window.settingsView = settingsView;
+const dashboardView = mountDashboard(ctx);
 const projectDialog = mountProjectDialog(async (savedIndex) => {
     await refreshProjects(false);
     // Auto-select the newly added/edited project

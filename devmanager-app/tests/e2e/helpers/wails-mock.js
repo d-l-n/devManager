@@ -152,7 +152,26 @@ export async function install(page, { projects = seedProjects() } = {}) {
             GitDeleteTag: () => {}, GitPushTag: () => {},
             GetDeps: () => ({ manager: '', deps: [] }),
             GetDepsAudit: () => ({ manager: '', vulns: [] }),
-            GetMonitorData: () => ({ portRows: [], resRows: [] }),
+            GetMonitorData: () => ({
+                portRows: [],
+                resRows: [{ name: 'Gamma', pid: 111, children: 2, cpu: 12.5, rss: 45 }],
+            }),
+            // Historial 24h: Alpha corriendo 2h, Gamma 1h, Beta sin datos.
+            GetDashboardHistory: () => {
+                const nowSec = Math.floor(Date.now() / 1000);
+                const series = (fromSec, running) => {
+                    const arr = [];
+                    for (let t = nowSec - fromSec; t <= nowSec; t += 60) {
+                        arr.push({ ts: t, running, uptime_sec: running ? nowSec - t : 0 });
+                    }
+                    return arr;
+                };
+                return [
+                    { name: 'Alpha', samples: series(2 * 3600, true) },
+                    { name: 'Beta', samples: [] },
+                    { name: 'Gamma', samples: series(3600, true) },
+                ];
+            },
             KillTree: () => {},
             GetEvidence: () => [],
             GetEvidenceThumbnail: () => '',

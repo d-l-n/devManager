@@ -12,6 +12,7 @@ import (
 	wails "github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"github.com/d-l-n/devmanager/internal/config"
+	"github.com/d-l-n/devmanager/internal/dashboard"
 	"github.com/d-l-n/devmanager/internal/logger"
 	"github.com/d-l-n/devmanager/internal/models"
 	"github.com/d-l-n/devmanager/internal/obscura"
@@ -43,6 +44,9 @@ type App struct {
 
 	// Backups (Issue #71): serializa backup manual vs automático.
 	backupMu sync.Mutex
+
+	// Dashboard (Issue #64): historial de uptime persistido.
+	historyStore *dashboard.Store
 
 	trayOK    bool // spike tray: Register completó onTrayReady
 	forceExit bool // quit real desde tray/atajo: OnBeforeClose no debe ocultar
@@ -126,6 +130,9 @@ func (a *App) startup(ctx context.Context) {
 	// estuvo cerrada") + ticker de 15 min mientras la app esté abierta.
 	a.startBackupScheduler()
 
+	// Dashboard (Issue #64): sampler de uptime cada 60s + store persistido.
+	a.startDashboardSampler()
+
 	// Spike tray (Fase 3 §5.1): el pump se lanza desde main() vía runTray;
 	// onTrayReady marca trayOK y OnBeforeClose oculta salvo forceExit.
 }
@@ -194,6 +201,7 @@ func (a *App) stopAllRunners() {
 // ventana (paridad _real_exit).
 func (a *App) shutdown(ctx context.Context) {
 	a.stopAllRunners()
+	a.flushDashboardHistory()
 	if a.restoreLog != nil {
 		a.restoreLog()
 		a.restoreLog = nil

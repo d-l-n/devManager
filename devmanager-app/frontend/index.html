@@ -33,6 +33,7 @@
             <div class="seg-group">
                 <button id="view-project" class="seg active">Project</button>
                 <button id="view-monitor" class="seg">Monitor</button>
+                <button id="view-dashboard" class="seg">Dashboard</button>
             </div>
             <div class="app-bar-actions">
                 <button id="btn-reload" class="icon-btn" title="Reload projects" aria-label="Reload projects" data-icon="refresh"></button>
@@ -284,6 +285,23 @@
                     No backlog items yet.<br>Select a project and add an item to start tracking tasks.
                 </div>
             </section>
+        </section>
+        <section id="dashboard-view" hidden>
+            <header id="dashboard-toolbar">
+                <span id="dash-summary" class="dim"></span>
+                <button id="dash-refresh" class="btn btn-accent">Refresh</button>
+                <button id="dash-start-all" class="btn btn-accent">Start all</button>
+                <button id="dash-stop-all" class="btn btn-warn">Stop all</button>
+            </header>
+            <div class="group grow">
+                <div id="dash-cards"></div>
+                <div id="dash-empty" class="dim center padded" hidden>No projects yet. Add one to get started!</div>
+            </div>
+            <div class="group grow">
+                <div class="group-title">Uptime (24h)</div>
+                <div id="dash-uptimes"></div>
+                <div id="dash-uptimes-empty" class="dim center padded" hidden>No uptime history yet. The app samples every server once per minute.</div>
+            </div>
         </section>
         <section id="monitor-view" hidden>
             <header id="monitor-toolbar">

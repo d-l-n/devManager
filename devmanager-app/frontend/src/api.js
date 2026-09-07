@@ -47,6 +47,8 @@ export const api = {
     // Monitor
     getMonitorData: () => app().GetMonitorData(),
     killTree: (pid) => app().KillTree(pid),
+    // Dashboard (Issue #64)
+    getDashboardHistory: () => app().GetDashboardHistory(),
     // Evidence / externals
     getEvidence: (i) => app().GetEvidence(i),
     getEvidenceThumbnail: (path) => app().GetEvidenceThumbnail(path),
