@@ -8,14 +8,23 @@ jobs:
       matrix: ${{ steps.m.outputs.matrix }}
     steps:
       - id: m
-        run: echo 'matrix=[{"os":"ubuntu-22.04","arch":"amd64"}]' >> $GITHUB_OUTPUT
+        run: echo 'matrix=[{"os":"ubuntu-22.04","arch":"amd64"}]' >> "$GITHUB_OUTPUT"
+      - name: show output
+        run: cat "$GITHUB_OUTPUT"
+
+  debug:
+    needs: pre
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "raw: ${{ needs.pre.outputs.matrix }}"
+          echo "parsed: ${{ fromJSON(needs.pre.outputs.matrix) }}"
 
   build:
     needs: pre
-    if: ${{ !cancelled() }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.pre.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.pre.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     steps:
       - run: echo "hi ${{ matrix.arch }}"
