@@ -194,10 +194,15 @@ jobs:
         working-directory: ./devmanager-app
         run: |
           eval "$(dbus-launch --sh-syntax)"
+          # -skipbindings: Wails regenerates bindings by running a temp
+          # binary that initializes the systray; in headless CI (xvfb +
+          # synthetic dbus session) the teardown crashes with a SIGSEGV
+          # (godbus nil pointer). Bindings are committed in
+          # devmanager-app/frontend/wailsjs, so they can be skipped.
           if [ "${{ env.BUILD_TYPE }}" = "debug" ]; then
-            xvfb-run wails build -platform ${{ matrix.platform }}/${{ matrix.arch }}
+            xvfb-run wails build -skipbindings -platform ${{ matrix.platform }}/${{ matrix.arch }}
           else
-            xvfb-run wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -upx
+            xvfb-run wails build -skipbindings -platform ${{ matrix.platform }}/${{ matrix.arch }} -upx
           fi
         env:
           CGO_ENABLED: 1
