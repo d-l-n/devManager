@@ -607,21 +607,54 @@
     color: var(--retro-text-dim);
 }
 
-/* ---- Custom checkboxes (Issue #52): square, neon glow ---- */
+/* ---- Custom checkboxes (Issue #52): square, neon glow ----
+   Usa --retro-accent (que por defecto vale --retro-green) para que el
+   acento personalizado de Issue #48 también alcance este control.
+   El borde del estado vacío usa --fg-dim y no --retro-border, que era
+   indistinguible del fondo. */
 :root[data-style="retro"] input[type="checkbox"] {
     border-radius: 0;
     background: var(--retro-bg);
-    border: 1px solid var(--retro-border);
+    border: 1px solid var(--fg-dim);
 }
 :root[data-style="retro"] input[type="checkbox"]:hover {
-    border-color: var(--retro-green);
-    box-shadow: var(--retro-glow-sm) var(--retro-green);
+    border-color: var(--retro-accent);
+    box-shadow: var(--retro-glow-sm) var(--retro-accent);
 }
 :root[data-style="retro"] input[type="checkbox"]:checked {
-    background: var(--retro-green);
-    border-color: var(--retro-green);
-    box-shadow: var(--retro-glow-sm) var(--retro-green);
+    background: var(--retro-accent);
+    border-color: var(--retro-accent);
+    box-shadow: var(--retro-glow-sm) var(--retro-accent);
 }
 :root[data-style="retro"] input[type="checkbox"]:focus-visible {
-    outline-color: var(--retro-green);
+    outline-color: var(--retro-accent);
+}
+/* El verde neón de dark/oled es demasiado claro para un tick blanco (1.4:1):
+   se pinta con --retro-bg, quedando invertido. En light el verde es oscuro
+   y el tick blanco ya contrasta. */
+:root[data-style="retro"][data-theme="dark"] input[type="checkbox"]:checked::after,
+:root[data-style="retro"][data-theme="oled"] input[type="checkbox"]:checked::after {
+    border-color: var(--retro-bg);
+}
+
+/* ---- Custom radios (Issue #52): ronda, glow neón ---- */
+:root[data-style="retro"] input[type="radio"] {
+    background: var(--retro-bg);
+    border: 1px solid var(--fg-dim);
+}
+:root[data-style="retro"] input[type="radio"]:hover {
+    border-color: var(--retro-accent);
+    box-shadow: var(--retro-glow-sm) var(--retro-accent);
+}
+:root[data-style="retro"] input[type="radio"]:checked {
+    background: var(--retro-accent);
+    border-color: var(--retro-accent);
+    box-shadow: var(--retro-glow-sm) var(--retro-accent);
+}
+:root[data-style="retro"] input[type="radio"]:focus-visible {
+    outline-color: var(--retro-accent);
+}
+:root[data-style="retro"][data-theme="dark"] input[type="radio"]:checked::after,
+:root[data-style="retro"][data-theme="oled"] input[type="radio"]:checked::after {
+    background: var(--retro-bg);
 }

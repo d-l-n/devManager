@@ -451,11 +451,14 @@
     color: var(--dracula-red);
 }
 
-/* ---- Custom checkboxes (Issue #52): rounded, purple accent ---- */
+/* ---- Custom checkboxes (Issue #52): rounded, purple accent ----
+   El borde del estado vacío usa --dracula-comment (lo más contrastado que
+   permite la paleta) y el tick se pinta con --dracula-bg: así queda siempre
+   invertido respecto al acento, que es claro en ambos temas. */
 :root[data-style="dracula"] input[type="checkbox"] {
     border-radius: 5px;
     background: var(--dracula-bg);
-    border: 1px solid var(--dracula-border);
+    border: 1px solid var(--dracula-comment);
 }
 :root[data-style="dracula"] input[type="checkbox"]:hover {
     border-color: var(--dracula-purple);
@@ -464,8 +467,39 @@
     background: var(--dracula-purple);
     border-color: var(--dracula-purple);
 }
+:root[data-style="dracula"] input[type="checkbox"]:checked::after {
+    border-color: var(--dracula-bg);
+}
 :root[data-style="dracula"] input[type="checkbox"]:focus-visible {
     outline-color: var(--dracula-purple);
+}
+
+/* ---- Custom radios (Issue #52): ronda, acento púrpura ---- */
+:root[data-style="dracula"] input[type="radio"] {
+    background: var(--dracula-bg);
+    border: 1px solid var(--dracula-comment);
+}
+:root[data-style="dracula"] input[type="radio"]:hover {
+    border-color: var(--dracula-purple);
+}
+:root[data-style="dracula"] input[type="radio"]:checked {
+    background: var(--dracula-purple);
+    border-color: var(--dracula-purple);
+}
+:root[data-style="dracula"] input[type="radio"]:checked::after {
+    background: var(--dracula-bg);
+}
+:root[data-style="dracula"] input[type="radio"]:focus-visible {
+    outline-color: var(--dracula-purple);
+}
+/* En dark/oled --dracula-comment (#6272a4) queda en 2.5–2.8:1 sobre las
+   superficies oscuras. Ahí el borde del estado vacío se deriva de
+   --dracula-fg al 50%, que sí supera 3:1 sobre página y panel. */
+:root[data-style="dracula"][data-theme="dark"] input[type="checkbox"],
+:root[data-style="dracula"][data-theme="dark"] input[type="radio"],
+:root[data-style="dracula"][data-theme="oled"] input[type="checkbox"],
+:root[data-style="dracula"][data-theme="oled"] input[type="radio"] {
+    border-color: color-mix(in srgb, var(--dracula-fg) 50%, transparent);
 }
 
 /* ---- Monitor: port/resource rows (Issue #51) ---- */

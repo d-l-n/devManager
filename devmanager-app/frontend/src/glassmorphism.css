@@ -439,22 +439,54 @@
     background: var(--glass-border);
 }
 
-/* ---- Custom checkboxes (Issue #52): frosted translucent ---- */
+/* ---- Custom checkboxes (Issue #52): frosted translucent ----
+   El relleno encendido se deriva de --accent con color-mix: reproduce
+   exactamente el valor previo de --glass-border-active (rgba del acento al
+   50%) pero además respeta el acento personalizado de Issue #48.
+   El borde del estado vacío usa --fg-dim: --glass-border es translúcido y
+   casi invisible. */
 :root[data-style="glassmorphism"] input[type="checkbox"] {
     border-radius: 6px;
     background: var(--glass-surface);
-    border: 1px solid var(--glass-border);
+    border: 1px solid var(--fg-dim);
     backdrop-filter: blur(var(--glass-blur));
 }
 :root[data-style="glassmorphism"] input[type="checkbox"]:hover {
-    border-color: var(--glass-border-active);
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
     box-shadow: var(--glass-glow);
 }
 :root[data-style="glassmorphism"] input[type="checkbox"]:checked {
-    background: var(--glass-border-active);
-    border-color: var(--glass-border-active);
+    background: color-mix(in srgb, var(--accent) 50%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
     box-shadow: var(--glass-glow);
 }
 :root[data-style="glassmorphism"] input[type="checkbox"]:focus-visible {
-    outline-color: var(--glass-border-active);
+    outline-color: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+/* Sobre el tema claro el relleno translúcido queda claro y el tick blanco
+   no contrasta (2.4:1): ahí el tick usa --fg. */
+:root[data-style="glassmorphism"][data-theme="light"] input[type="checkbox"]:checked::after {
+    border-color: var(--fg);
+}
+
+/* ---- Custom radios (Issue #52): ronda, translúcida ---- */
+:root[data-style="glassmorphism"] input[type="radio"] {
+    background: var(--glass-surface);
+    border: 1px solid var(--fg-dim);
+    backdrop-filter: blur(var(--glass-blur));
+}
+:root[data-style="glassmorphism"] input[type="radio"]:hover {
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+    box-shadow: var(--glass-glow);
+}
+:root[data-style="glassmorphism"] input[type="radio"]:checked {
+    background: color-mix(in srgb, var(--accent) 50%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+    box-shadow: var(--glass-glow);
+}
+:root[data-style="glassmorphism"] input[type="radio"]:focus-visible {
+    outline-color: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+:root[data-style="glassmorphism"][data-theme="light"] input[type="radio"]:checked::after {
+    background: var(--fg);
 }

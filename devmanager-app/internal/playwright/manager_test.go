@@ -77,12 +77,18 @@ func waitForServerState(t *testing.T, sm *server.Manager, want models.ServerStat
 	t.Fatalf("estado servidor %s no alcanzado en %v (actual %s)", want, timeout, sm.State())
 }
 
-func baseProject(serverEnabled bool, pwEnabled bool, pwCommand string) models.Project {
+func baseProject(t *testing.T, serverEnabled bool, pwEnabled bool, pwCommand string) models.Project {
+	t.Helper()
+	// Puerto libre del SO en vez del 5173 fijo: el server.Manager real de
+	// estos tests usa el probePortFn de producción, así que un 5173 ocupado por
+	// otro proceso (p. ej. el dev server de otro proyecto) cambiaría de rama el
+	// arranque y el test fallaría por algo ajeno al código.
+	port := testutil.FreePort(t)
 	return models.Project{
 		Name: "t", Path: ".",
 		Server: models.ServerConfig{
 			Enabled: serverEnabled, Command: "echo srv",
-			Port: 5173, URL: "http://localhost:5173", StartupTimeout: 5000,
+			Port: port, URL: fmt.Sprintf("http://localhost:%d", port), StartupTimeout: 5000,
 		},
 		Playwright: models.PlaywrightConfig{
 			Enabled: pwEnabled, Command: pwCommand,
@@ -117,7 +123,7 @@ func waitFor(t *testing.T, timeout time.Duration, cond func() bool) {
 }
 
 func TestEmptyCommandLogsAndStaysIdle(t *testing.T) {
-	pm, sm, r := newPair(t, baseProject(false, true, ""))
+	pm, sm, r := newPair(t, baseProject(t, false, true, ""))
 	pm.RunTests()
 	if pm.State() != StateIdle {
 		t.Errorf("estado = %s, want idle", pm.State())
@@ -129,7 +135,7 @@ func TestEmptyCommandLogsAndStaysIdle(t *testing.T) {
 }
 
 func TestDisabledPlaywrightRejected(t *testing.T) {
-	pm, sm, r := newPair(t, baseProject(false, false, testutil.EchoCmdStr("hi")))
+	pm, sm, r := newPair(t, baseProject(t, false, false, testutil.EchoCmdStr("hi")))
 	pm.RunTests()
 	if pm.State() != StateIdle {
 		t.Errorf("estado = %s, want idle", pm.State())
@@ -141,14 +147,14 @@ func TestDisabledPlaywrightRejected(t *testing.T) {
 }
 
 func TestDirectRunServerDisabled(t *testing.T) {
-	pm, sm, _ := newPair(t, baseProject(false, true, testutil.ExitCmdStr(0)))
+	pm, sm, _ := newPair(t, baseProject(t, false, true, testutil.ExitCmdStr(0)))
 	pm.RunTests()
 	waitForState(t, pm, StatePassed, 10*time.Second)
 	sm.Stop()
 }
 
 func TestFinishNonZeroIsFailed(t *testing.T) {
-	pm, sm, r := newPair(t, baseProject(false, true, testutil.ExitCmdStr(3)))
+	pm, sm, r := newPair(t, baseProject(t, false, true, testutil.ExitCmdStr(3)))
 	pm.RunTests()
 	waitForState(t, pm, StateFailed, 10*time.Second)
 	waitFor(t, 2*time.Second, func() bool {
@@ -165,12 +171,13 @@ func TestFinishNonZeroIsFailed(t *testing.T) {
 func TestAutoStartWaitsForServerThenRuns(t *testing.T) {
 	// Gate real: el servidor tarda ~2s en "abrir puerto" (ping + echo de URL
 	// detectable por ExtractPortFromLog), dejando STARTING observable.
+	port := testutil.FreePort(t)
 	proj := models.Project{
 		Name: "t", Path: ".",
 		Server: models.ServerConfig{
 			Enabled: true,
-			Command: testutil.SlowEchoCmdStr(2, "Local: http://localhost:5173/"),
-			Port:    5173, URL: "http://localhost:5173", StartupTimeout: 15000,
+			Command: testutil.SlowEchoCmdStr(2, fmt.Sprintf("Local: http://localhost:%d/", port)),
+			Port:    port, URL: fmt.Sprintf("http://localhost:%d", port), StartupTimeout: 15000,
 		},
 		Playwright: models.PlaywrightConfig{
 			Enabled: true, Command: testutil.EchoCmdStr("pw-done"),
@@ -192,7 +199,7 @@ func TestAutoStartWaitsForServerThenRuns(t *testing.T) {
 func TestCancelledWhenServerFailsToStart(t *testing.T) {
 	// Servidor real que nunca abre el puerto; StartupTimeout corto fuerza
 	// la transición a ERROR (paridad del gate inyectado del plan).
-	proj := baseProject(true, true, testutil.EchoCmdStr("never"))
+	proj := baseProject(t, true, true, testutil.EchoCmdStr("never"))
 	proj.Server.Command = testutil.PingCmdStr()
 	proj.Server.StartupTimeout = 800
 	pm, sm, r := newPair(t, proj)
@@ -206,7 +213,7 @@ func TestCancelledWhenServerFailsToStart(t *testing.T) {
 }
 
 func TestStopWhileRunningGoesIdle(t *testing.T) {
-	pm, sm, r := newPair(t, baseProject(false, true, testutil.PingCmdStr()))
+	pm, sm, r := newPair(t, baseProject(t, false, true, testutil.PingCmdStr()))
 	pm.RunTests()
 	waitForState(t, pm, StateRunning, 10*time.Second)
 	pm.Stop()
@@ -218,7 +225,7 @@ func TestStopWhileRunningGoesIdle(t *testing.T) {
 }
 
 func TestAlreadyRunningRejected(t *testing.T) {
-	pm, sm, r := newPair(t, baseProject(false, true, testutil.PingCmdStr()))
+	pm, sm, r := newPair(t, baseProject(t, false, true, testutil.PingCmdStr()))
 	pm.RunTests()
 	waitForState(t, pm, StateRunning, 10*time.Second)
 	before := len(r.logs)
@@ -234,7 +241,7 @@ func TestAlreadyRunningRejected(t *testing.T) {
 }
 
 func TestShowReportEmptyCommand(t *testing.T) {
-	pm, sm, r := newPair(t, baseProject(false, true, ""))
+	pm, sm, r := newPair(t, baseProject(t, false, true, ""))
 	pm.ShowReport()
 	if !r.hasLog("No report command configured") {
 		t.Errorf("log esperado no encontrado: %v", r.logs)
@@ -243,8 +250,8 @@ func TestShowReportEmptyCommand(t *testing.T) {
 }
 
 func TestUpdateProjectChangesCommands(t *testing.T) {
-	pm, sm, _ := newPair(t, baseProject(false, true, testutil.EchoCmdStr("v1")))
-	updated := baseProject(false, true, testutil.EchoCmdStr(fmt.Sprintf("v%d", 2)))
+	pm, sm, _ := newPair(t, baseProject(t, false, true, testutil.EchoCmdStr("v1")))
+	updated := baseProject(t, false, true, testutil.EchoCmdStr(fmt.Sprintf("v%d", 2)))
 	pm.UpdateProject(updated)
 	// Sin aserción directa: UpdateProject no debe panear ni cambiar estado.
 	if pm.State() != StateIdle {
