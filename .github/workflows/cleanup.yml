@@ -10,7 +10,7 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     permissions:
-      actions: read
+      actions: write
     
     steps:
       - name: Delete old artifacts

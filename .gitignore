@@ -64,4 +64,5 @@ devmanager-app/frontend/wailsjs/
 # AI agent/skills configuration (not needed for building)
 .agents/
 .claude/
+.freebuff/
 skills-lock.json
