@@ -222,6 +222,15 @@ func TestApplyRetentionDeletesInvalidFirst(t *testing.T) {
 	if err := os.WriteFile(corrupt, []byte("garbage"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	// mtime explícito: en los inválidos ValidateFile deriva CreatedAt del
+	// ModTime (no hay manifiesto que leer), así que sin esto el orden del
+	// catálogo depende del reloj real y el test pasaba o fallaba según la
+	// fecha. Más nuevo que los válidos = el caso que rompía: el corrupto entra
+	// primero y corría el cupo de keep una posición.
+	corrTime := testNow.Add(2 * time.Hour)
+	if err := os.Chtimes(corrupt, corrTime, corrTime); err != nil {
+		t.Fatal(err)
+	}
 
 	removed, err := ApplyRetention(backupDir, 2)
 	if err != nil {

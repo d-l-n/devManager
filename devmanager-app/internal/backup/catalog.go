@@ -30,15 +30,20 @@ func List(backupDir string) []Entry {
 }
 
 // ApplyRetention elimina los backups más viejos más allá de keep y devuelve
-// cuántos borró. Los inválidos se borran primero (basura > antigüedad).
+// cuántos borró. Los inválidos se borran siempre (basura > antigüedad) y NO
+// consumen cupo: keep cuenta solo backups válidos, los más nuevos. Contarlos
+// por posición en el catálogo borraba válidos de más cuando un inválido se
+// colaba antes que ellos (su CreatedAt sale del ModTime, no del manifiesto).
 func ApplyRetention(backupDir string, keep int) (int, error) {
 	if keep <= 0 {
 		return 0, nil
 	}
-	entries := List(backupDir)
+	entries := List(backupDir) // más nuevo → más viejo
 	removed := 0
-	for i, e := range entries {
-		if i < keep && e.Valid {
+	kept := 0
+	for _, e := range entries {
+		if e.Valid && kept < keep {
+			kept++
 			continue
 		}
 		if err := os.Remove(filepath.Join(backupDir, e.Filename)); err != nil {
