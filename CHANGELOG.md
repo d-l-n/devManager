@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### 🚀 New Features
+- **Advanced Notification System (#66)**: external platforms (Slack, Discord, Telegram Bot API, Microsoft Teams/Power Automate) with per-platform min-priority + event filters, alert rules (`all` or per-event with priority floor), 10/min per-platform rate limiting, retries with linear backoff (0-3), delivery history (last 200, `notify-history.jsonl`) and settings UI with test-fire button; global gate via `external_notifications` (default on) and lifecycle hooks on server start/stop/error
+- **Integrated Development Tools (#68)**: new Tools tab with sandboxed file browser (paths clamped to project root), file editor (1 MB cap, dirty tracking), file search by name + content (node_modules/.git/dist excluded, 500 results cap), persistent snippets (`snippets.json`) runnable as scripts, and a Ctrl+K command palette mixing quick actions with saved snippets
+- **Touch Support & Internationalization (#69)**: i18n with English/Spanish/Arabic (RTL) via `language` setting, locale-aware date/number/bytes formatting, `data-i18n` DOM translation pass, touch mode (`touch_optimized`) with 44px targets, 16px inputs to avoid iOS zoom and swipe-to-switch-tabs navigation (direction-aware under RTL)
+
 - **Workflows, Webhooks & CI-CD Integration (#65, MVP)**: per-project workflows (`manual`/`schedule`/`event` triggers, `command`/`notify`/`webhook`/`ci_trigger` steps with retry + timeout), sequential executor with persistent run history (cap 100/workflow), 60s schedule ticker with running-dedupe, event fan-out (`server_started`/`server_stopped`/`tests_finished`/`webhook_received`), outgoing webhooks (`POST {event,project,at,payload}`), incoming localhost listener (`POST /hook/{workflowId}`, default `127.0.0.1:9876`, settings `workflow_webhook_port`/`workflow_webhook_enabled`), CI/CD per project (GitHub dispatch, GitLab pipeline, Jenkins build; tokens via `env:NAME`, masked in reads) and a Workflows tab with inline editor, runs, webhooks and CI panels
 
 ## [2.1.0] - 2026-09-07

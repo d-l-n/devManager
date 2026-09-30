@@ -47,10 +47,13 @@ export async function install(page, { projects = seedProjects() } = {}) {
         const state = {
             projects: JSON.parse(JSON.stringify(seedProjects)),
             serverStates: new Map(), // index -> 'stopped' | 'running' | 'starting'
+            pwStates: new Map(),     // index -> 'idle' | 'running' | 'passed' | 'failed' | 'error'
+            portRows: [],            // filas de puertos del monitor (state ours/foreign/free)
             settings: {
                 theme: 'dark', style: 'standard', monitor_polling: true,
                 toasts_enabled: true, accent_overrides: {}, accent_global: false,
                 accent_global_color: '', backup_frequency: 'off', backup_retention: 20,
+                dashboard_sections: {},
             },
             nextId: 1,
         };
@@ -139,9 +142,19 @@ export async function install(page, { projects = seedProjects() } = {}) {
             },
             GetServerStatus: (i) => (okIndex(i) ? baseStatus(i) : baseStatus(0)),
             // Playwright / scripts / git / deps / monitor / evidence: defaults inertes
-            RunTests: () => {}, RunUI: () => {}, RunDebug: () => {}, ShowReport: () => {},
+            // Playwright: RunTests simula ejecución (running → passed a los
+            // 250ms + server:state para forzar refresh en la vista visible).
+            RunTests: (i) => {
+                state.pwStates.set(i, 'running');
+                emit('server:state', { index: i });
+                setTimeout(() => {
+                    state.pwStates.set(i, 'passed');
+                    emit('server:state', { index: i });
+                }, 250);
+            },
+            RunUI: () => {}, RunDebug: () => {}, ShowReport: () => {},
             StopPlaywright: () => {},
-            GetPlaywrightStatus: () => ({ state: 'off' }),
+            GetPlaywrightStatus: (i) => ({ state: state.pwStates.get(i) || 'idle' }),
             GetScripts: () => [],
             RunScript: () => {}, StopScript: () => {},
             GetScriptStatus: () => ({ running: false, activeName: '' }),
@@ -153,16 +166,22 @@ export async function install(page, { projects = seedProjects() } = {}) {
             GetDeps: () => ({ manager: '', deps: [] }),
             GetDepsAudit: () => ({ manager: '', vulns: [] }),
             GetMonitorData: () => ({
-                portRows: [],
+                portRows: state.portRows,
                 resRows: [{ name: 'Gamma', pid: 111, children: 2, cpu: 12.5, rss: 45 }],
             }),
             // Historial 24h: Alpha corriendo 2h, Gamma 1h, Beta sin datos.
+            // Los samples running incluyen cpu/rss para la sección Performance.
             GetDashboardHistory: () => {
                 const nowSec = Math.floor(Date.now() / 1000);
                 const series = (fromSec, running) => {
                     const arr = [];
                     for (let t = nowSec - fromSec; t <= nowSec; t += 60) {
-                        arr.push({ ts: t, running, uptime_sec: running ? nowSec - t : 0 });
+                        arr.push({
+                            ts: t, running,
+                            uptime_sec: running ? nowSec - t : 0,
+                            cpu: running ? 10 + (Math.floor(t / 60) % 5) : 0,
+                            rss: running ? 40 + (Math.floor(t / 60) % 10) : 0,
+                        });
                     }
                     return arr;
                 };
@@ -210,7 +229,16 @@ export async function install(page, { projects = seedProjects() } = {}) {
                         }
                         s[key] = value; break;
                     default:
-                        if (key.startsWith('accent_override.')) {
+                        if (key.startsWith('dashboard_section.')) {
+                            const section = key.slice('dashboard_section.'.length);
+                            if (!['projects', 'alerts', 'uptime', 'perf'].includes(section)) {
+                                return ['Invalid dashboard section: ' + section];
+                            }
+                            if (value !== 'true' && value !== 'false') {
+                                return ['Invalid dashboard_section value (expected true or false)'];
+                            }
+                            s.dashboard_sections[section] = value === 'true';
+                        } else if (key.startsWith('accent_override.')) {
                             const style = key.slice('accent_override.'.length);
                             if (value === '' || value === 'default') delete s.accent_overrides[style];
                             else s.accent_overrides[style] = value;
@@ -239,6 +267,25 @@ export async function install(page, { projects = seedProjects() } = {}) {
                 updateUrl: '', downloadUrl: '', releaseNotes: '', isUpToDate: true,
             }),
             GetProjectFeatures: () => ({ hasPackageManager: true, hasEvidenceFiles: true }),
+            // Dev tools (Issue #68): file browser + editor + snippets.
+            DevListDir: () => [
+                { name: 'src', rel: 'src', isDir: true, size: 0 },
+                { name: 'package.json', rel: 'package.json', isDir: false, size: 24 },
+            ],
+            DevReadFile: () => 'console.log(1);\n',
+            DevWriteFile: () => null,
+            DevSearchFiles: () => [],
+            DevGetSnippets: () => [],
+            DevSaveSnippet: () => null,
+            DevDeleteSnippet: () => null,
+            // Notificaciones externas (Issue #66).
+            NotifyGetConfig: () => ({ platforms: [], rules: [], events: ['app'], priorities: ['info'] }),
+            NotifyHistory: () => [],
+            NotifySavePlatform: () => null,
+            NotifyDeletePlatform: () => null,
+            NotifySaveRule: () => null,
+            NotifyDeleteRule: () => null,
+            NotifyEventFire: () => null,
             GetBacklog: () => [],
             AddBacklogItem: () => {}, UpdateBacklogItem: () => {},
             DeleteBacklogItem: () => {}, MoveBacklogItem: () => {},

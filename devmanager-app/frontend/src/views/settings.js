@@ -7,6 +7,9 @@ import {
 } from '../theme.js';
 import { setToastsEnabled, showToast } from '../widgets/toast.js';
 import { icon, hydrateIcons } from '../icons.js';
+import { mountExternalNotifications } from '../widgets/external-notifications.js';
+import { LANGUAGES, setLanguage, applyTranslations, t } from '../i18n.js';
+import { setTouchMode } from '../touch.js';
 
 const $ = (id) => document.getElementById(id);
 const normBool = (v) => v === true || v === 'true';
@@ -125,6 +128,9 @@ export function mountSettingsView() {
         accent_overrides: {},
         accent_global: false,
         accent_global_color: '',
+        external_notifications: true,
+        language: 'en',
+        touch_optimized: false,
     };
 
     // Store references to elements
@@ -137,6 +143,10 @@ export function mountSettingsView() {
     let accentGlobalCheckbox = null;
     let accentGlobalColorInput = null;
     let accentResetBtn = null;
+    let externalNotificationsCheckbox = null;
+    let notifyPanel = null;
+    let languageSelect = null;
+    let touchCheckbox = null;
 
 function render() {
     // Don't render if the view is not visible
@@ -183,6 +193,27 @@ function render() {
         oledModeCheckbox = el('input');
         oledModeCheckbox.type = 'checkbox';
         oledModeCheckbox.id = 'oled-mode';
+    }
+
+    if (!externalNotificationsCheckbox) {
+        externalNotificationsCheckbox = el('input');
+        externalNotificationsCheckbox.type = 'checkbox';
+        externalNotificationsCheckbox.id = 'external-notifications';
+    }
+
+    if (!languageSelect) {
+        languageSelect = el('select', 'text-input');
+        languageSelect.id = 'language-select';
+        LANGUAGES.forEach((l) => {
+            const o = el('option', '', l.label);
+            o.value = l.code;
+            languageSelect.appendChild(o);
+        });
+    }
+    if (!touchCheckbox) {
+        touchCheckbox = el('input');
+        touchCheckbox.type = 'checkbox';
+        touchCheckbox.id = 'touch-optimized';
     }
     
     // Setup event listeners if not already done
@@ -285,7 +316,7 @@ function render() {
         styleSection.appendChild(styleContainer);
         }
 
-        // Display Section
+        // Display Section (i18n + touch, Issue #69)
         const displaySection = $('settings-display-section');
         if (!displaySection) {
             console.warn('settings-display-section not found');
@@ -304,6 +335,27 @@ function render() {
         );
         oledContainer.appendChild(oledLabel);
         displaySection.appendChild(oledContainer);
+
+        // Idioma (Issue #69)
+        const langContainer = el('div', 'settings-options');
+        const langLabel = el('label', 'settings-option');
+        langLabel.appendChild(languageSelect);
+        const langCopy = el('span', 'settings-option-copy');
+        langCopy.appendChild(el('span', 'settings-option-label', 'Language'));
+        langCopy.appendChild(el('span', 'settings-option-description', 'Interface language with right-to-left support for Arabic')); 
+        langLabel.appendChild(langCopy);
+        langContainer.appendChild(langLabel);
+        displaySection.appendChild(langContainer);
+
+        // Modo táctil (Issue #69)
+        const touchContainer = el('div', 'settings-options');
+        const touchLabel = optionRow(
+            'Touch Mode',
+            'Larger 44px touch targets and swipe navigation between tabs for tablets and touch devices',
+            touchCheckbox
+        );
+        touchContainer.appendChild(touchLabel);
+        displaySection.appendChild(touchContainer);
         }
 
         // Notifications Section
@@ -325,6 +377,24 @@ function render() {
         );
         toastContainer.appendChild(toastLabel);
         notificationsSection.appendChild(toastContainer);
+
+        // Notificaciones externas (Issue #66): gate + plataformas/reglas/historial.
+        const extContainer = el('div', 'settings-options');
+        const extLabel = optionRow(
+            'External Notifications',
+            'Send events to Slack, Discord, Telegram or Microsoft Teams with routing rules and rate limiting',
+            externalNotificationsCheckbox
+        );
+        extContainer.appendChild(extLabel);
+        notificationsSection.appendChild(extContainer);
+
+        const notifyAnchor = el('div');
+        notificationsSection.appendChild(notifyAnchor);
+        if (!notifyPanel) {
+            notifyPanel = mountExternalNotifications(notifyAnchor);
+        } else {
+            notifyPanel.refresh();
+        }
         }
 
         // Monitoring Section
@@ -433,6 +503,9 @@ function render() {
         monitorPollingCheckbox.checked = state.monitor_polling;
         toastsEnabledCheckbox.checked = state.toasts_enabled;
         oledModeCheckbox.checked = state.oled_mode;
+        if (externalNotificationsCheckbox) externalNotificationsCheckbox.checked = state.external_notifications;
+        if (languageSelect) languageSelect.value = state.language;
+        if (touchCheckbox) touchCheckbox.checked = state.touch_optimized;
 
         // Accent state
         if (accentColorInput) {
@@ -507,6 +580,33 @@ function render() {
                     }
                 });
                 oledModeCheckbox.setAttribute('data-listener-added', 'true');
+            }
+
+            if (externalNotificationsCheckbox && !externalNotificationsCheckbox.hasAttribute('data-listener-added')) {
+                externalNotificationsCheckbox.addEventListener('change', async () => {
+                    state.external_notifications = externalNotificationsCheckbox.checked;
+                    await api.setSetting('external_notifications', String(state.external_notifications));
+                });
+                externalNotificationsCheckbox.setAttribute('data-listener-added', 'true');
+            }
+
+            if (languageSelect && !languageSelect.hasAttribute('data-listener-added')) {
+                languageSelect.addEventListener('change', async () => {
+                    state.language = languageSelect.value;
+                    setLanguage(state.language);
+                    await api.setSetting('language', state.language);
+                    applyTranslations(document);
+                });
+                languageSelect.setAttribute('data-listener-added', 'true');
+            }
+
+            if (touchCheckbox && !touchCheckbox.hasAttribute('data-listener-added')) {
+                touchCheckbox.addEventListener('change', async () => {
+                    state.touch_optimized = touchCheckbox.checked;
+                    setTouchMode(state.touch_optimized);
+                    await api.setSetting('touch_optimized', String(state.touch_optimized));
+                });
+                touchCheckbox.setAttribute('data-listener-added', 'true');
             }
 
             // Accent color per-style picker
@@ -631,6 +731,9 @@ async function init() {
                 if (s.accent_overrides && typeof s.accent_overrides === 'object') state.accent_overrides = s.accent_overrides;
                 if (typeof s.accent_global === 'boolean') state.accent_global = s.accent_global;
                 if (typeof s.accent_global_color === 'string') state.accent_global_color = s.accent_global_color;
+                if (typeof s.external_notifications === 'boolean') state.external_notifications = s.external_notifications;
+                if (typeof s.language === 'string') state.language = s.language;
+                if (typeof s.touch_optimized === 'boolean') state.touch_optimized = s.touch_optimized;
             }
         } catch (error) {
             console.warn('Failed to load settings, using defaults', error);

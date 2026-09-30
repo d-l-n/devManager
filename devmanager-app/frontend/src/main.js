@@ -9,6 +9,9 @@ import { mount as mountBacklog } from './panels/backlog.js';
 import { mount as mountWorkflows } from './panels/workflows.js';
 import { mount as mountMonitor } from './panels/monitor.js';
 import { mount as mountTestAdv } from './panels/testadv.js';
+import { mountTools } from './panels/tools.js';
+import { setLanguage, applyTranslations, t } from './i18n.js';
+import { setTouchMode, onSwipe } from './touch.js';
 import { applyTheme, THEME_CYCLE, currentTheme, getOledMode } from './theme.js';
 import { showToast } from './widgets/toast.js';
 import { mountSettingsView } from './views/settings.js';
@@ -251,6 +254,7 @@ function renderDetail() {
     ctx.panels.backlogPanel.onProjectChanged(p);
     ctx.panels.workflowsPanel.onProjectChanged(p);
     ctx.panels.testadvPanel.onProjectChanged(p);
+    ctx.panels.toolsPanel.onProjectChanged(p);
     applyTabOrder();
     applyTabVisibility();
 }
@@ -380,7 +384,7 @@ function applyTabOrder() {
     const nav = document.getElementById('tabs');
     if (!nav) return;
     const saved = (state.projects[i].tabs && state.projects[i].tabs.order) || [];
-    const known = ['logs', 'scripts', 'git', 'deps', 'playwright', 'evidence', 'obscura', 'backlog', 'workflows'];
+    const known = ['logs', 'scripts', 'git', 'deps', 'playwright', 'evidence', 'obscura', 'backlog', 'workflows', 'tools'];
     const byId = (id) => nav.querySelector(`.tab[data-tab="${id}"]`);
     const seen = new Set();
     const ordered = [];
@@ -960,7 +964,8 @@ const monitorPanel = mountMonitor(ctx);
 const backlogPanel = mountBacklog(ctx);
 const workflowsPanel = mountWorkflows(ctx);
 const testadvPanel = mountTestAdv(ctx);
-ctx.panels = { playwrightPanel, scriptsPanel, gitPanel, depsPanel, evidencePanel, obscuraPanel, monitorPanel, backlogPanel, workflowsPanel, testadvPanel };
+const toolsPanel = mountTools(ctx);
+ctx.panels = { playwrightPanel, scriptsPanel, gitPanel, depsPanel, evidencePanel, obscuraPanel, monitorPanel, backlogPanel, workflowsPanel, testadvPanel, toolsPanel };
 
 const settingsView = mountSettingsView();
 window.settingsView = settingsView;
@@ -1005,6 +1010,12 @@ window.backlogItemDialog = backlogItemDialog;
 hydrateIcons();
 updateThemeButtonIcon();
 
+// i18n + touch (Issue #69): aplicar idioma/touch persistidos al arrancar.
+// Los settings reales llegan en boot(); aquí se aplica el default en-US LTR
+// para que los primeros renders ya tengan dir/lang coherentes.
+applyTranslations(document);
+wireTouchGestures();
+
 // Make updateThemeButtonIcon globally accessible for settings dialog
 window.updateThemeButtonIcon = updateThemeButtonIcon;
 
@@ -1020,11 +1031,37 @@ function switchTab(name) {
 document.querySelectorAll('.tab').forEach((btn) =>
     btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 
+// Gestos táctiles (Issue #69): swipe horizontal navega entre tabs del
+// proyecto (logs → … → workflows). Solo activo con touch_optimized.
+function wireTouchGestures() {
+    onSwipe((dir) => {
+        if (!document.documentElement.hasAttribute('data-touch')) return;
+        if (state.view !== 'project' || state.selected < 0) return;
+        const tabs = [...document.querySelectorAll('.tab')].filter((b) => b.style.display !== 'none');
+        const activeIdx = tabs.findIndex((b) => b.classList.contains('active'));
+        if (activeIdx < 0) return;
+        // RTL: swipe a la derecha avanza; LTR: a la izquierda.
+        const rtl = document.documentElement.dir === 'rtl';
+        const delta = dir === 'left' ? 1 : -1;
+        const next = tabs[Math.min(tabs.length - 1, Math.max(0, activeIdx + (rtl ? -delta : delta)))];
+        if (next) switchTab(next.dataset.tab);
+    });
+}
+
 async function boot() {
     wireEvents();
     wireKeyboardShortcuts();
     await refreshProjects(false);
     await settingsView.init(); // carga settings: tema + gate de toasts
+    // i18n + touch (Issue #69): idioma y modo táctil persistidos.
+    try {
+        const s = await api.getSettings();
+        if (s) {
+            setLanguage(s.language || 'en');
+            applyTranslations(document);
+            setTouchMode(!!s.touch_optimized);
+        }
+    } catch { /* sin backend: defaults */ }
     // Background update check (Issue #58)
     checkForUpdateOnBoot();
 }
