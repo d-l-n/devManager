@@ -54,7 +54,7 @@ func clampRoot(root, rel string) (string, error) {
 	if clean == "." || clean == "" {
 		return absRoot, nil
 	}
-	if filepath.IsAbs(clean) || strings.HasPrefix(clean, "..") {
+	if filepath.IsAbs(clean) || strings.HasPrefix(clean, "..") || strings.HasPrefix(clean, "/") || strings.HasPrefix(clean, "\\") || filepath.VolumeName(clean) != "" || (len(clean) >= 2 && clean[1] == ':') {
 		return "", fmt.Errorf("path %q escapes project root", rel)
 	}
 	full := filepath.Join(absRoot, clean)

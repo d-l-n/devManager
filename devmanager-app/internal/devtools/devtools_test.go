@@ -35,8 +35,11 @@ func TestClampRootRechazaTraversal(t *testing.T) {
 	if _, err := clampRoot(t.TempDir(), "../escapes"); err == nil {
 		t.Fatal("../ debe ser rechazado")
 	}
+	if _, err := clampRoot(t.TempDir(), "/absoluto"); err == nil {
+		t.Fatal("ruta absoluta / debe ser rechazada")
+	}
 	if _, err := clampRoot(t.TempDir(), "C:/absoluto"); err == nil {
-		t.Fatal("ruta absoluta debe ser rechazada")
+		t.Fatal("ruta absoluta C:/ debe ser rechazada")
 	}
 	full, err := clampRoot(t.TempDir(), "src/../package.json")
 	if err != nil || !strings.HasSuffix(filepath.ToSlash(full), "/package.json") {
