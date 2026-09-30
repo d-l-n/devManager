@@ -85,6 +85,20 @@ func (a *App) SetSetting(key, value string) []string {
 		}
 		s.BackupRetention = n
 		normalized = value
+	case "workflow_webhook_port":
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 1 || n > 65535 {
+			return []string{"Invalid workflow_webhook_port value (expected integer between 1 and 65535)"}
+		}
+		s.WorkflowWebhookPort = n
+		normalized = value
+	case "workflow_webhook_enabled":
+		b, err := parseStrictBool(value)
+		if err != nil {
+			return []string{"Invalid workflow_webhook_enabled value (expected true or false)"}
+		}
+		s.WorkflowWebhookEnabled = b
+		normalized = strconv.FormatBool(b)
 	default:
 		// Visibilidad de secciones del dashboard: dashboard_section.<section>
 		if strings.HasPrefix(key, "dashboard_section.") {
@@ -131,6 +145,11 @@ func (a *App) SetSetting(key, value string) []string {
 	a.mu.Lock()
 	a.settings = s
 	a.mu.Unlock()
+	// Workflows (Issue #65): puerto/enabled del listener entrante aplican en
+	// vivo (re-bind best-effort, nunca bloquea).
+	if key == "workflow_webhook_port" || key == "workflow_webhook_enabled" {
+		a.restartWorkflowListener()
+	}
 	wails.EventsEmit(a.ctx, "settings:changed", map[string]string{
 		"key": key, "value": normalized,
 	})

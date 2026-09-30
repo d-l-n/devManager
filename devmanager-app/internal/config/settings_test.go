@@ -26,6 +26,7 @@ func TestSettingsRoundTrip(t *testing.T) {
 		AccentOverrides: map[string]string{"brutalist": "#ff0000"},
 		BackupFrequency: "daily", BackupRetention: 7,
 		DashboardSections: map[string]bool{},
+		WorkflowWebhookPort: 9877, WorkflowWebhookEnabled: false,
 	}
 	if err := SaveSettings(path, custom); err != nil {
 		t.Fatalf("save falló: %v", err)
@@ -73,6 +74,7 @@ func TestSettingsPersistAcrossInstances(t *testing.T) {
 		AccentOverrides: map[string]string{},
 		BackupFrequency: "weekly", BackupRetention: 50,
 		DashboardSections: map[string]bool{},
+		WorkflowWebhookPort: 9878, WorkflowWebhookEnabled: true,
 	}
 	if err := SaveSettings(path, first); err != nil {
 		t.Fatalf("save falló: %v", err)
@@ -106,7 +108,7 @@ func TestSaveSettingsFormat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "{\n  \"theme\": \"dark\",\n  \"style\": \"standard\",\n  \"monitor_polling\": true,\n  \"toasts_enabled\": true,\n  \"accent_overrides\": {},\n  \"accent_global\": false,\n  \"accent_global_color\": \"\",\n  \"backup_frequency\": \"off\",\n  \"backup_retention\": 20,\n  \"dashboard_sections\": {}\n}"
+	want := "{\n  \"theme\": \"dark\",\n  \"style\": \"standard\",\n  \"monitor_polling\": true,\n  \"toasts_enabled\": true,\n  \"accent_overrides\": {},\n  \"accent_global\": false,\n  \"accent_global_color\": \"\",\n  \"backup_frequency\": \"off\",\n  \"backup_retention\": 20,\n  \"dashboard_sections\": {},\n  \"workflow_webhook_port\": 9876,\n  \"workflow_webhook_enabled\": true\n}"
 	if string(data) != want {
 		t.Errorf("formato MarshalIndent 2 espacios:\ngot:\n%s\nwant:\n%s", data, want)
 	}

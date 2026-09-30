@@ -78,6 +78,7 @@
                 <button class="tab" data-tab="evidence" role="tab" aria-selected="false">Evidence</button>
                 <button class="tab" data-tab="obscura" role="tab" aria-selected="false">Obscura</button>
                 <button class="tab" data-tab="backlog" role="tab" aria-selected="false">Backlog</button>
+                <button class="tab" data-tab="workflows" role="tab" aria-selected="false">Workflows</button>
                 <button id="btn-tab-settings" class="icon-btn" title="Customize tabs (visibility & order)" aria-label="Customize tabs" style="margin-left:auto"><span data-icon="settings"></span></button>
             </nav>
             <section id="panel-logs" class="panel active" role="tabpanel">
@@ -290,6 +291,64 @@
                     No backlog items yet.<br>Select a project and add an item to start tracking tasks.
                 </div>
             </section>
+
+            <section id="panel-workflows" class="panel" role="tabpanel" aria-labelledby="tab-workflows">
+                <header id="wf-toolbar">
+                    <button id="wf-add" class="btn btn-primary">New Workflow</button>
+                    <button id="wf-refresh" class="btn btn-accent">Refresh</button>
+                    <span class="ev-spacer"></span>
+                    <span id="wf-count" class="dim"></span>
+                </header>
+                <div id="wf-result" class="result-strip" hidden></div>
+                <div class="group">
+                    <div class="group-title">Workflows</div>
+                    <div id="wf-list"></div>
+                    <div id="wf-empty" class="dim center padded">
+                        No workflows yet.<br>Create one to automate commands, notifications, webhooks and CI builds.
+                    </div>
+                </div>
+                <div id="wf-editor" class="group" hidden></div>
+                <div class="group">
+                    <div class="group-title">Fire Test Event</div>
+                    <div class="row-gap">
+                        <select id="wf-event-select" class="text-input" aria-label="Event to fire">
+                            <option value="server_started">server_started</option>
+                            <option value="server_stopped">server_stopped</option>
+                            <option value="tests_finished">tests_finished</option>
+                            <option value="webhook_received">webhook_received</option>
+                        </select>
+                        <button id="wf-fire" class="btn btn-warn">Fire Event</button>
+                        <span id="wf-listener" class="dim"></span>
+                    </div>
+                </div>
+                <div class="group">
+                    <div class="group-title">Recent Runs</div>
+                    <span id="wf-runs-count" class="dim"></span>
+                    <div id="wf-runs"></div>
+                    <div id="wf-runs-empty" class="dim center padded">No runs yet.</div>
+                </div>
+                <div class="group">
+                    <div class="group-title">Outgoing Webhooks</div>
+                    <div class="row-gap">
+                        <input id="wf-hook-name" type="text" class="text-input" placeholder="name" aria-label="Webhook name">
+                        <input id="wf-hook-url" type="text" class="text-input mono" placeholder="https://..." aria-label="Webhook URL" style="min-width:220px">
+                        <select id="wf-hook-events" class="text-input" aria-label="Webhook event">
+                            <option value="server_started">server_started</option>
+                            <option value="server_stopped">server_stopped</option>
+                            <option value="tests_finished">tests_finished</option>
+                            <option value="webhook_received">webhook_received</option>
+                        </select>
+                        <button id="wf-hook-add" class="btn btn-primary">Add Webhook</button>
+                    </div>
+                    <div id="wf-hooks"></div>
+                    <div id="wf-hooks-empty" class="dim center padded">No outgoing webhooks.</div>
+                </div>
+                <div class="group">
+                    <div class="group-title">CI / CD</div>
+                    <div id="wf-ci"></div>
+                </div>
+            </section>
+
             <section id="panel-testadv" class="panel" role="tabpanel" aria-label="Advanced testing"></section>
         </section>
         <section id="dashboard-view" hidden>

@@ -6,6 +6,7 @@ import { mount as mountDeps } from './panels/deps.js';
 import { mount as mountEvidence } from './panels/evidence.js';
 import { mount as mountObscura } from './panels/obscura.js';
 import { mount as mountBacklog } from './panels/backlog.js';
+import { mount as mountWorkflows } from './panels/workflows.js';
 import { mount as mountMonitor } from './panels/monitor.js';
 import { mount as mountTestAdv } from './panels/testadv.js';
 import { applyTheme, THEME_CYCLE, currentTheme, getOledMode } from './theme.js';
@@ -248,6 +249,7 @@ function renderDetail() {
     ctx.panels.evidencePanel.onProjectChanged(p);
     ctx.panels.obscuraPanel.onProjectChanged(p);
     ctx.panels.backlogPanel.onProjectChanged(p);
+    ctx.panels.workflowsPanel.onProjectChanged(p);
     ctx.panels.testadvPanel.onProjectChanged(p);
     applyTabOrder();
     applyTabVisibility();
@@ -378,7 +380,7 @@ function applyTabOrder() {
     const nav = document.getElementById('tabs');
     if (!nav) return;
     const saved = (state.projects[i].tabs && state.projects[i].tabs.order) || [];
-    const known = ['logs', 'scripts', 'git', 'deps', 'playwright', 'evidence', 'obscura', 'backlog'];
+    const known = ['logs', 'scripts', 'git', 'deps', 'playwright', 'evidence', 'obscura', 'backlog', 'workflows'];
     const byId = (id) => nav.querySelector(`.tab[data-tab="${id}"]`);
     const seen = new Set();
     const ordered = [];
@@ -956,8 +958,9 @@ const evidencePanel = mountEvidence(ctx);
 const obscuraPanel = mountObscura(ctx);
 const monitorPanel = mountMonitor(ctx);
 const backlogPanel = mountBacklog(ctx);
+const workflowsPanel = mountWorkflows(ctx);
 const testadvPanel = mountTestAdv(ctx);
-ctx.panels = { playwrightPanel, scriptsPanel, gitPanel, depsPanel, evidencePanel, obscuraPanel, monitorPanel, backlogPanel, testadvPanel };
+ctx.panels = { playwrightPanel, scriptsPanel, gitPanel, depsPanel, evidencePanel, obscuraPanel, monitorPanel, backlogPanel, workflowsPanel, testadvPanel };
 
 const settingsView = mountSettingsView();
 window.settingsView = settingsView;

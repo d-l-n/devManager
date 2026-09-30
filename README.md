@@ -20,6 +20,7 @@ Una aplicación de escritorio nativa para Windows (Go + Wails v2) para gestionar
 - **Tab Evidencia:** Galería de screenshots, videos y traces de `test-results/` con preview integrado, apertura externa y visor de traces; estado automático activo/inactivo según existan evidencias.
 - **Tab Obscura:** Navegador headless auxiliar (herramienta experimental).
 - **Tab Backlog:** Items por proyecto con estados (`todo`, `in-progress`, `done`) y prioridades.
+- **Tab Workflows:** Automatizaciones por proyecto (triggers `manual`/`schedule`/`event`, steps `command`/`notify`/`webhook`/`ci_trigger` con retry + timeout), historial de runs, webhooks salientes/entrantes (`POST /hook/{workflowId}` en `127.0.0.1:9876`) e integración CI/CD (GitHub/GitLab/Jenkins con tokens vía `env:NAME`).
 - **Tab Git:** Rama, estado dirty, ahead/behind, último commit y acciones Pull/Fetch/Stash con salida en vivo en Logs; herramientas de diff, branches y tags.
 - **Tab Monitor:** Estado de puertos configurados (libre/ocupado/proceso ajeno con Kill) y CPU/RAM por árbol de proceso de cada servidor (auto-refresh 3s, configurable en Settings). Ventana global independiente de proyectos (`Ctrl+Alt+M` o botón del sidebar).
 - **Creación de usuarios por proyecto:** Ejecuta un comando de creación de usuario propio del proyecto (Firebase, REST, seed de DB, …) desde la interfaz. El comando recibe los datos en variables de entorno `DM_USER_EMAIL`, `DM_USER_NAME`, `DM_USER_PASSWORD`, `DM_USER_ROLE` (sin interpolación de shell) y se auto-detecta desde `package.json`/scripts al configurar el proyecto.
@@ -105,7 +106,7 @@ devManager/
     ├── app.go                 # Bindings Wails, ciclos de vida, config path
     ├── app_*.go               # Bindings temáticos (user, deps, git, evidence,
     │                          #   playwright, monitor, log, notify, settings,
-    │                          #   backlog, discovery)
+    │                          #   backlog, discovery, workflow)
     ├── tray.go, build.js, run-desktop.bat, build.bat, wails.json
     │
     ├── internal/              # Módulos internos de Go
@@ -113,6 +114,7 @@ devManager/
     │   ├── models/            # Project, ServerConfig, PlaywrightConfig,
     │   │                      #   UserConfig, TabsConfig, BacklogItem
     │   ├── server/            # Ciclo de vida, uptime y estados de servidores
+    │   ├── workflow/          # Workflows: schedules, executor, runs store, CI, webhooks
     │   ├── process/           # Ejecución de procesos (runner, kill tree, consolas ocultas)
     │   ├── playwright/        # Orquestación de tests Playwright
     │   ├── scripts/           # Scripts personalizados por proyecto
@@ -141,7 +143,7 @@ devManager/
     │       ├── dialogs/       # project, settings, tabs, create-user, message,
     │       │                  #   applog, backlog-item
     │       ├── panels/        # git, monitor, playwright, scripts, evidence,
-    │       │                  #   deps, obscura, backlog
+    │       │                  #   deps, obscura, backlog, workflows
     │       ├── views/         # settings (full-screen)
     │       ├── widgets/       # toast, contextmenu
     │       └── __tests__/     # Tests vitest (theme, toast, tabs, create-user, …)

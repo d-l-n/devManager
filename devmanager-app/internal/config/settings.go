@@ -24,6 +24,11 @@ type Settings struct {
 	// Dashboard (Issue #64): visibilidad de secciones (projects/alerts/uptime/
 	// perf). Clave ausente o nil → sección visible (paridad tolerante).
 	DashboardSections map[string]bool `json:"dashboard_sections"`
+	// Workflows (Issue #65): listener HTTP entrante para webhooks.
+	// Port 0/ausente → default 9876; Enabled ausente → true (struct zero
+	// false se distingue por port==0 en Load: legacy sin campos → enabled).
+	WorkflowWebhookPort    int  `json:"workflow_webhook_port"`
+	WorkflowWebhookEnabled bool `json:"workflow_webhook_enabled"`
 }
 
 func validStyle(s string) bool {
@@ -57,6 +62,9 @@ func DefaultSettings() Settings {
 		BackupFrequency:   backup.FreqOff,
 		BackupRetention:   20,
 		DashboardSections: make(map[string]bool),
+		// Workflows (Issue #65): listener entrante localhost:9876 activo.
+		WorkflowWebhookPort:    9876,
+		WorkflowWebhookEnabled: true,
 	}
 }
 
@@ -89,6 +97,23 @@ func LoadSettings(path string) Settings {
 	}
 	if s.DashboardSections == nil {
 		s.DashboardSections = make(map[string]bool)
+	}
+	// Workflows (Issue #65): 0/ausente → 9876; legacy (port 0) → enabled true
+	// salvo que el JSON traiga enabled:false explícito con port válido.
+	if s.WorkflowWebhookPort == 0 {
+		// Distingue legacy (sin campos) de "puerto 0 explícito": ambos caen
+		// al default 9876; deshabilitar se hace con enabled:false.
+		var raw struct {
+			Port    *int  `json:"workflow_webhook_port"`
+			Enabled *bool `json:"workflow_webhook_enabled"`
+		}
+		if err := json.Unmarshal(data, &raw); err == nil && raw.Port == nil && raw.Enabled == nil {
+			s.WorkflowWebhookEnabled = true
+		}
+		s.WorkflowWebhookPort = 9876
+	}
+	if s.WorkflowWebhookPort < 1 || s.WorkflowWebhookPort > 65535 {
+		s.WorkflowWebhookPort = 9876
 	}
 	return s
 }

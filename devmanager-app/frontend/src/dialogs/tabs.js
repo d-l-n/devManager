@@ -14,6 +14,7 @@ export const TABS = [
     { id: 'evidence', label: 'Evidence', customizable: true },
     { id: 'obscura', label: 'Obscura', customizable: true },
     { id: 'backlog', label: 'Backlog', customizable: true },
+    { id: 'workflows', label: 'Workflows', customizable: true },
 ];
 
 export const CUSTOMIZABLE = TABS.filter((t) => t.customizable);

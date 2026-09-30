@@ -22,6 +22,7 @@ import (
 	"github.com/d-l-n/devmanager/internal/process"
 	"github.com/d-l-n/devmanager/internal/scripts"
 	"github.com/d-l-n/devmanager/internal/server"
+	"github.com/d-l-n/devmanager/internal/workflow"
 )
 
 type App struct {
@@ -70,6 +71,17 @@ type App struct {
 	monitorCachedAt time.Time
 	monitorValid    bool
 	monitorMu       sync.Mutex
+
+	// Workflows (Issue #65): historial de runs, dedupe de ejecuciones en
+	// curso, último run por workflow (scheduler) y listener entrante.
+	// wfMu serializa wfRunning/wfLastRun/ciStatus (nunca EventsEmit con lock).
+	wfStore     *workflow.Store
+	wfListener  *workflow.Listener
+	wfMu        sync.Mutex
+	wfRunning   map[string]bool
+	wfLastRun   map[string]time.Time
+	wfSchedStop chan struct{}
+	ciStatus    map[string]CIStatusEntry
 }
 
 // pendingTrayNotify guarda la última notificación durante el cooldown;
@@ -87,6 +99,9 @@ func NewApp() *App {
 		scriptManagers:     map[int]*scripts.Manager{},
 		obscuraManagers:    map[int]*obscura.Manager{},
 		gitBusy:            map[int]bool{},
+		wfRunning:          map[string]bool{},
+		wfLastRun:          map[string]time.Time{},
+		ciStatus:           map[string]CIStatusEntry{},
 	}
 }
 
@@ -134,6 +149,11 @@ func (a *App) startup(ctx context.Context) {
 
 	// Dashboard (Issue #64): sampler de uptime cada 60s + store persistido.
 	a.startDashboardSampler()
+
+	// Workflows (Issue #65): historial + scheduler 60s + listener entrante.
+	a.initWorkflows()
+	a.startWorkflowScheduler()
+	a.startWorkflowListener()
 
 	// Spike tray (Fase 3 §5.1): el pump se lanza desde main() vía runTray;
 	// onTrayReady marca trayOK y OnBeforeClose oculta salvo forceExit.
@@ -203,6 +223,8 @@ func (a *App) stopAllRunners() {
 // ventana (paridad _real_exit).
 func (a *App) shutdown(ctx context.Context) {
 	a.stopAllRunners()
+	a.stopWorkflowScheduler()
+	a.stopWorkflowListener()
 	a.flushDashboardHistory()
 	if a.restoreLog != nil {
 		a.restoreLog()
@@ -594,6 +616,13 @@ func (a *App) createServerManager(index int) *server.Manager {
 			wails.EventsEmit(a.ctx, "server:state", map[string]interface{}{
 				"index": index, "state": string(state),
 			})
+			// Workflows (Issue #65): fan-out de eventos sin bloquear.
+			switch state {
+			case models.StateRunning:
+				go a.FireWorkflowEvent(index, models.WorkflowEventServerStarted, nil)
+			case models.StateStopped:
+				go a.FireWorkflowEvent(index, models.WorkflowEventServerStopped, nil)
+			}
 		},
 		OnLog: func(line string, isError bool) {
 			wails.EventsEmit(a.ctx, "server:log", map[string]interface{}{
@@ -656,7 +685,11 @@ func (a *App) ensureManagers(index int) (*server.Manager, *playwright.Manager, *
 					"index": index, "line": line, "isError": isError,
 				})
 			},
-			OnFinished: func(int) {},
+			// Workflows (Issue #65): tests terminados → evento sin bloquear.
+			OnFinished: func(exitCode int) {
+				go a.FireWorkflowEvent(index, models.WorkflowEventTestsFinished,
+					map[string]interface{}{"exitCode": exitCode})
+			},
 		})
 		a.mu.Lock()
 		a.playwrightManagers[index] = pm

@@ -5,6 +5,11 @@ All notable changes to devManager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🚀 New Features
+- **Workflows, Webhooks & CI-CD Integration (#65, MVP)**: per-project workflows (`manual`/`schedule`/`event` triggers, `command`/`notify`/`webhook`/`ci_trigger` steps with retry + timeout), sequential executor with persistent run history (cap 100/workflow), 60s schedule ticker with running-dedupe, event fan-out (`server_started`/`server_stopped`/`tests_finished`/`webhook_received`), outgoing webhooks (`POST {event,project,at,payload}`), incoming localhost listener (`POST /hook/{workflowId}`, default `127.0.0.1:9876`, settings `workflow_webhook_port`/`workflow_webhook_enabled`), CI/CD per project (GitHub dispatch, GitLab pipeline, Jenkins build; tokens via `env:NAME`, masked in reads) and a Workflows tab with inline editor, runs, webhooks and CI panels
+
 ## [2.1.0] - 2026-09-07
 
 ### 🚀 New Features

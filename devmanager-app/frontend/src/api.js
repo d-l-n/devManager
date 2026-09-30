@@ -139,6 +139,22 @@ export const api = {
     // Updater (Issue #58)
     checkForUpdate: () => app().CheckForUpdate(),
     getVersion: () => app().GetVersion(),
+    // Workflows / Webhooks / CI-CD (Issue #65)
+    listWorkflows: (i) => app().ListWorkflows(i),
+    saveWorkflow: (i, w) => app().SaveWorkflow(i, w),
+    deleteWorkflow: (i, id) => app().DeleteWorkflow(i, id),
+    runWorkflow: (i, id) => app().RunWorkflow(i, id),
+    listWorkflowRuns: () => app().ListWorkflowRuns(),
+    getWorkflowRuns: (id) => app().GetWorkflowRuns(id),
+    triggerEvent: (i, event) => app().TriggerEvent(i, event),
+    listWebhooks: (i) => app().ListWebhooks(i),
+    saveWebhook: (i, wh) => app().SaveWebhook(i, wh),
+    deleteWebhook: (i, id) => app().DeleteWebhook(i, id),
+    saveCIConfig: (i, cfg) => app().SaveCIConfig(i, cfg),
+    getCIConfig: (i) => app().GetCIConfig(i),
+    triggerCIBuild: (i, target) => app().TriggerCIBuild(i, target),
+    getCIStatus: (i, target) => app().GetCIStatus(i, target),
+    getWorkflowListenerAddr: () => app().GetWorkflowListenerAddr(),
 };
 
 // Normaliza versión para display: "v2.0.1" -> "v2.0.1", "2.0.1" -> "v2.0.1", "dev" -> "dev"

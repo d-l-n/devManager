@@ -49,7 +49,7 @@ type UserConfig struct {
 
 // KnownTabs son los ids de tabs del detail view (paridad con index.html).
 // Logs no se puede ocultar: es el fallback del tab activo.
-var KnownTabs = []string{"logs", "scripts", "git", "deps", "playwright", "evidence", "obscura", "backlog"}
+var KnownTabs = []string{"logs", "scripts", "git", "deps", "playwright", "evidence", "obscura", "backlog", "workflows"}
 
 // TabsConfig personaliza por proyecto el detail view: tabs ocultos y orden
 // de aparición. Vacío = comportamiento default (todos visibles, orden del DOM).
@@ -135,6 +135,102 @@ type Project struct {
 	Backlog    []BacklogItem       `json:"backlog"`
 	ActiveEnv  string              `json:"active_env"`
 	Envs       map[string]EnvConfig `json:"envs"`
+	// Workflows (Issue #65): automatizaciones por proyecto. Ausente → vacío
+	// (legacy configs sin estos campos siguen cargando).
+	Workflows []Workflow      `json:"workflows"`
+	Webhooks  []WebhookConfig `json:"webhooks"`
+	CICD      CIConfig        `json:"cicd"`
+}
+
+// ---- Workflows / Webhooks / CI-CD (Issue #65, MVP) ----
+
+// Triggers de workflow.
+const (
+	WorkflowTriggerManual   = "manual"
+	WorkflowTriggerSchedule = "schedule"
+	WorkflowTriggerEvent    = "event"
+)
+
+// Eventos que disparan workflows trigger=event.
+const (
+	WorkflowEventServerStarted   = "server_started"
+	WorkflowEventServerStopped   = "server_stopped"
+	WorkflowEventTestsFinished   = "tests_finished"
+	WorkflowEventWebhookReceived = "webhook_received"
+)
+
+// Kinds de step.
+const (
+	WorkflowStepCommand   = "command"
+	WorkflowStepNotify    = "notify"
+	WorkflowStepWebhook   = "webhook"
+	WorkflowStepCITrigger = "ci_trigger"
+)
+
+// WorkflowStep es un paso secuencial del workflow.
+type WorkflowStep struct {
+	ID         string            `json:"id"`
+	Name       string            `json:"name"`
+	Kind       string            `json:"kind"`
+	Command    string            `json:"command,omitempty"`
+	URL        string            `json:"url,omitempty"`
+	Method     string            `json:"method,omitempty"`
+	Headers    map[string]string `json:"headers,omitempty"`
+	Body       string            `json:"body,omitempty"`
+	CITarget   string            `json:"ci_target,omitempty"`
+	Retry      int               `json:"retry,omitempty"`
+	TimeoutSec int               `json:"timeout_sec,omitempty"`
+}
+
+// Workflow es una automatización por proyecto.
+type Workflow struct {
+	ID       string         `json:"id"`
+	Name     string         `json:"name"`
+	Enabled  bool           `json:"enabled"`
+	Trigger  string         `json:"trigger"`
+	Schedule string         `json:"schedule,omitempty"`
+	Event    string         `json:"event,omitempty"`
+	Steps    []WorkflowStep `json:"steps"`
+}
+
+// WebhookConfig es un webhook saliente por proyecto: ante cada evento
+// listado se POSTea JSON {event, project, at, payload} a URL.
+type WebhookConfig struct {
+	ID      string   `json:"id"`
+	Name    string   `json:"name"`
+	URL     string   `json:"url"`
+	Events  []string `json:"events"`
+	Enabled bool     `json:"enabled"`
+}
+
+// CIConfig agrupa la config CI/CD por proyecto. Los tokens NUNCA van en
+// claro: TokenRef es `env:NAME` (variable de entorno) o vacío.
+type CIConfig struct {
+	GitHub  GitHubCIConfig  `json:"github"`
+	GitLab  GitLabCIConfig  `json:"gitlab"`
+	Jenkins JenkinsCIConfig `json:"jenkins"`
+}
+
+type GitHubCIConfig struct {
+	Owner        string `json:"owner"`
+	Repo         string `json:"repo"`
+	WorkflowFile string `json:"workflow_file"`
+	Ref          string `json:"ref"`
+	TokenRef     string `json:"token_ref"`
+	APIBase      string `json:"api_base,omitempty"`
+}
+
+type GitLabCIConfig struct {
+	BaseURL   string `json:"base_url"`
+	ProjectID string `json:"project_id"`
+	Ref       string `json:"ref"`
+	TokenRef  string `json:"token_ref"`
+}
+
+type JenkinsCIConfig struct {
+	BaseURL  string `json:"base_url"`
+	Job      string `json:"job"`
+	TokenRef string `json:"token_ref"`
 }
 
 // envNameRe valida nombres de entorno: ^[a-z0-9_-]{1,32}$.
@@ -214,6 +310,9 @@ func (p Project) Validate() []string {
 	}
 	errs = append(errs, p.validateTabs()...)
 	errs = append(errs, p.validateEnvs()...)
+	errs = append(errs, p.validateWorkflows()...)
+	errs = append(errs, p.validateWebhooks()...)
+	errs = append(errs, p.validateCI()...)
 	return errs
 }
 
@@ -251,6 +350,155 @@ func (p Project) validateEnvs() []string {
 	}
 	if _, ok := p.Envs[p.ActiveEnv]; !ok {
 		errs = append(errs, fmt.Sprintf(`active environment %q does not exist`, p.ActiveEnv))
+	}
+	return errs
+}
+
+// isHTTPURL reporta si s es http(s)://... (para webhooks y steps).
+func isHTTPURL(s string) bool {
+	s = strings.TrimSpace(s)
+	return strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
+}
+
+// validateWorkflows valida workflows: nombres no vacíos, trigger válido,
+// steps no vacíos, URLs http(s) en steps webhook.
+func (p Project) validateWorkflows() []string {
+	var errs []string
+	seen := map[string]bool{}
+	for i, w := range p.Workflows {
+		where := fmt.Sprintf("workflows[%d]", i)
+		if strings.TrimSpace(w.Name) == "" {
+			errs = append(errs, where+": name cannot be empty")
+		}
+		if w.ID != "" {
+			if seen[w.ID] {
+				errs = append(errs, fmt.Sprintf(where+": duplicate id %q", w.ID))
+			}
+			seen[w.ID] = true
+		}
+		switch w.Trigger {
+		case WorkflowTriggerManual, WorkflowTriggerSchedule, WorkflowTriggerEvent:
+		case "":
+			errs = append(errs, where+": trigger cannot be empty")
+		default:
+			errs = append(errs, fmt.Sprintf(where+": invalid trigger %q", w.Trigger))
+		}
+		if w.Trigger == WorkflowTriggerSchedule && strings.TrimSpace(w.Schedule) == "" {
+			errs = append(errs, where+": schedule cannot be empty for schedule trigger")
+		}
+		if w.Trigger == WorkflowTriggerEvent {
+			switch w.Event {
+			case WorkflowEventServerStarted, WorkflowEventServerStopped,
+				WorkflowEventTestsFinished, WorkflowEventWebhookReceived:
+			case "":
+				errs = append(errs, where+": event cannot be empty for event trigger")
+			default:
+				errs = append(errs, fmt.Sprintf(where+": invalid event %q", w.Event))
+			}
+		}
+		if len(w.Steps) == 0 {
+			errs = append(errs, where+": steps cannot be empty")
+		}
+		for j, s := range w.Steps {
+			swhere := fmt.Sprintf("%s.steps[%d]", where, j)
+			if strings.TrimSpace(s.Name) == "" {
+				errs = append(errs, swhere+": name cannot be empty")
+			}
+			switch s.Kind {
+			case WorkflowStepCommand:
+				if strings.TrimSpace(s.Command) == "" {
+					errs = append(errs, swhere+": command cannot be empty for command step")
+				}
+			case WorkflowStepNotify:
+				if strings.TrimSpace(s.Command) == "" && strings.TrimSpace(s.Body) == "" {
+					errs = append(errs, swhere+": notify step needs command or body as message")
+				}
+			case WorkflowStepWebhook:
+				if !isHTTPURL(s.URL) {
+					errs = append(errs, swhere+": url must be http(s) for webhook step")
+				}
+			case WorkflowStepCITrigger:
+				if strings.TrimSpace(s.CITarget) == "" {
+					errs = append(errs, swhere+": ci_target cannot be empty for ci_trigger step")
+				}
+			case "":
+				errs = append(errs, swhere+": kind cannot be empty")
+			default:
+				errs = append(errs, fmt.Sprintf(swhere+": invalid kind %q", s.Kind))
+			}
+			if s.Retry < 0 || s.Retry > 3 {
+				errs = append(errs, swhere+": retry must be 0-3")
+			}
+			if s.TimeoutSec < 0 || s.TimeoutSec > 3600 {
+				errs = append(errs, swhere+": timeout_sec must be 0-3600")
+			}
+		}
+	}
+	return errs
+}
+
+// validateWebhooks valida webhooks salientes: nombre no vacío, URL http(s),
+// al menos un evento conocido.
+func (p Project) validateWebhooks() []string {
+	var errs []string
+	for i, wh := range p.Webhooks {
+		where := fmt.Sprintf("webhooks[%d]", i)
+		if strings.TrimSpace(wh.Name) == "" {
+			errs = append(errs, where+": name cannot be empty")
+		}
+		if !isHTTPURL(wh.URL) {
+			errs = append(errs, where+": url must be http(s)")
+		}
+		if len(wh.Events) == 0 {
+			errs = append(errs, where+": events cannot be empty")
+		}
+		for _, e := range wh.Events {
+			switch e {
+			case WorkflowEventServerStarted, WorkflowEventServerStopped,
+				WorkflowEventTestsFinished, WorkflowEventWebhookReceived:
+			default:
+				errs = append(errs, fmt.Sprintf(where+": invalid event %q", e))
+			}
+		}
+	}
+	return errs
+}
+
+// validateCI valida URLs http(s) cuando el target está configurado y que los
+// token refs usen formato env:NAME o vacío (nunca token en claro).
+func (p Project) validateCI() []string {
+	var errs []string
+	for _, ref := range []string{p.CICD.GitHub.TokenRef, p.CICD.GitLab.TokenRef, p.CICD.Jenkins.TokenRef} {
+		if ref != "" && !strings.HasPrefix(ref, "env:") {
+			errs = append(errs, fmt.Sprintf("cicd: token_ref %q must use env:NAME format", ref))
+		}
+	}
+	gh := p.CICD.GitHub
+	if gh.Owner != "" || gh.Repo != "" || gh.WorkflowFile != "" {
+		if strings.TrimSpace(gh.Owner) == "" || strings.TrimSpace(gh.Repo) == "" {
+			errs = append(errs, "cicd.github: owner and repo are required together")
+		}
+		if gh.APIBase != "" && !isHTTPURL(gh.APIBase) {
+			errs = append(errs, "cicd.github: api_base must be http(s)")
+		}
+	}
+	gl := p.CICD.GitLab
+	if gl.BaseURL != "" || gl.ProjectID != "" {
+		if !isHTTPURL(gl.BaseURL) {
+			errs = append(errs, "cicd.gitlab: base_url must be http(s)")
+		}
+		if strings.TrimSpace(gl.ProjectID) == "" {
+			errs = append(errs, "cicd.gitlab: project_id is required with base_url")
+		}
+	}
+	jk := p.CICD.Jenkins
+	if jk.BaseURL != "" || jk.Job != "" {
+		if !isHTTPURL(jk.BaseURL) {
+			errs = append(errs, "cicd.jenkins: base_url must be http(s)")
+		}
+		if strings.TrimSpace(jk.Job) == "" {
+			errs = append(errs, "cicd.jenkins: job is required with base_url")
+		}
 	}
 	return errs
 }
@@ -351,6 +599,199 @@ type projectJSON struct {
 	Backlog    *[]backlogItemJSON    `json:"backlog"`
 	ActiveEnv  *string               `json:"active_env"`
 	Envs       *map[string]envConfigJSON `json:"envs"`
+	Workflows  *[]workflowJSON       `json:"workflows"`
+	Webhooks   *[]webhookJSON        `json:"webhooks"`
+	CICD       *ciConfigJSON         `json:"cicd"`
+}
+
+// Tipos sombra para workflows/webhooks/cicd: ausente → vacío (legacy).
+type workflowStepJSON struct {
+	ID         *string            `json:"id"`
+	Name       *string            `json:"name"`
+	Kind       *string            `json:"kind"`
+	Command    *string            `json:"command"`
+	URL        *string            `json:"url"`
+	Method     *string            `json:"method"`
+	Headers    *map[string]string `json:"headers"`
+	Body       *string            `json:"body"`
+	CITarget   *string            `json:"ci_target"`
+	Retry      *int               `json:"retry"`
+	TimeoutSec *int               `json:"timeout_sec"`
+}
+
+type workflowJSON struct {
+	ID       *string          `json:"id"`
+	Name     *string          `json:"name"`
+	Enabled  *bool            `json:"enabled"`
+	Trigger  *string          `json:"trigger"`
+	Schedule *string          `json:"schedule"`
+	Event    *string          `json:"event"`
+	Steps    *[]workflowStepJSON `json:"steps"`
+}
+
+type webhookJSON struct {
+	ID      *string   `json:"id"`
+	Name    *string   `json:"name"`
+	URL     *string   `json:"url"`
+	Events  *[]string `json:"events"`
+	Enabled *bool     `json:"enabled"`
+}
+
+type ciConfigJSON struct {
+	GitHub  *gitHubCIJSON  `json:"github"`
+	GitLab  *gitLabCIJSON  `json:"gitlab"`
+	Jenkins *jenkinsCIJSON `json:"jenkins"`
+}
+
+type gitHubCIJSON struct {
+	Owner        *string `json:"owner"`
+	Repo         *string `json:"repo"`
+	WorkflowFile *string `json:"workflow_file"`
+	Ref          *string `json:"ref"`
+	TokenRef     *string `json:"token_ref"`
+	APIBase      *string `json:"api_base"`
+}
+
+type gitLabCIJSON struct {
+	BaseURL   *string `json:"base_url"`
+	ProjectID *string `json:"project_id"`
+	Ref       *string `json:"ref"`
+	TokenRef  *string `json:"token_ref"`
+}
+
+type jenkinsCIJSON struct {
+	BaseURL  *string `json:"base_url"`
+	Job      *string `json:"job"`
+	TokenRef *string `json:"token_ref"`
+}
+
+func strOr(p *string, def string) string {
+	if p == nil {
+		return def
+	}
+	return *p
+}
+
+func applyWorkflowStep(j workflowStepJSON) WorkflowStep {
+	s := WorkflowStep{Method: "POST"}
+	if j.ID != nil {
+		s.ID = *j.ID
+	}
+	if j.Name != nil {
+		s.Name = *j.Name
+	}
+	if j.Kind != nil {
+		s.Kind = *j.Kind
+	} else {
+		s.Kind = ""
+	}
+	if j.Command != nil {
+		s.Command = *j.Command
+	}
+	if j.URL != nil {
+		s.URL = *j.URL
+	}
+	if j.Method != nil && *j.Method != "" {
+		s.Method = *j.Method
+	}
+	if j.Headers != nil {
+		s.Headers = make(map[string]string, len(*j.Headers))
+		for k, v := range *j.Headers {
+			s.Headers[k] = v
+		}
+	}
+	if j.Body != nil {
+		s.Body = *j.Body
+	}
+	if j.CITarget != nil {
+		s.CITarget = *j.CITarget
+	}
+	if j.Retry != nil {
+		s.Retry = *j.Retry
+	}
+	if j.TimeoutSec != nil {
+		s.TimeoutSec = *j.TimeoutSec
+	}
+	return s
+}
+
+func applyWorkflow(j workflowJSON) Workflow {
+	w := Workflow{Enabled: true}
+	if j.ID != nil {
+		w.ID = *j.ID
+	}
+	if j.Name != nil {
+		w.Name = *j.Name
+	}
+	if j.Enabled != nil {
+		w.Enabled = *j.Enabled
+	}
+	if j.Trigger != nil {
+		w.Trigger = *j.Trigger
+	}
+	if j.Schedule != nil {
+		w.Schedule = *j.Schedule
+	}
+	if j.Event != nil {
+		w.Event = *j.Event
+	}
+	w.Steps = []WorkflowStep{}
+	if j.Steps != nil {
+		w.Steps = make([]WorkflowStep, len(*j.Steps))
+		for i, s := range *j.Steps {
+			w.Steps[i] = applyWorkflowStep(s)
+		}
+	}
+	return w
+}
+
+func applyWebhook(j webhookJSON) WebhookConfig {
+	w := WebhookConfig{Enabled: true}
+	if j.ID != nil {
+		w.ID = *j.ID
+	}
+	if j.Name != nil {
+		w.Name = *j.Name
+	}
+	if j.URL != nil {
+		w.URL = *j.URL
+	}
+	if j.Events != nil {
+		w.Events = append([]string{}, *j.Events...)
+	} else {
+		w.Events = []string{}
+	}
+	if j.Enabled != nil {
+		w.Enabled = *j.Enabled
+	}
+	return w
+}
+
+func applyCIConfig(j *ciConfigJSON) CIConfig {
+	var c CIConfig
+	if j == nil {
+		return c
+	}
+	if j.GitHub != nil {
+		c.GitHub = GitHubCIConfig{
+			Owner: strOr(j.GitHub.Owner, ""), Repo: strOr(j.GitHub.Repo, ""),
+			WorkflowFile: strOr(j.GitHub.WorkflowFile, ""), Ref: strOr(j.GitHub.Ref, ""),
+			TokenRef: strOr(j.GitHub.TokenRef, ""), APIBase: strOr(j.GitHub.APIBase, ""),
+		}
+	}
+	if j.GitLab != nil {
+		c.GitLab = GitLabCIConfig{
+			BaseURL: strOr(j.GitLab.BaseURL, ""), ProjectID: strOr(j.GitLab.ProjectID, ""),
+			Ref: strOr(j.GitLab.Ref, ""), TokenRef: strOr(j.GitLab.TokenRef, ""),
+		}
+	}
+	if j.Jenkins != nil {
+		c.Jenkins = JenkinsCIConfig{
+			BaseURL: strOr(j.Jenkins.BaseURL, ""), Job: strOr(j.Jenkins.Job, ""),
+			TokenRef: strOr(j.Jenkins.TokenRef, ""),
+		}
+	}
+	return c
 }
 
 func applyEnv(j *envConfigJSON, name string) EnvConfig {
@@ -520,6 +961,8 @@ func ParseProject(data []byte) (Project, error) {
 		User:       applyUser(j.User),
 		Tabs:       applyTabsConfig(j.Tabs),
 		Backlog:    []BacklogItem{},
+		Workflows:  []Workflow{},
+		Webhooks:   []WebhookConfig{},
 	}
 	if j.Name != nil {
 		p.Name = *j.Name
@@ -546,6 +989,19 @@ func ParseProject(data []byte) (Project, error) {
 			p.Envs[k] = applyEnv(&vv, k)
 		}
 	}
+	if j.Workflows != nil {
+		p.Workflows = make([]Workflow, len(*j.Workflows))
+		for i, w := range *j.Workflows {
+			p.Workflows[i] = applyWorkflow(w)
+		}
+	}
+	if j.Webhooks != nil {
+		p.Webhooks = make([]WebhookConfig, len(*j.Webhooks))
+		for i, w := range *j.Webhooks {
+			p.Webhooks[i] = applyWebhook(w)
+		}
+	}
+	p.CICD = applyCIConfig(j.CICD)
 	p.ensureEnvs()
 	return p, nil
 }
