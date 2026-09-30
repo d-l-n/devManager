@@ -4,8 +4,11 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
+
+	"github.com/d-l-n/devmanager/internal/env"
 )
 
 // ServerState replica ServerState de project.py como strings serializables
@@ -65,15 +68,139 @@ type BacklogItem struct {
 	UpdatedAt   string `json:"updated_at"`
 }
 
+// EnvConfig agrupa la config conmutable por entorno (Fase 1 #67).
+// Fase 2: Vars son variables dotenv del entorno; EnvFile es el archivo
+// dotenv relativo al proyecto (solo el nombre, nunca valores, va a logs).
+// Fase 3: Secrets lista keys de Vars cuyo valor se enmascara al leer.
+type EnvConfig struct {
+	Server     ServerConfig      `json:"server"`
+	Playwright PlaywrightConfig  `json:"playwright"`
+	User       UserConfig        `json:"user"`
+	Vars       map[string]string `json:"vars"`
+	EnvFile    string            `json:"env_file"`
+	Secrets    []string          `json:"secrets"`
+}
+
+// MaskedValue reemplaza valores secretos al leer (nunca viaja el real
+// salvo reveal explícito).
+const MaskedValue = "***"
+
+// IsSecret reporta si key está en la lista de secretos.
+func IsSecret(secrets []string, key string) bool {
+	for _, s := range secrets {
+		if s == key {
+			return true
+		}
+	}
+	return false
+}
+
+// MaskedVars devuelve copia de vars con secretos enmascarados.
+// Nunca loguear su salida más allá de conteo/keys.
+func MaskedVars(vars map[string]string, secrets []string) map[string]string {
+	out := make(map[string]string, len(vars))
+	for k, v := range vars {
+		if IsSecret(secrets, k) {
+			out[k] = MaskedValue
+		} else {
+			out[k] = v
+		}
+	}
+	return out
+}
+
+// DefaultEnvFile devuelve el archivo dotenv por defecto del entorno:
+// dev=.env, staging=.env.staging, prod=.env.prod, custom=.env.<name>.
+func DefaultEnvFile(name string) string {
+	switch name {
+	case "dev":
+		return ".env"
+	case "staging":
+		return ".env.staging"
+	case "prod":
+		return ".env.prod"
+	default:
+		return ".env." + name
+	}
+}
+
 type Project struct {
-	Name       string           `json:"name"`
-	Path       string           `json:"path"`
-	Server     ServerConfig     `json:"server"`
-	Playwright PlaywrightConfig `json:"playwright"`
-	User       UserConfig       `json:"user"`
-	Tabs       TabsConfig       `json:"tabs"`
-	Pinned     bool             `json:"pinned"`
-	Backlog    []BacklogItem    `json:"backlog"`
+	Name       string              `json:"name"`
+	Path       string              `json:"path"`
+	Server     ServerConfig        `json:"server"`
+	Playwright PlaywrightConfig    `json:"playwright"`
+	User       UserConfig          `json:"user"`
+	Tabs       TabsConfig          `json:"tabs"`
+	Pinned     bool                `json:"pinned"`
+	Backlog    []BacklogItem       `json:"backlog"`
+	ActiveEnv  string              `json:"active_env"`
+	Envs       map[string]EnvConfig `json:"envs"`
+}
+
+// envNameRe valida nombres de entorno: ^[a-z0-9_-]{1,32}$.
+var envNameRe = regexp.MustCompile(`^[a-z0-9_-]{1,32}$`)
+
+// IsValidEnvName reporta si un nombre de entorno es válido.
+func IsValidEnvName(name string) bool {
+	return envNameRe.MatchString(name)
+}
+
+// EffectiveEnv devuelve la config del entorno activo (fallback: top-level).
+func (p Project) EffectiveEnv() EnvConfig {
+	if e, ok := p.Envs[p.ActiveEnv]; ok {
+		return e
+	}
+	return EnvConfig{Server: p.Server, Playwright: p.Playwright, User: p.User, Vars: map[string]string{}}
+}
+
+// EffectiveServer devuelve el ServerConfig del entorno activo.
+func (p Project) EffectiveServer() ServerConfig {
+	return p.EffectiveEnv().Server
+}
+
+// EnsureEnvsFromTopLevel expone ensureEnvs al package config: sintetiza
+// `dev` desde el top-level cuando Envs es nil (legacy). No toca envs
+// explícitos (incluido mapa vacío, que Validate rechaza).
+func (p *Project) EnsureEnvsFromTopLevel() {
+	if p.Envs != nil {
+		return
+	}
+	p.ensureEnvs()
+}
+
+// ensureEnvs sintetiza `dev` desde el top-level cuando no hay envs.
+// Normaliza envs existentes: Vars no-nil y EnvFile con default.
+func (p *Project) ensureEnvs() {
+	if len(p.Envs) > 0 {
+		if p.ActiveEnv == "" {
+			if _, ok := p.Envs["dev"]; ok {
+				p.ActiveEnv = "dev"
+			} else {
+				for k := range p.Envs {
+					p.ActiveEnv = k
+					break
+				}
+			}
+		}
+		for name, e := range p.Envs {
+			if e.Vars == nil {
+				e.Vars = map[string]string{}
+			}
+			if e.EnvFile == "" {
+				e.EnvFile = DefaultEnvFile(name)
+			}
+			if e.Secrets == nil {
+				e.Secrets = []string{}
+			}
+			p.Envs[name] = e
+		}
+		return
+	}
+	p.Envs = map[string]EnvConfig{
+		"dev": {Server: p.Server, Playwright: p.Playwright, User: p.User,
+			Vars: map[string]string{}, EnvFile: DefaultEnvFile("dev"), Secrets: []string{}},
+	}
+	p.ActiveEnv = "dev"
 }
 
 // Validate replica Project.validate().
@@ -86,6 +213,45 @@ func (p Project) Validate() []string {
 		errs = append(errs, "Project path cannot be empty")
 	}
 	errs = append(errs, p.validateTabs()...)
+	errs = append(errs, p.validateEnvs()...)
+	return errs
+}
+
+// validateEnvs valida nombres de entorno y que active_env exista.
+// Cubre "prohibir borrar active/last": tras borrar el active, active_env
+// queda huérfano; tras borrar el último, envs queda vacío.
+// Envs nil = legacy en memoria (se sintetiza al guardar): se tolera para
+// no romper structs construidos sin envs; mapa no-nil vacío sí es error.
+func (p Project) validateEnvs() []string {
+	var errs []string
+	if p.Envs == nil {
+		return errs
+	}
+	if len(p.Envs) == 0 {
+		errs = append(errs, "project must have at least one environment")
+		return errs
+	}
+	for name, e := range p.Envs {
+		if !IsValidEnvName(name) {
+			errs = append(errs, fmt.Sprintf(`invalid environment name %q (use [a-z0-9_-]{1,32})`, name))
+		}
+		for _, s := range e.Secrets {
+			if err := env.ValidateKey(s); err != nil {
+				errs = append(errs, fmt.Sprintf(`invalid secret key %q in environment %q`, s, name))
+			}
+		}
+	}
+	if p.ActiveEnv == "" {
+		errs = append(errs, "active_env cannot be empty")
+		return errs
+	}
+	if !IsValidEnvName(p.ActiveEnv) {
+		errs = append(errs, fmt.Sprintf(`invalid environment name %q (use [a-z0-9_-]{1,32})`, p.ActiveEnv))
+		return errs
+	}
+	if _, ok := p.Envs[p.ActiveEnv]; !ok {
+		errs = append(errs, fmt.Sprintf(`active environment %q does not exist`, p.ActiveEnv))
+	}
 	return errs
 }
 
@@ -165,6 +331,15 @@ type tabsConfigJSON struct {
 	Order  *[]string `json:"order"`
 }
 
+type envConfigJSON struct {
+	Server     *serverConfigJSON     `json:"server"`
+	Playwright *playwrightConfigJSON `json:"playwright"`
+	User       *userConfigJSON       `json:"user"`
+	Vars       *map[string]string    `json:"vars"`
+	EnvFile    *string               `json:"env_file"`
+	Secrets    *[]string             `json:"secrets"`
+}
+
 type projectJSON struct {
 	Name       *string               `json:"name"`
 	Path       *string               `json:"path"`
@@ -174,6 +349,39 @@ type projectJSON struct {
 	Tabs       *tabsConfigJSON       `json:"tabs"`
 	Pinned     *bool                 `json:"pinned"`
 	Backlog    *[]backlogItemJSON    `json:"backlog"`
+	ActiveEnv  *string               `json:"active_env"`
+	Envs       *map[string]envConfigJSON `json:"envs"`
+}
+
+func applyEnv(j *envConfigJSON, name string) EnvConfig {
+	e := EnvConfig{
+		Server:     applyServer(nil),
+		Playwright: applyPlaywright(nil),
+		User:       applyUser(nil),
+		Vars:       map[string]string{},
+		EnvFile:    DefaultEnvFile(name),
+		Secrets:    []string{},
+	}
+	if j == nil {
+		return e
+	}
+	e.Server = applyServer(j.Server)
+	e.Playwright = applyPlaywright(j.Playwright)
+	e.User = applyUser(j.User)
+	if j.Vars != nil {
+		cp := make(map[string]string, len(*j.Vars))
+		for k, v := range *j.Vars {
+			cp[k] = v
+		}
+		e.Vars = cp
+	}
+	if j.EnvFile != nil && *j.EnvFile != "" {
+		e.EnvFile = *j.EnvFile
+	}
+	if j.Secrets != nil {
+		e.Secrets = append([]string{}, *j.Secrets...)
+	}
+	return e
 }
 
 func applyServer(j *serverConfigJSON) ServerConfig {
@@ -328,5 +536,16 @@ func ParseProject(data []byte) (Project, error) {
 			p.Backlog[i] = applyBacklogItem(item)
 		}
 	}
+	if j.ActiveEnv != nil {
+		p.ActiveEnv = *j.ActiveEnv
+	}
+	if j.Envs != nil {
+		p.Envs = make(map[string]EnvConfig, len(*j.Envs))
+		for k, v := range *j.Envs {
+			vv := v
+			p.Envs[k] = applyEnv(&vv, k)
+		}
+	}
+	p.ensureEnvs()
 	return p, nil
 }

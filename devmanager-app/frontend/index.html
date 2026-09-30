@@ -48,6 +48,9 @@
             <section id="project-detail" hidden>
             <header id="detail-header">
                 <h2 id="project-name"></h2>
+                <span id="env-badge" class="badge" title="Active environment">dev</span>
+                <select id="env-switcher" class="text-input mono" aria-label="Active environment"></select>
+                <button id="btn-env-vars" title="Environment variables (Ctrl+Shift+E)" aria-label="Environment variables">Env Vars</button>
                 <div class="actions">
                     <button id="btn-start"><span data-icon="play"></span>Start</button>
                     <button id="btn-stop"><span data-icon="stop"></span>Stop</button>
@@ -288,19 +291,47 @@
         </section>
         <section id="dashboard-view" hidden>
             <header id="dashboard-toolbar">
+                <input id="dash-search" type="text" class="text-input" placeholder="Filter projects..." aria-label="Filter dashboard projects">
+                <div id="dash-filters" class="filter-chips" role="tablist" aria-label="Dashboard status filters">
+                    <button class="filter-chip active" data-dash-filter="all" role="tab" aria-pressed="true">All</button>
+                    <button class="filter-chip" data-dash-filter="running" role="tab" aria-pressed="false">Running</button>
+                    <button class="filter-chip" data-dash-filter="stopped" role="tab" aria-pressed="false">Stopped</button>
+                    <button class="filter-chip" data-dash-filter="failed" role="tab" aria-pressed="false">Failed tests</button>
+                </div>
                 <span id="dash-summary" class="dim"></span>
                 <button id="dash-refresh" class="btn btn-accent">Refresh</button>
                 <button id="dash-start-all" class="btn btn-accent">Start all</button>
                 <button id="dash-stop-all" class="btn btn-warn">Stop all</button>
+                <button id="dash-tests-all" class="btn btn-success">Run all tests</button>
+                <div class="dash-layout-wrap">
+                    <button id="dash-layout" class="icon-btn" title="Customize dashboard sections" aria-label="Customize dashboard sections" aria-haspopup="true" aria-expanded="false" data-icon="settings"></button>
+                    <div id="dash-layout-menu" role="menu" aria-label="Dashboard sections" hidden>
+                        <label><input type="checkbox" data-dash-section-toggle="projects" checked> Projects</label>
+                        <label><input type="checkbox" data-dash-section-toggle="alerts" checked> Alerts</label>
+                        <label><input type="checkbox" data-dash-section-toggle="uptime" checked> Uptime (24h)</label>
+                        <label><input type="checkbox" data-dash-section-toggle="perf" checked> Performance (24h)</label>
+                    </div>
+                </div>
             </header>
-            <div class="group grow">
+            <div class="group grow" data-dash-section="projects">
                 <div id="dash-cards"></div>
+                <div id="dash-filter-empty" class="dim center padded" hidden>No projects match the current filter</div>
                 <div id="dash-empty" class="dim center padded" hidden>No projects yet. Add one to get started!</div>
             </div>
-            <div class="group grow">
+            <div class="group grow" data-dash-section="alerts">
+                <div class="group-title">Alerts</div>
+                <div id="dash-alerts"></div>
+                <div id="dash-alerts-empty" class="dim center padded" hidden>No active alerts. All projects look healthy.</div>
+            </div>
+            <div class="group grow" data-dash-section="uptime">
                 <div class="group-title">Uptime (24h)</div>
                 <div id="dash-uptimes"></div>
                 <div id="dash-uptimes-empty" class="dim center padded" hidden>No uptime history yet. The app samples every server once per minute.</div>
+            </div>
+            <div class="group grow" data-dash-section="perf">
+                <div class="group-title">Performance (24h)</div>
+                <div id="dash-perf"></div>
+                <div id="dash-perf-empty" class="dim center padded" hidden>No CPU/RAM samples yet. Enable monitor polling in Settings to collect them.</div>
             </div>
         </section>
         <section id="monitor-view" hidden>

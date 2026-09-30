@@ -225,7 +225,7 @@ body {
     font-family: Consolas, monospace; font-size: 12px;
     white-space: pre;
 }
-.log-wrap { white-space: normal; word-break: break-word; }
+#log-output.log-wrap { white-space: normal; word-break: break-word; }
 .log-line { padding: 1px 0; }
 .log-line .ts { color: var(--fg-dim); margin-right: 6px; }
 .log-line.err { color: var(--err); }
@@ -609,11 +609,13 @@ body {
 }
 .dash-chip.warn { color: var(--warn); border-color: var(--warn); }
 .dash-chip.err { color: var(--err); border-color: var(--err); }
-.dash-uptime-row {
+.dash-uptime-row,
+.dash-perf-row {
     display: flex; align-items: center; gap: 10px;
     padding: 4px 0;
 }
-.dash-uptime-name {
+.dash-uptime-name,
+.dash-perf-name {
     width: 140px; flex-shrink: 0;
     font-size: 12px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -622,7 +624,49 @@ body {
 .dash-spark-track { fill: var(--bg-input); stroke: var(--border); stroke-width: 0.5; }
 .dash-spark-up { fill: var(--ok); }
 .dash-spark-down { fill: var(--err); opacity: 0.45; }
+.dash-spark-cpu { fill: var(--accent); }
+.dash-spark-cpu-hot { fill: var(--err); }
 .dash-uptime-pct { width: 56px; flex-shrink: 0; text-align: right; font-size: 11px; }
+.dash-perf-stats { width: 220px; flex-shrink: 0; text-align: right; font-size: 11px; white-space: nowrap; }
+
+/* Búsqueda + filtros del dashboard */
+#dash-search { width: 180px; flex-shrink: 0; }
+#dash-filters { display: flex; gap: 4px; }
+.dash-chip.test-ok { color: var(--ok); border-color: var(--ok); }
+
+/* Menú de secciones (toggles persistidos en Settings) */
+.dash-layout-wrap { position: relative; }
+#dash-layout-menu {
+    position: absolute; right: 0; top: calc(100% + 4px);
+    z-index: 30;
+    min-width: 190px;
+    padding: 6px;
+    background: var(--bg-panel, var(--bg-input));
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+#dash-layout-menu label {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 6px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+#dash-layout-menu label:hover { background: var(--bg-input); }
+
+/* Alertas consolidadas */
+.dash-alerts { display: flex; flex-direction: column; gap: 4px; padding: 0 12px 12px; }
+.dash-alert {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-input);
+    font-size: 12px;
+}
+.dash-alert-err { border-color: var(--err); }
+.dash-alert-warn { border-color: var(--warn); }
+.dash-alert-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---- Backup (Issue #71): sección en Settings ---- */
 .settings-select,
@@ -884,6 +928,11 @@ body {
     display: block; font-size: 12px; color: var(--fg-dim);
     margin-bottom: 4px; text-transform: capitalize;
 }
+/* Diálogo de tabs: el checkbox va prepend dentro del label, que es block,
+   así que necesita margen propio (gap no aplica sin flex/grid). */
+.tabs-custom-label input[type="checkbox"] {
+    margin-right: 8px;
+}
 .form-input, .form-select, .form-textarea {
     width: 100%; box-sizing: border-box;
     background: var(--bg-input); border: 1px solid var(--border);
@@ -988,7 +1037,11 @@ body {
 /* ---- Custom checkboxes (Issue #52) ----
    Native widget oculto vía appearance:none; el estado checked pinta un
    checkmark con un pseudo-elemento. Si el CSS falla, el nativo queda
-   como fallback. */
+   como fallback.
+   El borde del estado vacío usa --fg-dim y no --border: --border es casi
+   idéntico al relleno (--bg-input) y a la superficie detrás, así que la
+   caja sin marcar quedaba por debajo del 3:1 de contraste en temas
+   oscuros. --fg-dim sí contrasta en dark/oled/light. */
 input[type="checkbox"] {
     appearance: none;
     -webkit-appearance: none;
@@ -996,7 +1049,7 @@ input[type="checkbox"] {
     height: 18px;
     min-width: 18px;
     margin: 0;
-    border: 1px solid var(--border);
+    border: 1px solid var(--fg-dim);
     border-radius: 4px;
     background: var(--bg-input);
     cursor: pointer;
@@ -1037,10 +1090,64 @@ input[type="checkbox"]:disabled {
     cursor: not-allowed;
 }
 
-/* Radio: pill nativo con accent (menos uso en el app) */
+/* ---- Custom radios (mismo tratamiento que los checkboxes, Issue #52) ----
+   Native widget oculto vía appearance:none; el estado checked pinta un
+   punto centrado con un pseudo-elemento. Usados por los selectores de
+   tema y estilo. Si el CSS falla, el nativo queda como fallback.
+   Mismo criterio de contraste que los checkboxes: --fg-dim para el borde. */
 input[type="radio"] {
-    accent-color: var(--accent);
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    margin: 0;
+    border: 1px solid var(--fg-dim);
+    border-radius: 50%;
+    background: var(--bg-input);
     cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: background-color 0.15s ease, border-color 0.15s ease,
+                box-shadow 0.15s ease;
+    vertical-align: middle;
+}
+input[type="radio"]:hover {
+    border-color: var(--accent);
+}
+input[type="radio"]:active {
+    transform: scale(0.92);
+}
+input[type="radio"]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+input[type="radio"]:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+input[type="radio"]:checked::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #fff;
+    transform: translate(-50%, -50%);
+}
+input[type="radio"]:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+/* En OLED el acento de standard (#818cf8) es lo bastante claro como para
+   dejar el tick blanco en 2.98:1: ahí se invierte a --bg. */
+:root[data-theme="oled"][data-style="standard"] input[type="checkbox"]:checked::after {
+    border-color: var(--bg);
+}
+:root[data-theme="oled"][data-style="standard"] input[type="radio"]:checked::after {
+    background: var(--bg);
 }
 
 /* Section titles with icons */

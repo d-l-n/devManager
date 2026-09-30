@@ -21,6 +21,9 @@ type Settings struct {
 	// Backup (Issue #71): frecuencia automática + retención del catálogo.
 	BackupFrequency string `json:"backup_frequency"`
 	BackupRetention int    `json:"backup_retention"`
+	// Dashboard (Issue #64): visibilidad de secciones (projects/alerts/uptime/
+	// perf). Clave ausente o nil → sección visible (paridad tolerante).
+	DashboardSections map[string]bool `json:"dashboard_sections"`
 }
 
 func validStyle(s string) bool {
@@ -53,6 +56,7 @@ func DefaultSettings() Settings {
 		AccentGlobalColor: "",
 		BackupFrequency:   backup.FreqOff,
 		BackupRetention:   20,
+		DashboardSections: make(map[string]bool),
 	}
 }
 
@@ -82,6 +86,9 @@ func LoadSettings(path string) Settings {
 	}
 	if s.BackupRetention < 1 || s.BackupRetention > 500 {
 		s.BackupRetention = 20
+	}
+	if s.DashboardSections == nil {
+		s.DashboardSections = make(map[string]bool)
 	}
 	return s
 }

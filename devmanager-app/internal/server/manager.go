@@ -52,6 +52,34 @@ type Manager struct {
 	waitPortFn  func(ctx context.Context, timeout time.Duration) error
 }
 
+// portEnvKeys nunca pisan el puerto configurado: solo advierten.
+var portEnvKeys = map[string]bool{"PORT": true, "VITE_PORT": true, "SERVER_PORT": true}
+
+// buildExtraEnv mezcla las vars del env activo sobre el extraEnv base.
+// Vars ganan salvo PORT/VITE_PORT/SERVER_PORT (case-insensitive), que se
+// ignoran con warning si difieren del configurado. Devuelve el mapa final +
+// warnings (solo keys y puerto configurado, nunca valores).
+func buildExtraEnv(configuredPort int, vars map[string]string) (map[string]string, []string) {
+	out := map[string]string{}
+	if configuredPort > 0 {
+		out["PORT"] = strconv.Itoa(configuredPort)
+		out["VITE_PORT"] = strconv.Itoa(configuredPort)
+		out["SERVER_PORT"] = strconv.Itoa(configuredPort)
+	}
+	var warns []string
+	for k, v := range vars {
+		if portEnvKeys[strings.ToUpper(k)] {
+			if configuredPort > 0 && v != strconv.Itoa(configuredPort) {
+				warns = append(warns, fmt.Sprintf(
+					"[Env] Ignoring %s from env vars (using configured port %d)", k, configuredPort))
+			}
+			continue
+		}
+		out[k] = v
+	}
+	return out, warns
+}
+
 // hostFromURL replica la extracción de host del Python:
 // 'http://localhost:5173' → 'localhost'.
 func hostFromURL(rawURL string) string {
@@ -225,6 +253,12 @@ func (m *Manager) Start() {
 	command := m.project.Server.Command
 	cwd := m.project.Path
 	startupTimeoutMs := m.project.Server.StartupTimeout
+	// Fase 2 #67: vars del env activo (solo conteo a logs, nunca valores).
+	activeName := m.project.ActiveEnv
+	var activeVars map[string]string
+	if e, ok := m.project.Envs[activeName]; ok {
+		activeVars = e.Vars
+	}
 	m.mu.Unlock()
 
 	startupTimeout := time.Duration(startupTimeoutMs) * time.Millisecond
@@ -250,11 +284,14 @@ func (m *Manager) Start() {
 	}
 	m.log(fmt.Sprintf("Starting server: %s in %s", cmd, cwd), false)
 
-	extraEnv := map[string]string{}
-	if configuredPort > 0 {
-		extraEnv["PORT"] = strconv.Itoa(configuredPort)
-		extraEnv["VITE_PORT"] = strconv.Itoa(configuredPort)
-		extraEnv["SERVER_PORT"] = strconv.Itoa(configuredPort)
+	// Fase 2 #67: vars del env activo ganan sobre el entorno, salvo las
+	// keys de puerto (nunca pisan el configurado).
+	extraEnv, envWarns := buildExtraEnv(configuredPort, activeVars)
+	for _, w := range envWarns {
+		m.log(w, true)
+	}
+	if len(activeVars) > 0 {
+		m.log(fmt.Sprintf("[Env] Injected %d variable(s) from environment %q", len(activeVars), activeName), false)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -374,9 +411,47 @@ func (m *Manager) onRunnerStarted(ctx context.Context, startupTimeout time.Durat
 				m.log(fmt.Sprintf("Server startup timeout after %dms", configuredTimeoutMs), true)
 			}
 		}()
-	} else if port <= 0 {
+	} else if port > 0 {
+		// Puerto ya ocupado al lanzar: no hay puerto propio que sondear (el
+		// gate de abajo marcaría ready un proceso ajeno), así que la única
+		// señal de arranque es la detección por log. Necesita deadline igual
+		// que la espera de puerto: sin él, un server que nunca imprime su URL
+		// dejaba el estado en STARTING para siempre.
+		go m.waitForLogDetectedPort(ctx, startupTimeout, configuredTimeoutMs)
+	} else {
 		m.enterRunning()
 		m.fireReady()
+	}
+}
+
+// waitForLogDetectedPort es el gate de arranque cuando el puerto configurado
+// estaba ocupado antes de lanzar: espera la transición de estado (detección
+// por log en onRunnerOutput o fin del runner) y, si el server sigue en
+// STARTING al vencer el timeout, falla igual que la espera de puerto.
+func (m *Manager) waitForLogDetectedPort(ctx context.Context, startupTimeout time.Duration, configuredTimeoutMs int) {
+	timer := time.NewTimer(startupTimeout)
+	defer timer.Stop()
+	ticker := time.NewTicker(50 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return // stop o detección por log: no tocar estado
+		case <-timer.C:
+			if m.State() == models.StateStarting {
+				m.mu.Lock()
+				m.failureReason = fmt.Sprintf("Startup timeout after %dms", configuredTimeoutMs)
+				m.mu.Unlock()
+				m.setState(models.StateError)
+				m.log(fmt.Sprintf("Server startup timeout after %dms", configuredTimeoutMs), true)
+			}
+			return
+		case <-ticker.C:
+			if m.State() != models.StateStarting {
+				return // el runner terminó o el log ya detectó el puerto
+			}
+		}
 	}
 }
 

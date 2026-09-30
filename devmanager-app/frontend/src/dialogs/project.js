@@ -3,6 +3,7 @@
 // General / Server / Playwright + Browse nativo + autodetección.
 // Patrón widgets: mount(ctx) → { openNew, openEdit }.
 import { api } from '../api.js';
+import { defaultEnvFile, ensureEnvs, isValidEnvName } from '../envs.js';
 
 const serverDefaults = () => ({
     enabled: true, command: 'npm run dev', port: 5173,
@@ -58,8 +59,10 @@ function sectionTitle(text) {
     return el('div', 'settings-section-title', text);
 }
 
+const cloneEnv = (e) => JSON.parse(JSON.stringify(e || { server: {}, playwright: {}, user: {} }));
+
 export function mountProjectDialog(onSaved) {
-    const state = { index: -1, isEdit: false, originalPort: 0 };
+    const state = { index: -1, isEdit: false, originalPort: 0, envs: {}, activeEnv: 'dev', selectedEnv: 'dev' };
     let isOpen = false;
 
     // ---- DOM ----
@@ -92,6 +95,52 @@ export function mountProjectDialog(onSaved) {
 
     const detectStatus = el('div', 'pf-status');
     body.appendChild(detectStatus);
+
+    // --- Environments (Fase 1 #67) ---
+    body.appendChild(sectionTitle('Environments'));
+    const envHint = el('div', 'pf-status');
+    envHint.textContent = 'Editing env drives the Server/Playwright/User fields below. ★ = active.';
+    body.appendChild(envHint);
+    const envList = el('div', 'pf-env-list');
+    envList.id = 'pf-env-list';
+    body.appendChild(envList);
+    const envAddRow = el('div', 'pf-path-row');
+    const envNew = document.createElement('input');
+    envNew.id = 'pf-env-new';
+    envNew.className = 'text-input mono';
+    envNew.placeholder = 'new-env-name';
+    envNew.setAttribute('aria-label', 'New environment name');
+    const envCopy = document.createElement('select');
+    envCopy.id = 'pf-env-copy';
+    envCopy.className = 'text-input mono';
+    envCopy.title = 'Copy from';
+    envCopy.setAttribute('aria-label', 'Copy new environment from');
+    const btnEnvAdd = el('button', 'btn btn-accent pf-inline-btn', 'Add env');
+    btnEnvAdd.id = 'pf-env-add';
+    envAddRow.appendChild(envNew);
+    envAddRow.appendChild(envCopy);
+    envAddRow.appendChild(btnEnvAdd);
+    body.appendChild(envAddRow);
+    const envEditRow = el('div', 'pf-path-row');
+    const envRename = document.createElement('input');
+    envRename.id = 'pf-env-rename';
+    envRename.className = 'text-input mono';
+    envRename.placeholder = 'rename selected to...';
+    envRename.setAttribute('aria-label', 'Rename selected environment');
+    const btnEnvRename = el('button', 'btn pf-inline-btn', 'Rename');
+    btnEnvRename.id = 'pf-env-rename-btn';
+    const btnEnvActive = el('button', 'btn pf-inline-btn', 'Make active');
+    btnEnvActive.id = 'pf-env-make-active-btn';
+    const btnEnvDelete = el('button', 'btn pf-inline-btn', 'Delete');
+    btnEnvDelete.id = 'pf-env-delete-btn';
+    envEditRow.appendChild(envRename);
+    envEditRow.appendChild(btnEnvRename);
+    envEditRow.appendChild(btnEnvActive);
+    envEditRow.appendChild(btnEnvDelete);
+    body.appendChild(envEditRow);
+    const envError = el('span', 'pf-error');
+    envError.id = 'pf-env-error';
+    body.appendChild(envError);
 
     // --- Server ---
     body.appendChild(sectionTitle('Server'));
@@ -175,6 +224,99 @@ export function mountProjectDialog(onSaved) {
         detectStatus.style.color = ok ? 'var(--ok)' : 'var(--warn)';
     }
 
+    function setEnvError(message) {
+        setFieldError(envError, message);
+    }
+
+    function loadSelectedIntoInputs() {
+        const e = state.envs[state.selectedEnv] || { server: {}, playwright: {}, user: {} };
+        const s = e.server || {};
+        const p = e.playwright || {};
+        const u = e.user || {};
+        const sd = serverDefaults();
+        const pd = pwDefaults();
+        $('pf-server-enabled').checked = s.enabled ?? sd.enabled;
+        $('pf-server-command').value = s.command ?? sd.command;
+        $('pf-server-port').value = s.port ?? sd.port;
+        $('pf-server-url').value = s.url ?? sd.url;
+        $('pf-server-timeout').value = s.startup_timeout ?? sd.startup_timeout;
+        $('pf-pw-enabled').checked = p.enabled ?? pd.enabled;
+        $('pf-pw-command').value = p.command ?? pd.command;
+        $('pf-pw-ui').value = p.ui_command ?? pd.ui_command;
+        $('pf-pw-debug').value = p.debug_command ?? pd.debug_command;
+        $('pf-pw-report').value = p.report_command ?? pd.report_command;
+        $('pf-user-enabled').checked = u.enabled ?? true;
+        $('pf-user-command').value = u.command ?? '';
+    }
+
+    function saveCurrentIntoSelected() {
+        if (!state.envs[state.selectedEnv]) return;
+        // Fase 2/3: preserva vars/env_file/secrets (se editan en env-vars).
+        const prev = state.envs[state.selectedEnv] || {};
+        state.envs[state.selectedEnv] = {
+            vars: { ...(prev.vars || {}) },
+            env_file: prev.env_file || defaultEnvFile(state.selectedEnv),
+            secrets: [...(prev.secrets || [])],
+            server: {
+                enabled: $('pf-server-enabled').checked,
+                command: $('pf-server-command').value.trim(),
+                port: parseInt($('pf-server-port').value, 10) || 0,
+                url: $('pf-server-url').value.trim(),
+                startup_timeout: parseInt($('pf-server-timeout').value, 10) || 15000,
+            },
+            playwright: {
+                enabled: $('pf-pw-enabled').checked,
+                command: $('pf-pw-command').value.trim(),
+                ui_command: $('pf-pw-ui').value.trim(),
+                debug_command: $('pf-pw-debug').value.trim(),
+                report_command: $('pf-pw-report').value.trim(),
+            },
+            user: {
+                enabled: $('pf-user-enabled').checked,
+                command: $('pf-user-command').value.trim(),
+            },
+        };
+    }
+
+    function renderEnvList() {
+        const names = Object.keys(state.envs).sort();
+        envList.innerHTML = '';
+        names.forEach((n) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'btn pf-inline-btn' + (n === state.selectedEnv ? ' btn-accent' : '');
+            b.dataset.envName = n;
+            b.textContent = n === state.activeEnv ? `★ ${n}` : n;
+            b.title = n === state.activeEnv ? `${n} (active)` : `Edit ${n}`;
+            b.setAttribute('aria-pressed', n === state.selectedEnv ? 'true' : 'false');
+            b.addEventListener('click', () => {
+                if (state.selectedEnv !== n) {
+                    saveCurrentIntoSelected();
+                    state.selectedEnv = n;
+                    renderEnvList();
+                    loadSelectedIntoInputs();
+                }
+            });
+            envList.appendChild(b);
+        });
+        envCopy.innerHTML = '';
+        names.forEach((n) => {
+            const opt = document.createElement('option');
+            opt.value = n;
+            opt.textContent = n;
+            envCopy.appendChild(opt);
+        });
+        const count = names.length;
+        const selIsActive = state.selectedEnv === state.activeEnv;
+        btnEnvDelete.disabled = selIsActive || count <= 1;
+        btnEnvDelete.title = selIsActive ? 'Cannot delete the active environment'
+            : (count <= 1 ? 'Cannot delete the last environment' : `Delete ${state.selectedEnv}`);
+        btnEnvRename.disabled = selIsActive;
+        btnEnvRename.title = selIsActive ? 'Cannot rename the active environment' : `Rename ${state.selectedEnv}`;
+        btnEnvActive.disabled = selIsActive;
+        btnEnvActive.title = selIsActive ? 'Already active' : `Make ${state.selectedEnv} active`;
+    }
+
     // Autodetecta el comando de creación de usuario (user.command) para el
     // path actual. Prefill solo si el campo está vacío; silent=true no pinta
     // el hint cuando no hay match (evita ruido en autodetección automática).
@@ -229,6 +371,14 @@ export function mountProjectDialog(onSaved) {
         $('pf-name').value = '';
         $('pf-path').value = '';
         resetDefaults();
+        state.envs = { dev: { server: serverDefaults(), playwright: pwDefaults(), user: userDefaults(), vars: {}, env_file: defaultEnvFile('dev'), secrets: [] } };
+        state.activeEnv = 'dev';
+        state.selectedEnv = 'dev';
+        envNew.value = '';
+        envRename.value = '';
+        setEnvError('');
+        renderEnvList();
+        loadSelectedIntoInputs();
         overlay.hidden = false;
         isOpen = true;
         setFieldError(nameField.err, '');
@@ -245,26 +395,21 @@ export function mountProjectDialog(onSaved) {
         titleEl.textContent = 'Edit Project';
         $('pf-name').value = project.name || '';
         $('pf-path').value = project.path || '';
-        const s = project.server || serverDefaults();
-        const p = project.playwright || pwDefaults();
-        state.originalPort = s.port || 0;
-        $('pf-server-enabled').checked = !!s.enabled;
-        $('pf-server-command').value = s.command || '';
-        $('pf-server-port').value = s.port ?? 5173;
-        $('pf-server-url').value = s.url || '';
-        $('pf-server-timeout').value = s.startup_timeout ?? 15000;
-        $('pf-pw-enabled').checked = !!p.enabled;
-        $('pf-pw-command').value = p.command || '';
-        $('pf-pw-ui').value = p.ui_command || '';
-        $('pf-pw-debug').value = p.debug_command || '';
-        $('pf-pw-report').value = p.report_command || '';
-        const u = project.user || userDefaults();
-        $('pf-user-enabled').checked = !!u.enabled;
-        $('pf-user-command').value = u.command || '';
+        const ensured = ensureEnvs(project);
+        state.envs = JSON.parse(JSON.stringify(ensured.envs));
+        state.activeEnv = ensured.active_env;
+        state.selectedEnv = ensured.active_env;
+        envNew.value = '';
+        envRename.value = '';
+        setEnvError('');
+        renderEnvList();
+        loadSelectedIntoInputs();
+        const selServer = (state.envs[state.selectedEnv] && state.envs[state.selectedEnv].server) || {};
+        state.originalPort = selServer.port || 0;
         userDetectHint.textContent = '';
         detectStatus.textContent = '';
         // Comando de creación de usuario vacío → intentar autodetección
-        if (!u.command) detectUserCommand(true);
+        if (!((state.envs[state.selectedEnv] && state.envs[state.selectedEnv].user || {}).command)) detectUserCommand(true);
         overlay.hidden = false;
         isOpen = true;
         setFieldError(nameField.err, '');
@@ -280,27 +425,16 @@ export function mountProjectDialog(onSaved) {
     }
 
     function collect() {
+        saveCurrentIntoSelected();
+        const active = cloneEnv(state.envs[state.activeEnv]);
         return {
             name: $('pf-name').value.trim(),
             path: $('pf-path').value.trim(),
-            server: {
-                enabled: $('pf-server-enabled').checked,
-                command: $('pf-server-command').value.trim(),
-                port: parseInt($('pf-server-port').value, 10) || 0,
-                url: $('pf-server-url').value.trim(),
-                startup_timeout: parseInt($('pf-server-timeout').value, 10) || 15000,
-            },
-            playwright: {
-                enabled: $('pf-pw-enabled').checked,
-                command: $('pf-pw-command').value.trim(),
-                ui_command: $('pf-pw-ui').value.trim(),
-                debug_command: $('pf-pw-debug').value.trim(),
-                report_command: $('pf-pw-report').value.trim(),
-            },
-            user: {
-                enabled: $('pf-user-enabled').checked,
-                command: $('pf-user-command').value.trim(),
-            },
+            server: { ...active.server },
+            playwright: { ...active.playwright },
+            user: { ...active.user },
+            active_env: state.activeEnv,
+            envs: JSON.parse(JSON.stringify(state.envs)),
         };
     }
 
@@ -335,6 +469,22 @@ export function mountProjectDialog(onSaved) {
             setFieldError(timeoutField.err, 'Timeout must be a positive number');
             errors.push('Startup timeout must be a non-negative number');
         }
+        setEnvError('');
+        const names = Object.keys(state.envs || {});
+        if (names.length === 0) {
+            setEnvError('At least one environment is required');
+            errors.push('At least one environment is required');
+        }
+        names.forEach((n) => {
+            if (!isValidEnvName(n)) {
+                setEnvError(`Invalid environment name "${n}" (use [a-z0-9_-]{1,32})`);
+                errors.push(`Invalid environment name "${n}"`);
+            }
+        });
+        if (!state.activeEnv || !state.envs[state.activeEnv]) {
+            setEnvError('Active environment does not exist');
+            errors.push('Active environment does not exist');
+        }
         return errors;
     }
 
@@ -358,6 +508,72 @@ export function mountProjectDialog(onSaved) {
         return { saved: true };
     }
 
+    // ---- Wire envs ----
+    btnEnvAdd.addEventListener('click', () => {
+        const name = envNew.value.trim();
+        setEnvError('');
+        if (!isValidEnvName(name)) {
+            setEnvError('Invalid name (use [a-z0-9_-]{1,32})');
+            return;
+        }
+        if (state.envs[name]) {
+            setEnvError(`Environment "${name}" already exists`);
+            return;
+        }
+        const from = envCopy.value && state.envs[envCopy.value] ? envCopy.value : state.selectedEnv;
+        saveCurrentIntoSelected();
+        state.envs[name] = cloneEnv(state.envs[from]);
+        state.selectedEnv = name;
+        envNew.value = '';
+        renderEnvList();
+        loadSelectedIntoInputs();
+    });
+    btnEnvRename.addEventListener('click', () => {
+        const next = envRename.value.trim();
+        const cur = state.selectedEnv;
+        setEnvError('');
+        if (cur === state.activeEnv) {
+            setEnvError('Cannot rename the active environment');
+            return;
+        }
+        if (!isValidEnvName(next)) {
+            setEnvError('Invalid name (use [a-z0-9_-]{1,32})');
+            return;
+        }
+        if (state.envs[next]) {
+            setEnvError(`Environment "${next}" already exists`);
+            return;
+        }
+        saveCurrentIntoSelected();
+        state.envs[next] = state.envs[cur];
+        delete state.envs[cur];
+        state.selectedEnv = next;
+        envRename.value = '';
+        renderEnvList();
+        loadSelectedIntoInputs();
+    });
+    btnEnvActive.addEventListener('click', () => {
+        saveCurrentIntoSelected();
+        state.activeEnv = state.selectedEnv;
+        renderEnvList();
+    });
+    btnEnvDelete.addEventListener('click', () => {
+        const cur = state.selectedEnv;
+        setEnvError('');
+        if (cur === state.activeEnv) {
+            setEnvError('Cannot delete the active environment');
+            return;
+        }
+        if (Object.keys(state.envs).length <= 1) {
+            setEnvError('Cannot delete the last environment');
+            return;
+        }
+        delete state.envs[cur];
+        state.selectedEnv = state.activeEnv;
+        renderEnvList();
+        loadSelectedIntoInputs();
+    });
+
     // ---- Wire ----
     btnBrowse.addEventListener('click', async () => {
         const path = await api.browseFolder();
@@ -379,5 +595,10 @@ export function mountProjectDialog(onSaved) {
         if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT') e.preventDefault();
     });
 
-    return { openNew, openEdit, close };
+    return {
+        openNew, openEdit, close,
+        getElement: () => overlay,
+        collect, validate,
+        _state: state,
+    };
 }

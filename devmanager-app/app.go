@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 
 	"github.com/d-l-n/devmanager/internal/config"
 	"github.com/d-l-n/devmanager/internal/dashboard"
+	envpkg "github.com/d-l-n/devmanager/internal/env"
 	"github.com/d-l-n/devmanager/internal/logger"
 	"github.com/d-l-n/devmanager/internal/models"
 	"github.com/d-l-n/devmanager/internal/obscura"
@@ -281,6 +283,218 @@ func (a *App) TogglePin(index int) {
 // habilitado; devuelve cuántos se modificaron (paridad count => toast).
 func (a *App) AutoAssignPorts() int {
 	return a.cfg.AutoAssignUniquePorts(5173)
+}
+
+// SetActiveEnv cambia el entorno activo del proyecto (Fase 1 #67).
+// Bloquea si el servidor está corriendo (running/starting/stopping).
+func (a *App) SetActiveEnv(index int, env string) []string {
+	a.mu.Lock()
+	sm, exists := a.servers[index]
+	a.mu.Unlock()
+	if exists {
+		switch sm.State() {
+		case models.StateRunning, models.StateStarting, models.StateStopping:
+			return []string{"Cannot switch environment while server is running"}
+		}
+	}
+	if err := a.cfg.SetActiveEnv(index, env); err != nil {
+		return []string{err.Error()}
+	}
+	projects := a.cfg.Projects()
+	a.mu.Lock()
+	sm2 := a.servers[index]
+	a.mu.Unlock()
+	if sm2 != nil && index < len(projects) {
+		sm2.UpdateProject(projects[index])
+	}
+	wails.EventsEmit(a.ctx, "env:changed", map[string]interface{}{"index": index, "env": env})
+	return nil
+}
+
+// resolveEnvFile resuelve el archivo dotenv dentro del proyecto.
+// Rechaza rutas absolutas y escapes `..`. Nunca incluye valores.
+func (a *App) resolveEnvFile(p models.Project, envName string) (string, error) {
+	e, ok := p.Envs[envName]
+	if !ok {
+		return "", fmt.Errorf("unknown environment %q", envName)
+	}
+	file := e.EnvFile
+	if file == "" {
+		file = models.DefaultEnvFile(envName)
+	}
+	if filepath.IsAbs(file) {
+		return "", fmt.Errorf("invalid env file %q", file)
+	}
+	for _, seg := range strings.Split(filepath.ToSlash(file), "/") {
+		if seg == ".." {
+			return "", fmt.Errorf("invalid env file %q", file)
+		}
+	}
+	return filepath.Join(p.Path, file), nil
+}
+
+// serverRunning reporta si el servidor del índice está vivo
+// (running/starting/stopping). Centraliza el bloqueo de Fase 1/2/3.
+func (a *App) serverRunning(index int) bool {
+	a.mu.Lock()
+	sm, exists := a.servers[index]
+	a.mu.Unlock()
+	if !exists {
+		return false
+	}
+	switch sm.State() {
+	case models.StateRunning, models.StateStarting, models.StateStopping:
+		return true
+	}
+	return false
+}
+
+// GetEnvVars devuelve las vars del entorno (copia; vacío si no existe).
+// Fase 3: enmascara secretos por default; solo reveal=true explícito
+// devuelve valores reales. Nunca emite valores a logs/eventos.
+func (a *App) GetEnvVars(index int, envName string, reveal bool) map[string]string {
+	vars, err := a.cfg.GetEnvVars(index, envName)
+	if err != nil {
+		return map[string]string{}
+	}
+	if reveal {
+		return vars
+	}
+	secrets, err := a.cfg.GetSecrets(index, envName)
+	if err != nil {
+		return map[string]string{}
+	}
+	return models.MaskedVars(vars, secrets)
+}
+
+// GetSecrets devuelve la lista de keys secretas del entorno (solo keys,
+// nunca valores).
+func (a *App) GetSecrets(index int, envName string) []string {
+	secrets, err := a.cfg.GetSecrets(index, envName)
+	if err != nil {
+		return []string{}
+	}
+	return secrets
+}
+
+// SetSecretKey marca una key como secreta. Bloquea con server running.
+func (a *App) SetSecretKey(index int, envName, key string) []string {
+	if a.serverRunning(index) {
+		return []string{"Cannot edit environment variables while server is running"}
+	}
+	if err := a.cfg.SetSecretKey(index, envName, key); err != nil {
+		return []string{err.Error()}
+	}
+	wails.EventsEmit(a.ctx, "env:changed", map[string]interface{}{"index": index, "env": envName})
+	return nil
+}
+
+// UnsetSecretKey desmarca una key como secreta. Bloquea con server running.
+func (a *App) UnsetSecretKey(index int, envName, key string) []string {
+	if a.serverRunning(index) {
+		return []string{"Cannot edit environment variables while server is running"}
+	}
+	if err := a.cfg.UnsetSecretKey(index, envName, key); err != nil {
+		return []string{err.Error()}
+	}
+	wails.EventsEmit(a.ctx, "env:changed", map[string]interface{}{"index": index, "env": envName})
+	return nil
+}
+
+// GetEnvDiff compara vars entre dos envs del proyecto (Fase 3).
+// Valores secretos viajan ya enmascarados; nunca se loguean valores.
+func (a *App) GetEnvDiff(index int, envA, envB string) []envpkg.DiffRow {
+	projects := a.cfg.Projects()
+	if index < 0 || index >= len(projects) {
+		return nil
+	}
+	mask := func(envName string) map[string]string {
+		vars, err := a.cfg.GetEnvVars(index, envName)
+		if err != nil {
+			return nil
+		}
+		secrets, _ := a.cfg.GetSecrets(index, envName)
+		return models.MaskedVars(vars, secrets)
+	}
+	va := mask(envA)
+	if va == nil {
+		a.emitConfigError("Unknown environment for diff")
+		return nil
+	}
+	vb := mask(envB)
+	if vb == nil {
+		a.emitConfigError("Unknown environment for diff")
+		return nil
+	}
+	return envpkg.Diff(va, vb)
+}
+
+// SetEnvVars reemplaza las vars del entorno (Fase 2 #67).
+// Bloquea si el servidor está corriendo (igual que SetActiveEnv).
+func (a *App) SetEnvVars(index int, envName string, vars map[string]string) []string {
+	if a.serverRunning(index) {
+		return []string{"Cannot edit environment variables while server is running"}
+	}
+	if err := a.cfg.SetEnvVars(index, envName, vars); err != nil {
+		return []string{err.Error()}
+	}
+	projects := a.cfg.Projects()
+	a.mu.Lock()
+	sm2 := a.servers[index]
+	a.mu.Unlock()
+	if sm2 != nil && index < len(projects) {
+		sm2.UpdateProject(projects[index])
+	}
+	wails.EventsEmit(a.ctx, "env:changed", map[string]interface{}{"index": index, "env": envName})
+	return nil
+}
+
+// LoadDotEnvFile lee <project.Path>/<EnvFile> y lo parsea.
+// Archivo ausente o inválido → mapa vacío (el error de parseo se notifica
+// sin valores).
+func (a *App) LoadDotEnvFile(index int, envName string) map[string]string {
+	projects := a.cfg.Projects()
+	if index < 0 || index >= len(projects) {
+		return map[string]string{}
+	}
+	full, err := a.resolveEnvFile(projects[index], envName)
+	if err != nil {
+		return map[string]string{}
+	}
+	data, err := os.ReadFile(full)
+	if err != nil {
+		return map[string]string{}
+	}
+	vars, err := envpkg.Parse(data)
+	if err != nil {
+		a.emitConfigError("Failed to parse env file")
+		return map[string]string{}
+	}
+	return vars
+}
+
+// SaveDotEnvFile serializa vars a <project.Path>/<EnvFile>.
+func (a *App) SaveDotEnvFile(index int, envName string, vars map[string]string) []string {
+	projects := a.cfg.Projects()
+	if index < 0 || index >= len(projects) {
+		return []string{fmt.Sprintf("index %d out of range", index)}
+	}
+	if vars == nil {
+		vars = map[string]string{}
+	}
+	for k := range vars {
+		if err := envpkg.ValidateKey(k); err != nil {
+			return []string{err.Error()}
+		}
+	}
+	full, err := a.resolveEnvFile(projects[index], envName)
+	if err != nil {
+		return []string{err.Error()}
+	}
+	if err := os.WriteFile(full, []byte(envpkg.Serialize(vars)), 0o644); err != nil {
+		return []string{err.Error()}
+	}
+	return nil
 }
 
 // SaveDetectedPort confirma en projects.json el puerto detectado por el

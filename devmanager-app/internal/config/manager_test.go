@@ -313,3 +313,158 @@ func TestSaveDetectedPortPersists(t *testing.T) {
 		t.Error("invalid port must fail")
 	}
 }
+
+func TestConfiguredPortsCrossEnv(t *testing.T) {
+	path := tempPath(t)
+	m, _ := NewManager(path, Options{})
+	m.AddProject(sample("A")) // top 4000 + dev 4000
+	// Segundo proyecto con staging divergente.
+	b := sampleAt("B", "C:/xb", 5000)
+	if err := m.AddProject(b); err != nil {
+		t.Fatalf("add B: %v", err)
+	}
+	m.projects[1].Envs["staging"] = models.EnvConfig{
+		Server: models.ServerConfig{Enabled: true, Command: "npm run dev", Port: 5001, URL: "http://localhost:5001"},
+		Vars:   map[string]string{}, EnvFile: ".env.staging", Secrets: []string{},
+	}
+	got := m.ConfiguredPorts()
+	for _, want := range []int{4000, 5000, 5001} {
+		found := false
+		for _, p := range got {
+			if p == want {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("ConfiguredPorts = %v, falta %d", got, want)
+		}
+	}
+	if len(got) != 3 {
+		t.Errorf("ConfiguredPorts sin duplicados = %v", got)
+	}
+}
+
+func TestAutoAssignAvoidsCrossEnv(t *testing.T) {
+	path := tempPath(t)
+	m, _ := NewManager(path, Options{})
+	m.probeFn = func(host string, port int) bool { return false }
+	m.AddProject(sampleAt("A", "C:/xa", 5173))
+	if err := m.AddProject(sampleAt("B", "C:/xb", 5174)); err != nil {
+		t.Fatalf("add B: %v", err)
+	}
+	// B.staging reserva 5175 (no-activo): A no debe moverse pero un nuevo
+	// proyecto colisionando debe saltarlo.
+	m.projects[1].Envs["staging"] = models.EnvConfig{
+		Server: models.ServerConfig{Enabled: true, Command: "npm run dev", Port: 5175, URL: "http://localhost:5175"},
+		Vars:   map[string]string{}, EnvFile: ".env.staging", Secrets: []string{},
+	}
+	if err := m.AddProject(sampleAt("C", "C:/xc", 5175)); err != nil {
+		t.Fatalf("add C: %v", err)
+	}
+	n := m.AutoAssignUniquePorts(5173)
+	if n != 1 {
+		t.Fatalf("esperaba 1 reasignado, got %d", n)
+	}
+	if got := m.Projects()[2].Server.Port; got != 5176 {
+		t.Errorf("C reasignado a %d, want 5176 (salta staging de B)", got)
+	}
+	if got := m.Projects()[0].Server.Port; got != 5173 {
+		t.Errorf("A debe conservar 5173, got %d", got)
+	}
+}
+
+func TestSetActiveEnvOccupiedWarnsWithoutError(t *testing.T) {
+	path := tempPath(t)
+	var warnings []string
+	m, _ := NewManager(path, Options{OnError: func(msg string) { warnings = append(warnings, msg) }})
+	m.AddProject(sampleAt("A", "C:/xa", 5173))
+	m.projects[0].Envs["staging"] = models.EnvConfig{
+		Server: models.ServerConfig{Enabled: true, Command: "npm run dev", Port: 9999, URL: "http://localhost:9999"},
+		Vars:   map[string]string{}, EnvFile: ".env.staging", Secrets: []string{},
+	}
+	m.probeFn = func(host string, port int) bool { return port == 9999 }
+	if err := m.SetActiveEnv(0, "staging"); err != nil {
+		t.Fatalf("puerto ocupado no debe ser error duro: %v", err)
+	}
+	if m.Projects()[0].ActiveEnv != "staging" {
+		t.Error("el switch igual debe ocurrir")
+	}
+	if len(warnings) != 1 || !strings.Contains(warnings[0], "9999") {
+		t.Errorf("esperaba 1 warning con el puerto, got %v", warnings)
+	}
+	// Puerto libre → sin warning.
+	m.probeFn = func(host string, port int) bool { return false }
+	warnings = nil
+	if err := m.SetActiveEnv(0, "dev"); err != nil {
+		t.Fatalf("switch: %v", err)
+	}
+	if len(warnings) != 0 {
+		t.Errorf("sin warnings esperados, got %v", warnings)
+	}
+}
+
+func TestSetGetEnvVars(t *testing.T) {
+	path := tempPath(t)
+	m, _ := NewManager(path, Options{})
+	m.AddProject(sample("A"))
+
+	if err := m.SetEnvVars(0, "dev", map[string]string{"FOO": "bar"}); err != nil {
+		t.Fatalf("SetEnvVars: %v", err)
+	}
+	got, err := m.GetEnvVars(0, "dev")
+	if err != nil {
+		t.Fatalf("GetEnvVars: %v", err)
+	}
+	if got["FOO"] != "bar" {
+		t.Errorf("vars = %v", got)
+	}
+	// Copia: mutar el resultado no afecta al manager.
+	got["FOO"] = "mutated"
+	got2, _ := m.GetEnvVars(0, "dev")
+	if got2["FOO"] != "bar" {
+		t.Error("GetEnvVars debe devolver copia")
+	}
+	// Persistencia.
+	m2, _ := NewManager(path, Options{})
+	got3, err := m2.GetEnvVars(0, "dev")
+	if err != nil || got3["FOO"] != "bar" {
+		t.Errorf("persisted vars = %v, err = %v", got3, err)
+	}
+	// Keys inválidas / env desconocido / índice malo.
+	if err := m.SetEnvVars(0, "dev", map[string]string{"bad-key": "x"}); err == nil {
+		t.Error("key inválida debe fallar")
+	}
+	if err := m.SetEnvVars(0, "ghost", map[string]string{"A": "b"}); err == nil {
+		t.Error("env desconocido debe fallar")
+	}
+	if err := m.SetEnvVars(9, "dev", map[string]string{"A": "b"}); err == nil {
+		t.Error("índice fuera de rango debe fallar")
+	}
+	if _, err := m.GetEnvVars(0, "ghost"); err == nil {
+		t.Error("GetEnvVars env desconocido debe fallar")
+	}
+}
+
+func TestSetEnvVarsPreservesMaskedSecrets(t *testing.T) {
+	path := tempPath(t)
+	m, _ := NewManager(path, Options{})
+	m.AddProject(sample("A"))
+	if err := m.SetEnvVars(0, "dev", map[string]string{"TOKEN": "real123"}); err != nil {
+		t.Fatalf("set inicial: %v", err)
+	}
+	e := m.projects[0].Envs["dev"]
+	e.Secrets = []string{"TOKEN"}
+	m.projects[0].Envs["dev"] = e
+	// Llega la máscara (frontend no conoce el real) → preserva.
+	if err := m.SetEnvVars(0, "dev", map[string]string{"TOKEN": models.MaskedValue, "PLAIN": "x"}); err != nil {
+		t.Fatalf("set enmascarado: %v", err)
+	}
+	got, _ := m.GetEnvVars(0, "dev")
+	if got["TOKEN"] != "real123" {
+		t.Errorf("TOKEN real pisado por máscara: %q", got["TOKEN"])
+	}
+	if got["PLAIN"] != "x" {
+		t.Errorf("PLAIN = %q", got["PLAIN"])
+	}
+}

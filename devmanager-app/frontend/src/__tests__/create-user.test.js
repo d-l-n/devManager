@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { mountCreateUserDialog } from '../dialogs/create-user.js';
 
 // Valida el flujo del dialog de creación de usuario: validación de email y
 // submit con password generada vía crypto. window.* (messageDialog/showToast)
@@ -7,6 +8,7 @@ describe('create-user dialog', () => {
     let dialog = null;
 
     beforeEach(() => {
+        document.body.innerHTML = '';
         window.messageDialog = { alert: vi.fn() };
         window.showToast = vi.fn();
     });
@@ -20,7 +22,6 @@ describe('create-user dialog', () => {
     });
 
     async function openDialog() {
-        const { mountCreateUserDialog } = await import('../dialogs/create-user.js');
         const d = mountCreateUserDialog();
         document.body.appendChild(d.getElement());
         dialog = d;

@@ -86,8 +86,23 @@ func (a *App) SetSetting(key, value string) []string {
 		s.BackupRetention = n
 		normalized = value
 	default:
+		// Visibilidad de secciones del dashboard: dashboard_section.<section>
+		if strings.HasPrefix(key, "dashboard_section.") {
+			section := strings.TrimPrefix(key, "dashboard_section.")
+			if !validDashboardSection(section) {
+				return []string{"Invalid dashboard section: " + section}
+			}
+			b, err := parseStrictBool(value)
+			if err != nil {
+				return []string{"Invalid dashboard_section value (expected true or false)"}
+			}
+			if s.DashboardSections == nil {
+				s.DashboardSections = make(map[string]bool)
+			}
+			s.DashboardSections[section] = b
+			normalized = strconv.FormatBool(b)
 		// Per-style accent overrides: accent_override.<style>
-		if strings.HasPrefix(key, "accent_override.") {
+		} else if strings.HasPrefix(key, "accent_override.") {
 			style := strings.TrimPrefix(key, "accent_override.")
 			if !validAccentStyle(style) {
 				return []string{"Invalid accent override style: " + style}
@@ -146,6 +161,16 @@ func isValidHexColor(s string) bool {
 	}
 	l := len(s)
 	return l == 4 || l == 5 || l == 7 || l == 9
+}
+
+// validDashboardSection checks if the section name supports visibility
+// toggles (Issue #64).
+func validDashboardSection(s string) bool {
+	switch s {
+	case "projects", "alerts", "uptime", "perf":
+		return true
+	}
+	return false
 }
 
 // validAccentStyle checks if the style name supports accent overrides.

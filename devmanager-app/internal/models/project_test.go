@@ -139,6 +139,92 @@ func TestParseUserConfigPartial(t *testing.T) {
 	}
 }
 
+func TestParseLegacySynthesizesDev(t *testing.T) {
+	// projects.json viejo sin envs → dev sintetizado desde top-level.
+	p, err := ParseProject([]byte(fullJSON))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if p.ActiveEnv != "dev" {
+		t.Errorf("active_env = %q, want dev", p.ActiveEnv)
+	}
+	dev, ok := p.Envs["dev"]
+	if !ok {
+		t.Fatalf("envs sin dev: %+v", p.Envs)
+	}
+	if dev.Server != p.Server || dev.Playwright != p.Playwright || dev.User != p.User {
+		t.Errorf("dev debe copiar top-level:\ndev=%+v\ntop=%+v/%+v/%+v", dev, p.Server, p.Playwright, p.User)
+	}
+	if len(p.Validate()) != 0 {
+		t.Errorf("legacy sintetizado debe validar: %v", p.Validate())
+	}
+}
+
+func TestRoundTripWithEnvsStable(t *testing.T) {
+	raw := `{"name":"x","path":"y","server":{"port":3000},"active_env":"staging","envs":{"dev":{"server":{"port":5173}},"staging":{"server":{"port":3000}}}}`
+	p, err := ParseProject([]byte(raw))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if p.ActiveEnv != "staging" {
+		t.Fatalf("active_env = %q", p.ActiveEnv)
+	}
+	if p.Envs["staging"].Server.Port != 3000 || p.Envs["dev"].Server.Port != 5173 {
+		t.Fatalf("envs mal parseados: %+v", p.Envs)
+	}
+	out, err := json.Marshal(p)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	s := string(out)
+	for _, key := range []string{`"active_env"`, `"envs"`, `"staging"`, `"dev"`} {
+		if !strings.Contains(s, key) {
+			t.Errorf("falta clave %s en %s", key, s)
+		}
+	}
+	p2, err := ParseProject(out)
+	if err != nil {
+		t.Fatalf("re-parse: %v", err)
+	}
+	if p2.ActiveEnv != p.ActiveEnv || !reflect.DeepEqual(p2.Envs, p.Envs) {
+		t.Errorf("round-trip envs inestable:\nin=%+v\nout=%+v", p.Envs, p2.Envs)
+	}
+	// EffectiveServer refleja el active.
+	if p2.EffectiveServer().Port != 3000 {
+		t.Errorf("EffectiveServer = %+v, want port 3000", p2.EffectiveServer())
+	}
+}
+
+func TestValidateEnvNames(t *testing.T) {
+	valid := Project{Name: "a", Path: "b", ActiveEnv: "dev",
+		Envs: map[string]EnvConfig{"dev": {}, "staging-1": {}, "feat_x": {}}}
+	if len(valid.Validate()) != 0 {
+		t.Errorf("envs válidos no deben fallar: %v", valid.Validate())
+	}
+	cases := []struct {
+		name string
+		p    Project
+	}{
+		{"bad chars", Project{Name: "a", Path: "b", ActiveEnv: "Dev!",
+			Envs: map[string]EnvConfig{"Dev!": {}}}},
+		{"empty name", Project{Name: "a", Path: "b", ActiveEnv: "",
+			Envs: map[string]EnvConfig{"dev": {}}}},
+		{"too long", Project{Name: "a", Path: "b", ActiveEnv: strings.Repeat("a", 33),
+			Envs: map[string]EnvConfig{strings.Repeat("a", 33): {}}}},
+		{"active missing", Project{Name: "a", Path: "b", ActiveEnv: "prod",
+			Envs: map[string]EnvConfig{"dev": {}}}},
+		{"last deleted", Project{Name: "a", Path: "b", ActiveEnv: "dev",
+			Envs: map[string]EnvConfig{}}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if len(tc.p.Validate()) == 0 {
+				t.Errorf("esperaba error de validación en %s", tc.name)
+			}
+		})
+	}
+}
+
 func TestValidate(t *testing.T) {
 	p := Project{Name: "", Path: " "}
 	errs := p.Validate()
@@ -218,5 +304,137 @@ func TestValidateTabs(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestDefaultEnvFile(t *testing.T) {
+	cases := map[string]string{
+		"dev": ".env", "staging": ".env.staging", "prod": ".env.prod",
+		"custom": ".env.custom", "feat-x": ".env.feat-x",
+	}
+	for name, want := range cases {
+		if got := DefaultEnvFile(name); got != want {
+			t.Errorf("DefaultEnvFile(%q) = %q, want %q", name, got, want)
+		}
+	}
+}
+
+func TestRoundTripVarsPreserved(t *testing.T) {
+	raw := `{"name":"x","path":"y","active_env":"staging","envs":{` +
+		`"dev":{"vars":{"FOO":"bar"},"env_file":".env"},` +
+		`"staging":{"server":{"port":3000},"vars":{"API_URL":"https://x","SPACED":"a b"}}}}`
+	p, err := ParseProject([]byte(raw))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if p.Envs["dev"].Vars["FOO"] != "bar" {
+		t.Errorf("dev vars = %+v", p.Envs["dev"].Vars)
+	}
+	if p.Envs["staging"].Vars["SPACED"] != "a b" {
+		t.Errorf("staging vars = %+v", p.Envs["staging"].Vars)
+	}
+	// staging sin env_file explícito → default.
+	if p.Envs["staging"].EnvFile != ".env.staging" {
+		t.Errorf("staging env_file = %q", p.Envs["staging"].EnvFile)
+	}
+	out, err := json.Marshal(p)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	s := string(out)
+	for _, key := range []string{`"vars"`, `"env_file"`, `"API_URL"`} {
+		if !strings.Contains(s, key) {
+			t.Errorf("falta clave snake_case %s en %s", key, s)
+		}
+	}
+	p2, err := ParseProject(out)
+	if err != nil {
+		t.Fatalf("re-parse: %v", err)
+	}
+	if !reflect.DeepEqual(p2.Envs, p.Envs) {
+		t.Errorf("round-trip vars inestable:\nin=%+v\nout=%+v", p.Envs, p2.Envs)
+	}
+}
+
+func TestParseLegacyDefaultsVars(t *testing.T) {
+	// JSON viejo sin vars/env_file → maps no-nil + defaults.
+	p, err := ParseProject([]byte(fullJSON))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	dev := p.Envs["dev"]
+	if dev.Vars == nil {
+		t.Error("dev Vars debe ser no-nil")
+	}
+	if dev.EnvFile != ".env" {
+		t.Errorf("dev env_file = %q, want .env", dev.EnvFile)
+	}
+}
+
+func TestMaskedVars(t *testing.T) {
+	vars := map[string]string{"PUBLIC": "hi", "TOKEN": "supersecret"}
+	got := MaskedVars(vars, []string{"TOKEN"})
+	if got["PUBLIC"] != "hi" {
+		t.Errorf("PUBLIC = %q", got["PUBLIC"])
+	}
+	if got["TOKEN"] != MaskedValue {
+		t.Errorf("TOKEN debe enmascararse, got %q", got["TOKEN"])
+	}
+	if vars["TOKEN"] != "supersecret" {
+		t.Error("MaskedVars no debe mutar la entrada")
+	}
+	if !IsSecret([]string{"TOKEN"}, "TOKEN") || IsSecret([]string{"TOKEN"}, "PUBLIC") {
+		t.Error("IsSecret inconsistente")
+	}
+}
+
+func TestSecretsRoundTrip(t *testing.T) {
+	raw := `{"name":"x","path":"y","active_env":"dev",` +
+		`"envs":{"dev":{"vars":{"TOKEN":"abc","PLAIN":"x"},"secrets":["TOKEN"]}}}`
+	p, err := ParseProject([]byte(raw))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !IsSecret(p.Envs["dev"].Secrets, "TOKEN") {
+		t.Errorf("secrets = %v", p.Envs["dev"].Secrets)
+	}
+	if len(p.Validate()) != 0 {
+		t.Errorf("validate = %v", p.Validate())
+	}
+	out, err := json.Marshal(p)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if !strings.Contains(string(out), `"secrets"`) {
+		t.Errorf("falta clave secrets en %s", out)
+	}
+	p2, err := ParseProject(out)
+	if err != nil {
+		t.Fatalf("re-parse: %v", err)
+	}
+	if !reflect.DeepEqual(p2.Envs["dev"].Secrets, []string{"TOKEN"}) {
+		t.Errorf("secrets round-trip = %v", p2.Envs["dev"].Secrets)
+	}
+	if p2.Envs["dev"].Vars["TOKEN"] != "abc" {
+		t.Errorf("vars TOKEN = %q", p2.Envs["dev"].Vars["TOKEN"])
+	}
+	// Enmascarado: el real nunca sale salvo reveal.
+	if m := MaskedVars(p2.Envs["dev"].Vars, p2.Envs["dev"].Secrets); m["TOKEN"] != MaskedValue {
+		t.Errorf("masked TOKEN = %q", m["TOKEN"])
+	}
+}
+
+func TestSecretsDefaultsAndValidation(t *testing.T) {
+	p, err := ParseProject([]byte(fullJSON))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if p.Envs["dev"].Secrets == nil {
+		t.Error("secrets legacy debe ser no-nil ([])")
+	}
+	bad := Project{Name: "a", Path: "b", ActiveEnv: "dev",
+		Envs: map[string]EnvConfig{"dev": {Secrets: []string{"bad-key"}}}}
+	if len(bad.Validate()) == 0 {
+		t.Error("secret inválido debe fallar Validate")
 	}
 }

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { mountTabsDialog, CUSTOMIZABLE, mergeOrder } from '../dialogs/tabs.js';
 
 // Valida el flujo del dialog de tabs: visibilidad (hidden) + orden.
 // El saver se inyecta en mount(); window.messageDialog se stubea (solo
@@ -7,6 +8,7 @@ describe('tabs dialog', () => {
     let dialog = null;
 
     beforeEach(() => {
+        document.body.innerHTML = '';
         window.messageDialog = { alert: vi.fn() };
     });
 
@@ -19,7 +21,6 @@ describe('tabs dialog', () => {
     });
 
     async function openDialog() {
-        const { mountTabsDialog, CUSTOMIZABLE } = await import('../dialogs/tabs.js');
         const d = mountTabsDialog(vi.fn(), vi.fn().mockResolvedValue([]));
         document.body.appendChild(d.getElement());
         dialog = d;
@@ -84,7 +85,6 @@ describe('tabs dialog', () => {
     });
 
     it('mergeOrder preserva orden guardado y agrega el resto al final', async () => {
-        const { mountTabsDialog, mergeOrder } = await import('../dialogs/tabs.js');
         expect(mergeOrder(['deps', 'scripts'])).toEqual(['deps', 'scripts', 'git', 'playwright', 'evidence', 'obscura', 'backlog']);
         expect(mergeOrder(['bogus', 'deps', 'deps']).length).toBe(7); // ignora unknown + dupes
         expect(mergeOrder(undefined)).toHaveLength(7);

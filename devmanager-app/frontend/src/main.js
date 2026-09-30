@@ -12,6 +12,8 @@ import { showToast } from './widgets/toast.js';
 import { mountSettingsView } from './views/settings.js';
 import { mount as mountDashboard } from './views/dashboard.js';
 import { mountProjectDialog } from './dialogs/project.js';
+import { mount as mountEnvVarsDialog } from './dialogs/env-vars.js';
+import { activeEnvOf, effectiveServer, envNames, isServerRunning } from './envs.js';
 import { mountAppLogDialog } from './dialogs/applog.js';
 import { mountContextMenu } from './widgets/contextmenu.js';
 import { mountBacklogItemDialog } from './dialogs/backlog-item.js';
@@ -111,7 +113,8 @@ function renderList() {
         dot.dataset.index = i;
         li.appendChild(dot);
         const name = document.createElement('span');
-        name.textContent = p.name;
+        const envSuffix = activeEnvOf(p) ? ` ·${activeEnvOf(p)}` : '';
+        name.textContent = `${p.name}${envSuffix}`;
         name.className = 'proj-name';
         li.appendChild(name);
         const st = document.createElement('span');
@@ -187,6 +190,7 @@ function showProjectContextMenu(index, p, x, y) {
         { label: 'Run Tests', icon: 'tests', onClick: () => run(() => api.runTests(index)) },
         { label: p.pinned ? 'Unpin' : 'Pin', icon: p.pinned ? 'pinned' : 'pin', onClick: () => run(() => api.togglePin(index)) },
         { label: 'Edit Project', icon: 'edit', onClick: () => editProject(index) },
+        { label: 'Env Vars', icon: 'edit', onClick: () => openEnvVarsFlow(index) },
         { separator: true },
         { label: 'Remove Project', icon: 'trash', danger: true, onClick: () => removeProjectFlow(index) },
     ];
@@ -231,7 +235,8 @@ function renderDetail() {
     if (!has || monitorMode) return;
     const p = state.projects[state.selected];
     $('project-name').textContent = p.name;
-    $('url-label').textContent = p.server.url;
+    $('url-label').textContent = (p.server && p.server.url) || '';
+    renderEnvControls(p);
     reloadLogs();
     refreshStatus();
     ctx.panels.playwrightPanel.onProjectChanged(p);
@@ -243,6 +248,80 @@ function renderDetail() {
     ctx.panels.backlogPanel.onProjectChanged(p);
     applyTabOrder();
     applyTabVisibility();
+}
+
+// ---- Multi-env Fase 1 (#67): badge + switcher 1-click ----
+function renderEnvControls(p) {
+    const badge = $('env-badge');
+    const sel = $('env-switcher');
+    if (!badge || !sel || !p) return;
+    const names = envNames(p);
+    const active = activeEnvOf(p) || (names.includes('dev') ? 'dev' : (names[0] || ''));
+    badge.textContent = active || '—';
+    badge.title = `Active environment: ${active || '—'}`;
+    sel.innerHTML = '';
+    names.forEach((n) => {
+        const opt = document.createElement('option');
+        opt.value = n;
+        opt.textContent = n;
+        if (n === active) opt.selected = true;
+        sel.appendChild(opt);
+    });
+    sel.disabled = names.length <= 1;
+    sel.title = names.length <= 1 ? 'Only one environment' : 'Switch active environment';
+}
+
+async function onEnvSwitcherChange(e) {
+    const target = e.target.value;
+    const i = state.selected;
+    if (i < 0) return;
+    const p = state.projects[i];
+    const prev = activeEnvOf(p);
+    if (target === prev) return;
+    try {
+        const st = await api.getServerStatus(i);
+        if (st && isServerRunning(st.state)) {
+            showToast('Environment', 'Stop the server before switching environment', 'warning');
+            e.target.value = prev;
+            return;
+        }
+    } catch { /* sin backend: intentar igual */ }
+    let errs = null;
+    try {
+        errs = await api.setActiveEnv(i, target);
+    } catch (err) {
+        showToast('Environment', (err && err.message) || String(err), 'error');
+        e.target.value = prev;
+        return;
+    }
+    if (errs && errs.length) {
+        const msg = errs.join('\n');
+        if (/running/i.test(msg)) {
+            const ok = await messageDialog.confirm({
+                title: 'Server running',
+                message: 'The server is running. Stop it and switch environment?',
+                confirmLabel: 'Stop & switch',
+                destructive: true,
+            });
+            if (ok) {
+                await api.stopServer(i);
+                const errs2 = await api.setActiveEnv(i, target).catch((err2) => [(err2 && err2.message) || String(err2)]);
+                if (errs2 && errs2.length) {
+                    showToast('Environment', errs2.join('\n'), 'error');
+                    e.target.value = prev;
+                    return;
+                }
+            } else {
+                e.target.value = prev;
+                return;
+            }
+        } else {
+            showToast('Environment', msg, 'error');
+            e.target.value = prev;
+            return;
+        }
+    }
+    await refreshProjects(false);
 }
 
 // Tab visibility por proyecto (task 8): oculta tabs que no aplican al proyecto.
@@ -333,10 +412,12 @@ async function refreshStatus() {
     }
 
     // Badge Server: puerto activo/configurado y advertencia de desajuste.
+    // Fase 1 #67: usa puerto efectivo (active_env) como fallback.
     const bs = $('badge-server');
     if (bs) {
         bs.className = `badge ${status.state}`;
-        const port = status.activePort || state.projects[state.selected].server.port;
+        const effPort = effectiveServer(state.projects[state.selected]).port;
+        const port = status.activePort || effPort;
         const mismatch = state.portMismatches.get(state.selected);
         bs.textContent = `Server: :${port}${mismatch ? ' (port mismatch)' : ''}`;
     }
@@ -469,6 +550,14 @@ async function editProject(index) {
     projectDialog.openEdit(index, state.projects[index]);
 }
 
+// Env Vars (Fase 3 #67): abre el dialog para el env activo del proyecto.
+async function openEnvVarsFlow(index) {
+    const i = typeof index === 'number' ? index : state.selected;
+    if (i < 0 || i >= state.projects.length) return;
+    const p = state.projects[i];
+    await envVarsDialog.open(i, activeEnvOf(p), undefined, { envNames: envNames(p) });
+}
+
 function hasSelection() {
     return state.selected >= 0 && state.selected < state.projects.length;
 }
@@ -567,6 +656,11 @@ function wireEvents() {
     $('btn-start').addEventListener('click', () => api.startServer(state.selected));
     $('btn-stop').addEventListener('click', () => api.stopServer(state.selected));
     $('btn-restart').addEventListener('click', () => api.restartServer(state.selected));
+    const envSwitcher = $('env-switcher');
+    if (envSwitcher) envSwitcher.addEventListener('change', onEnvSwitcherChange);
+    // Env Vars (Fase 3 #67): dialog cableado junto al switcher.
+    const btnEnvVars = $('btn-env-vars');
+    if (btnEnvVars) btnEnvVars.addEventListener('click', () => openEnvVarsFlow());
 
     $('view-project').addEventListener('click', () => switchView('project'));
     $('view-monitor').addEventListener('click', () => switchView('monitor'));
@@ -614,6 +708,7 @@ $('btn-theme').addEventListener('click', () => {
 
     // Eventos push desde Go
     events().EventsOn('projects:changed', async () => refreshProjects());
+    events().EventsOn('env:changed', async () => refreshProjects(false));
     events().EventsOn('config:error', (payload) =>
         showToast('Configuration', payload.message, 'warning'));
     events().EventsOn('notify', ({ title, message, level }) =>
@@ -704,6 +799,10 @@ function wireKeyboardShortcuts() {
                 case 'c':
                     e.preventDefault();
                     if (hasSelection()) api.openVSCode(sel);
+                    break;
+                case 'e':
+                    e.preventDefault();
+                    openEnvVarsFlow();
                     break;
                 case 'o':
                     e.preventDefault();
@@ -859,6 +958,12 @@ const projectDialog = mountProjectDialog(async (savedIndex) => {
     }
 });
 const appLogDialog = mountAppLogDialog();
+// Env Vars (Fase 3 #67): tras Save → refresh (toast + env:changed los pone
+// el dialog y el backend respectivamente).
+const envVarsDialog = mountEnvVarsDialog(ctx, async () => {
+    await refreshProjects(false);
+});
+ctx.envVarsDialog = envVarsDialog;
 const contextMenu = mountContextMenu();
 const backlogItemDialog = mountBacklogItemDialog();
 document.body.appendChild(backlogItemDialog.getElement());
