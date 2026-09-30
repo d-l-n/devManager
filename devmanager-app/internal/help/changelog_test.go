@@ -164,8 +164,17 @@ func TestChangelogRealDelRepo(t *testing.T) {
 	if len(releases) < 3 {
 		t.Fatalf("releases parseadas = %d", len(releases))
 	}
-	if releases[0].Version == "" || releases[0].Date == "" {
-		t.Errorf("primera release sin versión/fecha: %+v", releases[0])
+	// La primera entrada puede ser "[Unreleased]" (sin fecha) si hay trabajo en
+	// curso; en ese caso validamos contra la primera release fechada.
+	first := releases[0]
+	if first.Version == "Unreleased" && first.Date == "" {
+		if len(releases) < 2 {
+			t.Fatalf("sólo hay [Unreleased], ninguna release fechada")
+		}
+		first = releases[1]
+	}
+	if first.Version == "" || first.Date == "" {
+		t.Errorf("primera release fechada sin versión/fecha: %+v", first)
 	}
 	totalItems := 0
 	for _, r := range releases {
