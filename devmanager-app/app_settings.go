@@ -99,6 +99,28 @@ func (a *App) SetSetting(key, value string) []string {
 		}
 		s.WorkflowWebhookEnabled = b
 		normalized = strconv.FormatBool(b)
+	case "external_notifications":
+		b, err := parseStrictBool(value)
+		if err != nil {
+			return []string{"Invalid external_notifications value (expected true or false)"}
+		}
+		s.ExternalNotifications = b
+		normalized = strconv.FormatBool(b)
+	case "language":
+		switch value {
+		case "en", "es", "ar":
+			s.Language = value
+			normalized = value
+		default:
+			return []string{"Invalid language value (expected en, es or ar)"}
+		}
+	case "touch_optimized":
+		b, err := parseStrictBool(value)
+		if err != nil {
+			return []string{"Invalid touch_optimized value (expected true or false)"}
+		}
+		s.TouchOptimized = b
+		normalized = strconv.FormatBool(b)
 	default:
 		// Visibilidad de secciones del dashboard: dashboard_section.<section>
 		if strings.HasPrefix(key, "dashboard_section.") {

@@ -14,9 +14,11 @@ import (
 
 	"github.com/d-l-n/devmanager/internal/config"
 	"github.com/d-l-n/devmanager/internal/dashboard"
+	"github.com/d-l-n/devmanager/internal/devtools"
 	envpkg "github.com/d-l-n/devmanager/internal/env"
 	"github.com/d-l-n/devmanager/internal/logger"
 	"github.com/d-l-n/devmanager/internal/models"
+	"github.com/d-l-n/devmanager/internal/notify"
 	"github.com/d-l-n/devmanager/internal/obscura"
 	"github.com/d-l-n/devmanager/internal/playwright"
 	"github.com/d-l-n/devmanager/internal/process"
@@ -82,6 +84,13 @@ type App struct {
 	wfLastRun   map[string]time.Time
 	wfSchedStop chan struct{}
 	ciStatus    map[string]CIStatusEntry
+
+	// Notificaciones externas (Issue #66): store + dispatcher.
+	notifyStore      *notify.Store
+	notifyDispatcher *notify.Dispatcher
+
+	// Dev tools (Issue #68): snippets globales (lazy).
+	devSnippets *devtools.SnippetStore
 }
 
 // pendingTrayNotify guarda la última notificación durante el cooldown;
@@ -154,6 +163,9 @@ func (a *App) startup(ctx context.Context) {
 	a.initWorkflows()
 	a.startWorkflowScheduler()
 	a.startWorkflowListener()
+
+	// Notificaciones avanzadas (Issue #66): store + dispatcher externos.
+	a.initNotify()
 
 	// Spike tray (Fase 3 §5.1): el pump se lanza desde main() vía runTray;
 	// onTrayReady marca trayOK y OnBeforeClose oculta salvo forceExit.
@@ -623,6 +635,9 @@ func (a *App) createServerManager(index int) *server.Manager {
 			case models.StateStopped:
 				go a.FireWorkflowEvent(index, models.WorkflowEventServerStopped, nil)
 			}
+			// Notificaciones externas (Issue #66): fan-out propio, con gate en
+			// settings.ExternalNotifications.
+			a.hookNotifyServerState(index, state)
 		},
 		OnLog: func(line string, isError bool) {
 			wails.EventsEmit(a.ctx, "server:log", map[string]interface{}{
@@ -722,6 +737,9 @@ func (a *App) ensureManagers(index int) (*server.Manager, *playwright.Manager, *
 	}
 	return sm, pm, scm
 }
+
+// hookNotifyServerState-app.go nota: la implementación vive en
+// app_notify_external.go (Issue #66).
 
 // ---- Quit ----
 

@@ -29,11 +29,26 @@ type Settings struct {
 	// false se distingue por port==0 en Load: legacy sin campos → enabled).
 	WorkflowWebhookPort    int  `json:"workflow_webhook_port"`
 	WorkflowWebhookEnabled bool `json:"workflow_webhook_enabled"`
+	// Notificaciones externas (Issue #66): gate global del dispatcher.
+	// Default true (también para configs legacy sin el campo).
+	ExternalNotifications bool `json:"external_notifications"`
+	// i18n + touch (Issue #69): idioma de la UI y modo táctil.
+	Language       string `json:"language"`
+	TouchOptimized bool   `json:"touch_optimized"`
 }
 
 func validStyle(s string) bool {
 	switch s {
 	case "standard", "brutalist", "glassmorphism", "retro", "dracula":
+		return true
+	}
+	return false
+}
+
+// Idiomas válidos (Issue #69).
+func validLanguage(l string) bool {
+	switch l {
+	case "en", "es", "ar":
 		return true
 	}
 	return false
@@ -65,6 +80,11 @@ func DefaultSettings() Settings {
 		// Workflows (Issue #65): listener entrante localhost:9876 activo.
 		WorkflowWebhookPort:    9876,
 		WorkflowWebhookEnabled: true,
+		// Notificaciones externas (Issue #66): gate activo por defecto.
+		ExternalNotifications: true,
+		// i18n (Issue #69): inglés por defecto; touch off por defecto.
+		Language:       "en",
+		TouchOptimized: false,
 	}
 }
 
@@ -83,6 +103,10 @@ func LoadSettings(path string) Settings {
 	}
 	if !validStyle(s.Style) {
 		s.Style = "standard"
+	}
+	// i18n (Issue #69): idioma inválido/ausente (legacy) → en.
+	if !validLanguage(s.Language) {
+		s.Language = "en"
 	}
 	// Ensure AccentOverrides is never nil for JSON serialization.
 	if s.AccentOverrides == nil {
