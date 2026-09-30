@@ -79,6 +79,7 @@
                 <button class="tab" data-tab="obscura" role="tab" aria-selected="false">Obscura</button>
                 <button class="tab" data-tab="backlog" role="tab" aria-selected="false">Backlog</button>
                 <button class="tab" data-tab="workflows" role="tab" aria-selected="false">Workflows</button>
+                <button class="tab" data-tab="tools" role="tab" aria-selected="false">Tools</button>
                 <button id="btn-tab-settings" class="icon-btn" title="Customize tabs (visibility & order)" aria-label="Customize tabs" style="margin-left:auto"><span data-icon="settings"></span></button>
             </nav>
             <section id="panel-logs" class="panel active" role="tabpanel">
@@ -350,6 +351,44 @@
             </section>
 
             <section id="panel-testadv" class="panel" role="tabpanel" aria-label="Advanced testing"></section>
+
+            <section id="panel-tools" class="panel" role="tabpanel" aria-label="Dev tools">
+                <header id="tools-toolbar">
+                    <div class="row-gap grow">
+                        <input id="tools-search" type="text" class="text-input" placeholder="Search files in project... (name and content)" aria-label="Search project files">
+                    </div>
+                    <button id="tools-palette" class="btn btn-accent" title="Command palette (Ctrl+K)">Commands (Ctrl+K)</button>
+                </header>
+                <div id="tools-result" class="result-strip" hidden></div>
+                <div id="tools-split">
+                    <div id="tools-browser">
+                        <div id="tools-crumbs" class="tools-crumbs" aria-label="Breadcrumb"></div>
+                        <div id="tools-list" class="tools-list"></div>
+                        <div id="tools-search-results" class="tools-list" hidden></div>
+                    </div>
+                    <div id="tools-editor-pane">
+                        <div class="row-between">
+                            <span id="tools-editor-path" class="dim mono"></span>
+                            <span class="row-gap">
+                                <button id="tools-save" class="btn btn-primary" disabled>Save</button>
+                                <button id="tools-close" class="btn" disabled>Close</button>
+                            </span>
+                        </div>
+                        <textarea id="tools-editor" class="mono" spellcheck="false" aria-label="File editor" hidden></textarea>
+                        <div id="tools-editor-empty" class="dim center padded">Select a file to edit it here</div>
+                    </div>
+                </div>
+                <div class="group">
+                    <div class="group-title">Snippets</div>
+                    <div class="row-gap">
+                        <input id="tools-snippet-name" type="text" class="text-input" placeholder="Snippet name" aria-label="Snippet name">
+                        <input id="tools-snippet-cmd" type="text" class="text-input mono" placeholder="Command (e.g. npm test -- --watch)" aria-label="Snippet command" style="flex:2">
+                        <button id="tools-snippet-add" class="btn btn-primary">Add Snippet</button>
+                    </div>
+                    <div id="tools-snippets" class="tools-list"></div>
+                    <div id="tools-snippets-empty" class="dim center padded">No snippets saved yet.</div>
+                </div>
+            </section>
         </section>
         <section id="dashboard-view" hidden>
             <header id="dashboard-toolbar">

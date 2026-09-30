@@ -49,7 +49,7 @@ type UserConfig struct {
 
 // KnownTabs son los ids de tabs del detail view (paridad con index.html).
 // Logs no se puede ocultar: es el fallback del tab activo.
-var KnownTabs = []string{"logs", "scripts", "git", "deps", "playwright", "evidence", "obscura", "backlog", "workflows"}
+var KnownTabs = []string{"logs", "scripts", "git", "deps", "playwright", "evidence", "obscura", "backlog", "workflows", "tools"}
 
 // TabsConfig personaliza por proyecto el detail view: tabs ocultos y orden
 // de aparición. Vacío = comportamiento default (todos visibles, orden del DOM).
