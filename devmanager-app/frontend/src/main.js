@@ -7,10 +7,12 @@ import { mount as mountEvidence } from './panels/evidence.js';
 import { mount as mountObscura } from './panels/obscura.js';
 import { mount as mountBacklog } from './panels/backlog.js';
 import { mount as mountMonitor } from './panels/monitor.js';
+import { mount as mountTestAdv } from './panels/testadv.js';
 import { applyTheme, THEME_CYCLE, currentTheme, getOledMode } from './theme.js';
 import { showToast } from './widgets/toast.js';
 import { mountSettingsView } from './views/settings.js';
 import { mount as mountDashboard } from './views/dashboard.js';
+import { mount as mountHelpView } from './views/help.js';
 import { mountProjectDialog } from './dialogs/project.js';
 import { mount as mountEnvVarsDialog } from './dialogs/env-vars.js';
 import { activeEnvOf, effectiveServer, envNames, isServerRunning } from './envs.js';
@@ -246,6 +248,7 @@ function renderDetail() {
     ctx.panels.evidencePanel.onProjectChanged(p);
     ctx.panels.obscuraPanel.onProjectChanged(p);
     ctx.panels.backlogPanel.onProjectChanged(p);
+    ctx.panels.testadvPanel.onProjectChanged(p);
     applyTabOrder();
     applyTabVisibility();
 }
@@ -518,6 +521,7 @@ function switchView(view) {
     $('monitor-view').hidden = view !== 'monitor';
     $('settings-view').hidden = view !== 'settings';
     $('dashboard-view').hidden = view !== 'dashboard';
+    $('help-view').hidden = view !== 'help';
     ctx.panels.monitorPanel.setVisible(view === 'monitor');
     dashboardView.setVisible(view === 'dashboard');
     
@@ -686,6 +690,7 @@ $('btn-theme').addEventListener('click', () => {
     });
     $('btn-settings').addEventListener('click', () => switchView('settings'));
     $('btn-applog').addEventListener('click', () => appLogDialog.open());
+    $('btn-help').addEventListener('click', openHelp);
     $('btn-quit').addEventListener('click', quitApp);
 
     // Abre en el navegador la URL del proyecto seleccionado (Task 18)
@@ -761,6 +766,21 @@ function wireKeyboardShortcuts() {
     window.addEventListener('keydown', (e) => {
         const mod = e.ctrlKey || e.metaKey;
         const key = typeof e.key === 'string' ? e.key.toLowerCase() : '';
+
+        // Help (Issue #72): F1 abre la ayuda, Ctrl+? salta a los atajos.
+        if (key === 'f1') {
+            e.preventDefault();
+            openHelp();
+            return;
+        }
+        if (mod && (key === '?' || (e.shiftKey && key === '/'))) {
+            e.preventDefault();
+            if (window.helpView) {
+                openHelp();
+                window.helpView.selectTab('shortcuts');
+            }
+            return;
+        }
 
         // Settings shortcut - Ctrl+,
         if (mod && key === ',') {
@@ -936,11 +956,22 @@ const evidencePanel = mountEvidence(ctx);
 const obscuraPanel = mountObscura(ctx);
 const monitorPanel = mountMonitor(ctx);
 const backlogPanel = mountBacklog(ctx);
-ctx.panels = { playwrightPanel, scriptsPanel, gitPanel, depsPanel, evidencePanel, obscuraPanel, monitorPanel, backlogPanel };
+const testadvPanel = mountTestAdv(ctx);
+ctx.panels = { playwrightPanel, scriptsPanel, gitPanel, depsPanel, evidencePanel, obscuraPanel, monitorPanel, backlogPanel, testadvPanel };
 
 const settingsView = mountSettingsView();
 window.settingsView = settingsView;
 const dashboardView = mountDashboard(ctx);
+// Help & documentation (Issue #72): ventana propia con F1 / Ctrl+? / botón ?.
+const helpView = mountHelpView(ctx);
+window.helpView = helpView;
+
+// openHelp entra en la vista de ayuda sin duplicar la lógica de switchView.
+function openHelp() {
+    if (!window.helpView || window.helpView.isOpen()) return;
+    switchView('help');
+    window.helpView.open();
+}
 const projectDialog = mountProjectDialog(async (savedIndex) => {
     await refreshProjects(false);
     // Auto-select the newly added/edited project

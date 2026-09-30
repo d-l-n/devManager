@@ -39,6 +39,7 @@
                 <button id="btn-reload" class="icon-btn" title="Reload projects" aria-label="Reload projects" data-icon="refresh"></button>
                 <button id="btn-applog" class="icon-btn" title="Application log" aria-label="Application log" data-icon="file"></button>
                 <button id="btn-theme" class="icon-btn" title="Toggle theme" aria-label="Toggle theme" data-icon="moon"></button>
+                <button id="btn-help" class="icon-btn" title="Help (F1)" aria-label="Help">?</button>
                 <button id="btn-settings" class="icon-btn" title="Settings" aria-label="Settings" data-icon="settings"></button>
                 <button id="btn-quit" class="icon-btn" title="Quit" aria-label="Quit" data-icon="power-off"></button>
             </div>
@@ -73,6 +74,7 @@
                 <button class="tab" data-tab="git" role="tab" aria-selected="false">Git</button>
                 <button class="tab" data-tab="deps" role="tab" aria-selected="false">Deps</button>
                 <button class="tab" data-tab="playwright" role="tab" aria-selected="false">Playwright</button>
+                <button class="tab" data-tab="testadv" role="tab" aria-selected="false">Testing</button>
                 <button class="tab" data-tab="evidence" role="tab" aria-selected="false">Evidence</button>
                 <button class="tab" data-tab="obscura" role="tab" aria-selected="false">Obscura</button>
                 <button class="tab" data-tab="backlog" role="tab" aria-selected="false">Backlog</button>
@@ -288,6 +290,7 @@
                     No backlog items yet.<br>Select a project and add an item to start tracking tasks.
                 </div>
             </section>
+            <section id="panel-testadv" class="panel" role="tabpanel" aria-label="Advanced testing"></section>
         </section>
         <section id="dashboard-view" hidden>
             <header id="dashboard-toolbar">
@@ -413,6 +416,7 @@
                 </div>
             </div>
         </section>
+        <section id="help-view" hidden></section>
     </main>
     </div>
 </div>
