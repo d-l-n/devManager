@@ -50,6 +50,7 @@ type HelpIndex struct {
 	Progress       help.Progress       `json:"progress"`
 	Summary        HelpProgressSummary `json:"summary"`
 	Changelog      []help.Release      `json:"changelog"`
+	Community      []help.CommunityLink `json:"community"`
 }
 
 // ContextHelpResult envuelve la ayuda contextual (found=false si no existe).
@@ -80,6 +81,7 @@ func (a *App) GetHelpIndex() HelpIndex {
 			Pct:       pct,
 		},
 		Changelog: help.Latest(help.LoadChangelog(a.helpExeDir()), 5),
+		Community: help.KnownCommunityLinks(),
 	}
 }
 

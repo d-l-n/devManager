@@ -103,6 +103,7 @@ const TABS = [
     ['faq', 'FAQ'],
     ['shortcuts', 'Shortcuts'],
     ['changelog', 'Changelog'],
+    ['community', 'Community'],
     ['context', "What's this?"],
 ];
 
@@ -420,6 +421,30 @@ export function mount(ctx) {
         });
     }
 
+    function renderCommunity() {
+        const index = state.index || {};
+        content.appendChild(el('h3', '', 'Community & support'));
+        content.appendChild(el('div', 'hp-dim', 'Get help, report issues and follow development.'));
+        const links = index.community || [];
+        if (!links.length) {
+            content.appendChild(el('div', 'hp-dim', 'No community links available.'));
+            return;
+        }
+        links.forEach((l) => {
+            const card = el('div', 'hp-card');
+            card.appendChild(el('div', 'strong', l.label));
+            card.appendChild(el('div', 'hp-dim', l.description));
+            const actions = el('div', 'hp-actions');
+            const open = el('button', 'btn', 'Open');
+            open.addEventListener('click', () => {
+                try { window.go.main.App.OpenURL(l.url); } catch { window.open(l.url, '_blank'); }
+            });
+            actions.appendChild(open);
+            card.appendChild(actions);
+            content.appendChild(card);
+        });
+    }
+
     function renderContext() {
         const index = state.index || {};
         content.appendChild(el('h3', '', "What's this?"));
@@ -470,6 +495,8 @@ export function mount(ctx) {
             renderShortcuts();
         } else if (state.tab === 'changelog') {
             renderChangelog();
+        } else if (state.tab === 'community') {
+            renderCommunity();
         } else if (state.tab === 'context') {
             renderContext();
         } else {
