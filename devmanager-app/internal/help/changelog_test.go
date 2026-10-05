@@ -179,7 +179,11 @@ func TestChangelogRealDelRepo(t *testing.T) {
 	totalItems := 0
 	for _, r := range releases {
 		if len(r.Sections) == 0 {
-			t.Errorf("release %q sin secciones", r.Version)
+			// "[Unreleased]" vacío es un placeholder válido justo después de
+			// publicar una release; no significa un parseo parcial.
+			if r.Version != "Unreleased" || r.Date != "" {
+				t.Errorf("release %q sin secciones", r.Version)
+			}
 		}
 		for _, s := range r.Sections {
 			if s.Title == "" {

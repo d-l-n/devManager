@@ -225,7 +225,7 @@ func validAccentStyle(s string) bool {
 
 // ---- Updater (Issue #58) ----
 
-// Version is set at build time via ldflags: -ldflags "-X main.Version=v2.1.0"
+// Version is set at build time via ldflags: -ldflags "-X main.Version=v2.2.0"
 var Version = "dev"
 
 // GetVersion returns the current application version string.
