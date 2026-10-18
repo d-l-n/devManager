@@ -26,18 +26,14 @@ describe('SETTINGS_THEMES', () => {
 });
 
 describe('SETTINGS_STYLES', () => {
-    it('contains all 5 styles', () => {
-        expect(SETTINGS_STYLES).toEqual(['standard', 'brutalist', 'glassmorphism', 'retro', 'dracula']);
+    it('contains only standard style', () => {
+        expect(SETTINGS_STYLES).toEqual(['standard']);
     });
 });
 
 describe('STYLE_ACCENT_VAR', () => {
     it('maps each style to a CSS custom property', () => {
         expect(STYLE_ACCENT_VAR.standard).toBe('--accent');
-        expect(STYLE_ACCENT_VAR.brutalist).toBe('--brutalist-accent');
-        expect(STYLE_ACCENT_VAR.glassmorphism).toBe('--accent');
-        expect(STYLE_ACCENT_VAR.retro).toBe('--retro-accent');
-        expect(STYLE_ACCENT_VAR.dracula).toBe('--dracula-purple');
     });
 });
 
@@ -65,14 +61,14 @@ describe('isValidTheme', () => {
 });
 
 describe('isValidStyle', () => {
-    it('returns true for valid styles', () => {
+    it('returns true for standard style', () => {
         expect(isValidStyle('standard')).toBe(true);
-        expect(isValidStyle('brutalist')).toBe(true);
-        expect(isValidStyle('glassmorphism')).toBe(true);
-        expect(isValidStyle('retro')).toBe(true);
-        expect(isValidStyle('dracula')).toBe(true);
     });
-    it('returns false for invalid styles', () => {
+    it('returns false for deprecated or invalid styles', () => {
+        expect(isValidStyle('brutalist')).toBe(false);
+        expect(isValidStyle('glassmorphism')).toBe(false);
+        expect(isValidStyle('retro')).toBe(false);
+        expect(isValidStyle('dracula')).toBe(false);
         expect(isValidStyle('minimal')).toBe(false);
         expect(isValidStyle('')).toBe(false);
     });
@@ -114,12 +110,12 @@ describe('applyStyle', () => {
         document.documentElement.dataset.style = '';
     });
 
-    it('sets data-style on root element', () => {
-        applyStyle('retro', { persist: false });
-        expect(document.documentElement.dataset.style).toBe('retro');
+    it('sets data-style on root element to standard', () => {
+        applyStyle('standard', { persist: false });
+        expect(document.documentElement.dataset.style).toBe('standard');
     });
 
-    it('falls back to standard for invalid style', () => {
+    it('pins to standard for any other style', () => {
         applyStyle('nonexistent', { persist: false });
         expect(document.documentElement.dataset.style).toBe('standard');
     });
@@ -185,9 +181,8 @@ describe('accent overrides', () => {
     });
 
     it('global mode overrides per-style', () => {
-        document.documentElement.dataset.style = 'retro';
-        setAccentOverrides({ retro: '#aaa' }, true, '#00ff00');
-        const val = document.documentElement.style.getPropertyValue('--retro-accent');
+        setAccentOverrides({ standard: '#aaa' }, true, '#00ff00');
+        const val = document.documentElement.style.getPropertyValue('--accent');
         expect(val).toBe('#00ff00');
     });
 
@@ -200,17 +195,16 @@ describe('accent overrides', () => {
     });
 
     it('getEffectiveAccent returns override for current style', () => {
-        setAccentOverrides({ brutalist: '#aaa' }, false, '');
-        expect(getEffectiveAccent('brutalist')).toBe('#aaa');
+        setAccentOverrides({ standard: '#aaa' }, false, '');
+        expect(getEffectiveAccent('standard')).toBe('#aaa');
     });
 
     it('getEffectiveAccent returns global color when global mode on', () => {
         setAccentOverrides({}, true, '#bbb');
-        expect(getEffectiveAccent('brutalist')).toBe('#bbb');
+        expect(getEffectiveAccent('standard')).toBe('#bbb');
     });
 
     it('getEffectiveAccent returns default when no override', () => {
         expect(getEffectiveAccent('standard')).toBe('#6366f1');
-        expect(getEffectiveAccent('retro')).toBe('#39ff14');
     });
 });

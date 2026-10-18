@@ -395,3 +395,67 @@ func TestBuildExtraEnvEmpty(t *testing.T) {
 		t.Errorf("sin puerto ni vars → vacío: %v %v", extra, warns)
 	}
 }
+
+func TestLateStartupRecoveryByLog(t *testing.T) {
+	rec := &recorder{}
+	p := newAliveProject(5173)
+	p.Server.StartupTimeout = 100 // muy corto para forzar timeout a ERROR
+	m := NewManager(p, rec.callbacks())
+	m.probePortFn = func(host string, port int) bool { return false }
+	m.waitPortFn = func(ctx context.Context, timeout time.Duration) error {
+		return context.DeadlineExceeded
+	}
+
+	m.Start()
+	waitForState(t, m, models.StateError, 5*time.Second)
+	if !strings.Contains(m.FailureReason(), "Startup timeout") {
+		t.Fatalf("esperaba error por startup timeout, got %q", m.FailureReason())
+	}
+
+	// El proceso sigue vivo y emite su log con la URL unos instantes después.
+	m.onRunnerOutput("  ➜  Local:   http://localhost:5173/", false)
+	waitForState(t, m, models.StateRunning, 5*time.Second)
+
+	if m.FailureReason() != "" {
+		t.Errorf("failureReason debe limpiarse tras recuperación, got %q", m.FailureReason())
+	}
+	if rec.readyCount() != 1 {
+		t.Errorf("OnReady debe dispararse tras recuperación, got %d", rec.readyCount())
+	}
+	if got := rec.countLogs("[Startup Recovery]"); got != 1 {
+		t.Errorf("log de auto-recuperación debe emitirse, got %d", got)
+	}
+	m.Stop()
+	waitForState(t, m, models.StateStopped, 5*time.Second)
+}
+
+func TestConfiguredPortNotOverwrittenBySecondaryPort(t *testing.T) {
+	rec := &recorder{}
+	p := newAliveProject(5173)
+	m := NewManager(p, rec.callbacks())
+	m.probePortFn = func(host string, port int) bool { return false }
+	m.waitPortFn = waitBloqueado
+
+	m.Start()
+	// Vite listo en 5173 (puerto configurado)
+	m.onRunnerOutput("  ➜  Local:   http://localhost:5173/", false)
+	waitForState(t, m, models.StateRunning, 5*time.Second)
+
+	if m.ActivePort() != 5173 {
+		t.Fatalf("puerto activo debe ser 5173, got %d", m.ActivePort())
+	}
+
+	// Wrangler listo en 8788 (proceso secundario/proxy)
+	m.onRunnerOutput("Ready on http://127.0.0.1:8788", false)
+
+	// El puerto activo debe mantenerse en 5173 y no disparar PORT MISMATCH
+	if m.ActivePort() != 5173 {
+		t.Errorf("puerto activo no debe ser sobrescrito por proceso secundario, got %d", m.ActivePort())
+	}
+	if rec.mismatchCount() != 0 {
+		t.Errorf("no debe disparar mismatch cuando el puerto configurado ya está confirmado, got %d", rec.mismatchCount())
+	}
+	m.Stop()
+	waitForState(t, m, models.StateStopped, 5*time.Second)
+}
+

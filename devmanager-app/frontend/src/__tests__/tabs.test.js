@@ -67,7 +67,7 @@ describe('tabs dialog', () => {
         const [index, updated] = saver.mock.calls[0];
         expect(index).toBe(0);
         expect(updated.tabs.hidden).toEqual(['playwright']);
-        expect(updated.tabs.order).toEqual(['git', 'scripts', 'deps', 'playwright', 'evidence', 'obscura', 'backlog', 'workflows']);
+        expect(updated.tabs.order).toEqual(['git', 'scripts', 'deps', 'playwright', 'testadv', 'evidence', 'obscura', 'backlog', 'workflows', 'tools']);
         // resto del proyecto preservado
         expect(updated.name).toBe('x');
     });
@@ -85,9 +85,9 @@ describe('tabs dialog', () => {
     });
 
     it('mergeOrder preserva orden guardado y agrega el resto al final', async () => {
-        expect(mergeOrder(['deps', 'scripts'])).toEqual(['deps', 'scripts', 'git', 'playwright', 'evidence', 'obscura', 'backlog', 'workflows']);
-        expect(mergeOrder(['bogus', 'deps', 'deps']).length).toBe(8); // ignora unknown + dupes
-        expect(mergeOrder(undefined)).toHaveLength(8);
+        expect(mergeOrder(['deps', 'scripts'])).toEqual(['deps', 'scripts', 'git', 'playwright', 'testadv', 'evidence', 'obscura', 'backlog', 'workflows', 'tools']);
+        expect(mergeOrder(['bogus', 'deps', 'deps']).length).toBe(10); // ignora unknown + dupes
+        expect(mergeOrder(undefined)).toHaveLength(10);
         expect(mountTabsDialog).toBeTypeOf('function');
     });
 });

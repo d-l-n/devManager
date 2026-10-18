@@ -109,7 +109,8 @@ export function mount(ctx) {
     function handleDragStart(e) {
         draggedItem = {
             id: e.target.dataset.id,
-            index: parseInt(e.target.dataset.index)
+            index: parseInt(e.target.dataset.index),
+            element: e.currentTarget || e.target
         };
         e.target.classList.add('dragging');
         e.dataTransfer.effectAllowed = 'move';

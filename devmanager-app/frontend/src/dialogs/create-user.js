@@ -202,7 +202,6 @@ export function mountCreateUserDialog() {
         overlay.hidden = true;
         isOpen = false;
         projectIndex = -1;
-        onRun = null;
     }
 
     document.addEventListener('keydown', (e) => {

@@ -123,10 +123,15 @@ export function mount(ctx) {
 
     GIT_ACTIONS.forEach((action) => {
         $(`git-${action.toLowerCase()}`).addEventListener('click', () => {
-            busy[ctx.selectedIndex()] = true;
+            const idx = ctx.selectedIndex();
+            busy[idx] = true;
             showResult(`Running: git ${action.toLowerCase()}…`, 'info');
             setButtons(false);
-            api.gitAction(ctx.selectedIndex(), action);
+            api.gitAction(idx, action).catch((err) => {
+                busy[idx] = false;
+                setButtons(true);
+                showResult(`Error: ${err?.message || err}`, 'err');
+            });
         });
     });
     $('git-refresh').addEventListener('click', refresh);

@@ -32,9 +32,10 @@ type Manager struct {
 	startedAt       time.Time
 	activePort      int
 	activeURL       string
-	isMismatch      bool
-	portWasOccupied bool
-	stopRequested   bool
+	isMismatch          bool
+	portWasOccupied     bool
+	configuredPortReady bool
+	stopRequested       bool
 	failureReason   string
 
 	runner *process.Runner
@@ -247,6 +248,7 @@ func (m *Manager) Start() {
 	m.activePort = m.project.Server.Port
 	m.activeURL = m.project.Server.URL
 	m.isMismatch = false
+	m.configuredPortReady = false
 
 	configuredPort := m.project.Server.Port
 	host := hostFromURL(m.project.Server.URL)
@@ -409,6 +411,22 @@ func (m *Manager) onRunnerStarted(ctx context.Context, startupTimeout time.Durat
 				m.mu.Unlock()
 				m.setState(models.StateError)
 				m.log(fmt.Sprintf("Server startup timeout after %dms", configuredTimeoutMs), true)
+
+				// Gracia de sondeo: si el proceso sigue corriendo (waitFn default),
+				// continuar sondeando el puerto durante 30s más para auto-recuperar
+				// si el servidor simplemente demoró un poco más en inicializar.
+				if waitFn == nil {
+					graceTimeout := 30 * time.Second
+					_ = ports.WaitForPort(ctx, host, port, graceTimeout, 250*time.Millisecond)
+					select {
+					case <-ctx.Done():
+						return
+					default:
+					}
+					if ports.IsPortOpen(host, port) {
+						m.onPortReady()
+					}
+				}
 			}
 		}()
 	} else if port > 0 {
@@ -456,13 +474,27 @@ func (m *Manager) waitForLogDetectedPort(ctx context.Context, startupTimeout tim
 }
 
 func (m *Manager) onPortReady() {
-	if m.State() != models.StateStarting {
+	m.mu.Lock()
+	state := m.state
+	wasTimeout := state == models.StateError && strings.Contains(m.failureReason, "Startup timeout")
+	if state != models.StateStarting && !wasTimeout {
+		m.mu.Unlock()
 		return // ya listo (detección por log): no disparar OnReady otra vez
 	}
+	m.configuredPortReady = true
+	if wasTimeout {
+		m.failureReason = ""
+	}
+	m.mu.Unlock()
+
 	m.enterRunning()
 	m.fireReady()
 	port := m.ActivePort()
-	m.log(fmt.Sprintf("Server is ready on port %d", port), false)
+	if wasTimeout {
+		m.log(fmt.Sprintf("[Startup Recovery] Server port %d is open, recovered from ERROR to RUNNING (late startup)", port), false)
+	} else {
+		m.log(fmt.Sprintf("Server is ready on port %d", port), false)
+	}
 }
 
 // onRunnerError replica _on_runner_error: solo registra el error en vivo.
@@ -473,14 +505,18 @@ func (m *Manager) onRunnerError(line string) {
 }
 
 // onRunnerOutput replica _on_runner_output: log en vivo + detección dinámica
-// de puerto + transición STARTING→RUNNING por log.
+// de puerto + transición STARTING→RUNNING por log (incluyendo auto-recuperación
+// si el servidor demoró un poco más que el timeout de arranque).
 func (m *Manager) onRunnerOutput(line string, isError bool) {
 	m.log(line, isError)
 
 	m.mu.Lock()
 	state := m.state
+	failureReason := m.failureReason
 	m.mu.Unlock()
-	if state != models.StateStarting && state != models.StateRunning {
+
+	isTimeoutError := state == models.StateError && strings.Contains(failureReason, "Startup timeout")
+	if state != models.StateStarting && state != models.StateRunning && !isTimeoutError {
 		return
 	}
 
@@ -492,9 +528,24 @@ func (m *Manager) onRunnerOutput(line string, isError bool) {
 	var emitDetected bool
 	var detectedURL string
 	mismatchNow := false
+	recoveredFromTimeout := false
 
 	m.mu.Lock()
 	configuredPort := m.project.Server.Port
+	currentState := m.state
+
+	// Si el puerto configurado ya fue confirmado (ej. Vite en 5173), no permitir
+	// que logs posteriores de procesos secundarios (ej. Wrangler en 8788)
+	// sobrescriban el puerto activo ni disparen PORT MISMATCH.
+	if m.configuredPortReady && configuredPort > 0 && detected != configuredPort {
+		m.mu.Unlock()
+		return
+	}
+
+	if configuredPort > 0 && detected == configuredPort {
+		m.configuredPortReady = true
+	}
+
 	hasChanged := m.activePort != detected
 	isDifferentFromConfig := configuredPort > 0 && detected != configuredPort
 
@@ -508,6 +559,11 @@ func (m *Manager) onRunnerOutput(line string, isError bool) {
 		mismatchNow = true
 	} else if hasChanged || detected == configuredPort {
 		emitDetected = true
+	}
+
+	if currentState == models.StateError && strings.Contains(m.failureReason, "Startup timeout") {
+		m.failureReason = ""
+		recoveredFromTimeout = true
 	}
 	m.mu.Unlock()
 
@@ -525,7 +581,7 @@ func (m *Manager) onRunnerOutput(line string, isError bool) {
 		m.cb.OnPortDetected(detected, detectedURL)
 	}
 
-	if m.State() == models.StateStarting {
+	if m.State() == models.StateStarting || recoveredFromTimeout {
 		// Puerto detectado por log: cancela la espera pendiente para que la
 		// goroutine de onRunnerStarted no dispare onPortReady y OnReady otra
 		// vez (paridad Python: el PortChecker se detiene al detectar).
@@ -537,6 +593,9 @@ func (m *Manager) onRunnerOutput(line string, isError bool) {
 		}
 		m.enterRunning()
 		m.fireReady()
+		if recoveredFromTimeout {
+			m.log(fmt.Sprintf("[Startup Recovery] Server bound to port %d and recovered from ERROR to RUNNING (late startup)", detected), false)
+		}
 	}
 }
 

@@ -4,17 +4,22 @@
 
 const STYLE_ID = 'touch-styles';
 const STYLES = `
-/* Targets táctiles: todo botón/chip/tab/seg ≥ 44x44 en modo touch. */
+/* Targets táctiles: botones, chips, tabs y opciones ≥ 44px de alto sin deformar checkboxes */
 :root[data-touch="on"] button,
 :root[data-touch="on"] .tab,
 :root[data-touch="on"] .filter-chip,
 :root[data-touch="on"] .seg,
-:root[data-touch="on"] input[type="checkbox"],
-:root[data-touch="on"] input[type="radio"],
+:root[data-touch="on"] .settings-option,
+:root[data-touch="on"] .settings-style-option,
 :root[data-touch="on"] select,
 :root[data-touch="on"] .icon-btn {
     min-height: 44px;
-    min-width: 44px;
+}
+:root[data-touch="on"] input[type="checkbox"],
+:root[data-touch="on"] input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
 }
 :root[data-touch="on"] .text-input,
 :root[data-touch="on"] input[type="text"],

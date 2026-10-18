@@ -203,16 +203,57 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
+      # Las notas salen de la sección correspondiente del CHANGELOG (Keep a
+      # Changelog) en vez de las notas autogeneradas por GitHub, para que el
+      # release coincida con lo que muestra la app en la pestaña de changelog.
+      # El tag es "v2.2.0" y el heading "## [2.2.0] - 2026-10-05", así que se
+      # descarta el prefijo "v".
+      - name: Extract release notes from CHANGELOG
+        id: notes
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          # Recorta desde el heading de esta versión hasta el siguiente "## ["
+          # (exclusive) y descarta las líneas en blanco finales, para no dejar
+          # cola vacía en las notas. Se compara con index() para no tener que
+          # escapar "[", "." ni "-" en el nombre de la versión.
+          awk -v ver="$VERSION" '
+            BEGIN { target = "## [" ver "]" }
+            found && /^## \[/ { exit }
+            index($0, target) == 1 { found = 1 }
+            found { lines[++n] = $0 }
+            END {
+              while (n > 0 && lines[n] ~ /^[[:space:]]*$/) n--
+              for (i = 1; i <= n; i++) print lines[i]
+            }
+          ' CHANGELOG.md > release-notes.md
+
+          if [ -s release-notes.md ]; then
+            echo "has_notes=true" >> "$GITHUB_OUTPUT"
+            echo "Notas de release tomadas de CHANGELOG.md para $VERSION ($(wc -l < release-notes.md) líneas)"
+          else
+            echo "has_notes=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No hay sección [$VERSION] en CHANGELOG.md; se usarán las notas autogeneradas por GitHub."
+          fi
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          name: devManager ${{ github.ref_name }}
           files: artifacts/**/*.zip
-          generate_release_notes: true
+          # Con la sección del CHANGELOG publicada no se piden las notas
+          # autogeneradas: action-gh-release las ANEXARÍA al body. Si falta la
+          # sección, body_path queda vacío (se ignora) y GitHub las genera.
+          body_path: ${{ steps.notes.outputs.has_notes == 'true' && 'release-notes.md' || '' }}
+          generate_release_notes: ${{ steps.notes.outputs.has_notes != 'true' }}
           draft: false
           prerelease: false
         env:

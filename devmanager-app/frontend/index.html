@@ -4,10 +4,6 @@
     <meta charset="UTF-8">
     <title>Local Dev Manager</title>
     <link rel="stylesheet" href="src/theme.css">
-    <link rel="stylesheet" href="src/brutalist-enhanced.css">
-    <link rel="stylesheet" href="src/glassmorphism.css">
-    <link rel="stylesheet" href="src/retro.css">
-    <link rel="stylesheet" href="src/dracula.css">
 </head>
 <body>
 <div id="app">
@@ -51,7 +47,7 @@
                 <h2 id="project-name"></h2>
                 <span id="env-badge" class="badge" title="Active environment">dev</span>
                 <select id="env-switcher" class="text-input mono" aria-label="Active environment"></select>
-                <button id="btn-env-vars" title="Environment variables (Ctrl+Shift+E)" aria-label="Environment variables">Env Vars</button>
+                <button id="btn-env-vars" class="btn btn-accent" title="Environment variables (Ctrl+Shift+E)" aria-label="Environment variables">Env Vars</button>
                 <div class="actions">
                     <button id="btn-start"><span data-icon="play"></span>Start</button>
                     <button id="btn-stop"><span data-icon="stop"></span>Stop</button>
@@ -455,7 +451,10 @@
         </section>
         <section id="settings-view" hidden>
             <header id="settings-toolbar">
-                <h2>Settings</h2>
+                <div class="row-between" style="width: 100%;">
+                    <h2>Settings</h2>
+                    <button id="btn-settings-back" class="btn btn-accent" title="Back to Project (Esc)" aria-label="Back to Project">← Back to Project</button>
+                </div>
             </header>
             
             <!-- Appearance Section -->
@@ -463,10 +462,6 @@
                 <div class="group-title" id="appearance-title">Appearance</div>
                 <div id="settings-theme-section">
                     <!-- Theme options will be populated here -->
-                </div>
-                <div class="group-title" id="style-title">Visual Style</div>
-                <div id="settings-style-section">
-                    <!-- Style options will be populated here -->
                 </div>
             </div>
             
@@ -499,6 +494,14 @@
                 <div class="group-title" id="accent-title">Accent Color</div>
                 <div id="settings-accent-section">
                     <!-- Accent color options will be populated here -->
+                </div>
+            </div>
+
+            <!-- Backup & Restore Section -->
+            <div class="group">
+                <div class="group-title" id="backup-title">Backup & Restore</div>
+                <div id="settings-backup-section">
+                    <!-- Backup options will be populated here -->
                 </div>
             </div>
             

@@ -3,24 +3,16 @@ import { api } from './api.js';
 
 export const THEME_CYCLE = ['light', 'dark', 'system'];
 export const SETTINGS_THEMES = ['light', 'dark', 'system'];
-export const SETTINGS_STYLES = ['standard', 'brutalist', 'glassmorphism', 'retro', 'dracula'];
+export const SETTINGS_STYLES = ['standard'];
 
 // Maps each style to the CSS custom property that controls its accent color.
 export const STYLE_ACCENT_VAR = {
-    standard:     '--accent',
-    brutalist:    '--brutalist-accent',
-    glassmorphism:'--accent',
-    retro:        '--retro-accent',
-    dracula:      '--dracula-purple',
+    standard: '--accent',
 };
 
-// Default accent colors per style (used when user resets to default).
+// Default accent color
 export const STYLE_DEFAULT_ACCENT = {
-    standard:     '#6366f1',
-    brutalist:    '#ff006e',
-    glassmorphism:'#6366f1',
-    retro:        '#39ff14',
-    dracula:      '#bd93f9',
+    standard: '#6366f1',
 };
 
 const systemThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -30,25 +22,12 @@ let oledMode = false;
 export function isValidTheme(theme) {
     return SETTINGS_THEMES.includes(theme);
 }
-export function isValidStyle(style) { return SETTINGS_STYLES.includes(style); }
+export function isValidStyle(style) { return style === 'standard'; }
 let _styleTransitionTimer = null;
-export function applyStyle(style, { persist = true } = {}) {
-    const value = isValidStyle(style) ? style : 'standard';
+export function applyStyle(style = 'standard', { persist = true } = {}) {
     const root = document.documentElement;
-    // Skip transition if style hasn't actually changed
-    if (root.dataset.style === value) {
-        if (persist) api.setSetting('style', value);
-        return;
-    }
-    // Brief crossfade transition for smooth style switching
-    root.classList.add('style-transitioning');
-    clearTimeout(_styleTransitionTimer);
-    _styleTransitionTimer = setTimeout(() => {
-        root.classList.remove('style-transitioning');
-    }, 350);
-    root.dataset.style = value;
-    if (persist) api.setSetting('style', value);
-    // Re-apply accent override for the new style
+    root.dataset.style = 'standard';
+    if (persist) api.setSetting('style', 'standard');
     applyAccentOverrides();
 }
 
@@ -132,8 +111,10 @@ export function applyAccentOverrides() {
     const cssVar = STYLE_ACCENT_VAR[currentStyle] || '--accent';
     if (accentColor) {
         root.style.setProperty(cssVar, accentColor);
+        root.style.setProperty('--accent', accentColor);
     } else {
         root.style.removeProperty(cssVar);
+        root.style.removeProperty('--accent');
     }
 }
 
@@ -158,7 +139,7 @@ export function getAccentOverrides() {
 export function getEffectiveAccent(style) {
     if (_accentGlobal && _accentGlobalColor) return _accentGlobalColor;
     if (_accentOverrides[style]) return _accentOverrides[style];
-    return STYLE_DEFAULT_ACCENT[style] || '#6366f1';
+    return (STYLE_DEFAULT_ACCENT && STYLE_DEFAULT_ACCENT[style]) || STYLE_DEFAULT_ACCENT.standard || '#6366f1';
 }
 
 // Hex color validation (matches Go isValidHexColor)

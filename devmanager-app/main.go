@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"os"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -26,6 +27,11 @@ func singleInstanceLock(app *App) *options.SingleInstanceLock {
 }
 
 func main() {
+	// Enable 120Hz+ high refresh rate, GPU rasterization, smooth scrolling and zero-copy buffers in WebView2
+	if os.Getenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS") == "" {
+		os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", "--enable-features=SmoothScrolling,RawDraw --enable-gpu-rasterization --enable-zero-copy")
+	}
+
 	app := NewApp()
 
 	// Tray spike: pump dedicado; stop al salir de main.

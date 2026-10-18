@@ -142,7 +142,11 @@ function renderList() {
         li.addEventListener('click', () => {
             state.selected = i;
             renderList();
-            renderDetail();
+            if (state.view !== 'project') {
+                switchView('project');
+            } else {
+                renderDetail();
+            }
         });
         li.addEventListener('dblclick', () => editProject(i));
         li.addEventListener('contextmenu', (e) => {
@@ -210,7 +214,7 @@ async function updateDots() {
     // Batch all status requests into a single Promise.all
     const indices = Array.from(dots).map((dot) => parseInt(dot.dataset.index, 10));
     const statuses = await Promise.all(
-        indices.map((i) => api.getServerStatus(i).catch(() => ({ state: 'stopped' })))
+        indices.map((i) => api.getServerStatus(i).catch(() => ({ state: state.serverStates.get(i) || 'stopped' })))
     );
 
     let listDirty = false;
@@ -234,11 +238,11 @@ async function updateDots() {
 }
 
 function renderDetail() {
+    const isProject = state.view === 'project';
     const has = state.selected >= 0;
-    const monitorMode = state.view === 'monitor';
-    $('empty-state').hidden = has || monitorMode;
-    $('project-detail').hidden = !has || monitorMode;
-    if (!has || monitorMode) return;
+    $('empty-state').hidden = !isProject || has;
+    $('project-detail').hidden = !isProject || !has;
+    if (!isProject || !has) return;
     const p = state.projects[state.selected];
     $('project-name').textContent = p.name;
     $('url-label').textContent = (p.server && p.server.url) || '';
@@ -384,7 +388,7 @@ function applyTabOrder() {
     const nav = document.getElementById('tabs');
     if (!nav) return;
     const saved = (state.projects[i].tabs && state.projects[i].tabs.order) || [];
-    const known = ['logs', 'scripts', 'git', 'deps', 'playwright', 'evidence', 'obscura', 'backlog', 'workflows', 'tools'];
+    const known = ['logs', 'scripts', 'git', 'deps', 'playwright', 'testadv', 'evidence', 'obscura', 'backlog', 'workflows', 'tools'];
     const byId = (id) => nav.querySelector(`.tab[data-tab="${id}"]`);
     const seen = new Set();
     const ordered = [];
@@ -400,9 +404,16 @@ function applyTabOrder() {
 }
 
 let uptimeTimer = null;
+let refreshSeq = 0;
 async function refreshStatus() {
     if (state.selected < 0) return;
-    const status = await api.getServerStatus(state.selected);
+    const seq = ++refreshSeq;
+    const currentIdx = state.selected;
+    const status = await api.getServerStatus(currentIdx).catch(() => ({
+        state: state.serverStates.get(currentIdx) || 'stopped',
+        uptimeSeconds: 0,
+    }));
+    if (seq !== refreshSeq || currentIdx !== state.selected) return;
     const badge = $('state-badge');
     badge.className = `badge ${status.state}`;
     badge.textContent = status.state;
@@ -489,6 +500,18 @@ function appendLog(index, line, isError) {
     appendLogEntry({ ts: timestamp(), line, isError });
 }
 
+let _logScrollRaf = null;
+function scheduleLogAutoScroll() {
+    if (!state.logAutoScroll || _logScrollRaf) return;
+    _logScrollRaf = requestAnimationFrame(() => {
+        _logScrollRaf = null;
+        const out = $('log-output');
+        if (out && state.logAutoScroll) {
+            out.scrollTop = out.scrollHeight;
+        }
+    });
+}
+
 function appendLogEntry(entry) {
     const out = $('log-output');
     const div = document.createElement('div');
@@ -501,8 +524,8 @@ function appendLogEntry(entry) {
     out.appendChild(div);
     // Cap del DOM (~2000 nodos; descarta los más viejos).
     while (out.childElementCount > MAX_LOG_LINES) out.removeChild(out.firstChild);
-    // Sin follow: no forzar scroll al fondo
-    if (state.logAutoScroll) out.scrollTop = out.scrollHeight;
+    // VSync synchronized auto-scroll for 120Hz+ monitors without layout thrashing
+    scheduleLogAutoScroll();
 }
 
 function reloadLogs() {
@@ -511,29 +534,33 @@ function reloadLogs() {
     (state.logs.get(state.selected) || [])
         .filter((e) => !state.errorsOnly || e.isError)
         .forEach(appendLogEntry);
-    if (state.logAutoScroll) out.scrollTop = out.scrollHeight;
+    scheduleLogAutoScroll();
 }
 
 function switchView(view) {
     if (state.view === view) return;
     state.view = view;
     
-    // Handle tab states - only show active for project/monitor, none for settings
+    // Handle tab states
     $('view-project').classList.toggle('active', view === 'project');
     $('view-monitor').classList.toggle('active', view === 'monitor');
     $('view-dashboard').classList.toggle('active', view === 'dashboard');
+    $('btn-settings').classList.toggle('active', view === 'settings');
     
-    // Handle view visibility
+    // Handle view visibility with explicit guarantees
+    const hasSelection = state.selected >= 0;
+    $('empty-state').hidden = (view !== 'project') || hasSelection;
+    $('project-detail').hidden = (view !== 'project') || !hasSelection;
     $('monitor-view').hidden = view !== 'monitor';
     $('settings-view').hidden = view !== 'settings';
     $('dashboard-view').hidden = view !== 'dashboard';
     $('help-view').hidden = view !== 'help';
+    
     ctx.panels.monitorPanel.setVisible(view === 'monitor');
     dashboardView.setVisible(view === 'dashboard');
     
     // Render settings view when switching to it
     if (view === 'settings' && window.settingsView && window.settingsView.render) {
-        // Ensure settings view is properly initialized and rendered
         try {
             window.settingsView.render();
         } catch (error) {
@@ -544,10 +571,6 @@ function switchView(view) {
     // Only render project detail for project view
     if (view === 'project') {
         renderDetail();
-    } else {
-        // Hide project detail when not in project view
-        $('project-detail').hidden = true;
-        $('empty-state').hidden = view !== 'project';
     }
 }
 
@@ -631,8 +654,7 @@ function wireEvents() {
         state.logAutoScroll = !state.logAutoScroll;
         $('log-follow').classList.toggle('active', state.logAutoScroll);
         if (state.logAutoScroll) {
-            const out = $('log-output');
-            out.scrollTop = out.scrollHeight;
+            scheduleLogAutoScroll();
         }
     });
     $('log-copy').addEventListener('click', async () => {
@@ -694,7 +716,17 @@ $('btn-theme').addEventListener('click', () => {
         applyTheme(newTheme);
         updateThemeButtonIcon();
     });
-    $('btn-settings').addEventListener('click', () => switchView('settings'));
+    $('btn-settings').addEventListener('click', () => {
+        if (state.view === 'settings') {
+            switchView('project');
+        } else {
+            switchView('settings');
+        }
+    });
+    const btnSettingsBack = $('btn-settings-back');
+    if (btnSettingsBack) {
+        btnSettingsBack.addEventListener('click', () => switchView('project'));
+    }
     $('btn-applog').addEventListener('click', () => appLogDialog.open());
     $('btn-help').addEventListener('click', openHelp);
     $('btn-quit').addEventListener('click', quitApp);
@@ -756,6 +788,7 @@ $('btn-theme').addEventListener('click', () => {
     // recién creado, evidencias nuevas tras correr tests, etc.). El backend es
     // barato: DetectManager + HasEvidence con early-exit.
     setInterval(() => {
+        if (state.view !== 'project' || state.selected < 0) return;
         refreshStatus();
         applyTabVisibility();
     }, 2000);
@@ -788,9 +821,16 @@ function wireKeyboardShortcuts() {
             return;
         }
 
+        if (key === 'escape' && state.view === 'settings') {
+            e.preventDefault();
+            switchView('project');
+            return;
+        }
+
         // Settings shortcut - Ctrl+,
         if (mod && key === ',') {
-            switchView('settings');
+            e.preventDefault();
+            switchView(state.view === 'settings' ? 'project' : 'settings');
             return;
         }
 
@@ -914,6 +954,7 @@ const ctx = {
     events,
     selectedIndex: () => state.selected,
     appendLog,
+    switchView: (v) => switchView(v),
     // Dashboard (Issue #64): click en card → seleccionar + volver a Project view.
     selectProject: (i) => {
         state.selected = i;
@@ -967,7 +1008,7 @@ const testadvPanel = mountTestAdv(ctx);
 const toolsPanel = mountTools(ctx);
 ctx.panels = { playwrightPanel, scriptsPanel, gitPanel, depsPanel, evidencePanel, obscuraPanel, monitorPanel, backlogPanel, workflowsPanel, testadvPanel, toolsPanel };
 
-const settingsView = mountSettingsView();
+const settingsView = mountSettingsView(ctx);
 window.settingsView = settingsView;
 const dashboardView = mountDashboard(ctx);
 // Help & documentation (Issue #72): ventana propia con F1 / Ctrl+? / botón ?.

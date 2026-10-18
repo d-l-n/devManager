@@ -602,12 +602,18 @@ export function mount(ctx) {
         clearTimeout(searchTimer);
         searchTimer = setTimeout(() => runSearch(search.value), 120);
     });
-    closeBtn.addEventListener('click', () => setVisible(false));
+    function handleClose() {
+        setVisible(false);
+        if (ctx && typeof ctx.switchView === 'function') {
+            ctx.switchView('project');
+        }
+    }
+    closeBtn.addEventListener('click', handleClose);
 
     function onKeydown(e) {
         if (root.hidden) return;
         if (e.key === 'Escape') {
-            setVisible(false);
+            handleClose();
         }
     }
     window.addEventListener('keydown', onKeydown);
@@ -625,7 +631,7 @@ export function mount(ctx) {
             return refresh();
         },
         close() {
-            setVisible(false);
+            handleClose();
         },
         isOpen() {
             return !root.hidden;

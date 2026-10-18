@@ -326,8 +326,10 @@ export function mount(ctx, onSaved) {
         if (vars === undefined) {
             try {
                 vars = api.getEnvVars ? await api.getEnvVars(index, state.env, false) : {};
-            } catch {
-                vars = {};
+            } catch (err) {
+                console.error('[env-vars] Failed to load env vars:', err);
+                showToast('Environment Variables', 'Failed to load variables: ' + (err?.message || err), 'error');
+                return;
             }
         }
         renderVars(vars || {}, state.secrets);

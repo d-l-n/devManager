@@ -11,10 +11,12 @@ export const TABS = [
     { id: 'git', label: 'Git', customizable: true },
     { id: 'deps', label: 'Deps', customizable: true },
     { id: 'playwright', label: 'Playwright', customizable: true },
+    { id: 'testadv', label: 'Testing', customizable: true },
     { id: 'evidence', label: 'Evidence', customizable: true },
     { id: 'obscura', label: 'Obscura', customizable: true },
     { id: 'backlog', label: 'Backlog', customizable: true },
     { id: 'workflows', label: 'Workflows', customizable: true },
+    { id: 'tools', label: 'Tools', customizable: true },
 ];
 
 export const CUSTOMIZABLE = TABS.filter((t) => t.customizable);

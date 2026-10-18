@@ -35,69 +35,6 @@ function optionRow(labelText, description, input) {
     return label;
 }
 
-// Style preview thumbnail configs
-const STYLE_PREVIEWS = {
-    standard: {
-        bg: '#141724', surface: '#22263d', accent: '#6366f1', border: '#252a3f',
-        borderRadius: '6px', barColor: '#6366f1',
-    },
-    brutalist: {
-        bg: '#0a0a0a', surface: '#1a1a1a', accent: '#ff006e', border: '#555555',
-        borderRadius: '0', barColor: '#ff006e', hardShadow: true,
-    },
-    glassmorphism: {
-        bg: '#0c0e17', surface: 'rgba(30,35,60,0.6)', accent: '#6366f1', border: 'rgba(255,255,255,0.08)',
-        borderRadius: '12px', barColor: '#6366f1', blur: true,
-    },
-    retro: {
-        bg: '#0a0a0a', surface: '#111111', accent: '#39ff14', border: '#2a2a2a',
-        borderRadius: '0', barColor: '#39ff14', glow: true,
-    },
-    dracula: {
-        bg: '#282a36', surface: '#44475a', accent: '#bd93f9', border: '#44475a',
-        borderRadius: '8px', barColor: '#bd93f9',
-    },
-};
-
-function createStylePreview(styleName) {
-    const cfg = STYLE_PREVIEWS[styleName];
-    if (!cfg) return null;
-    const preview = el('div', 'style-preview');
-    preview.style.background = cfg.bg;
-    preview.style.borderColor = cfg.border;
-    if (cfg.borderRadius) preview.style.borderRadius = cfg.borderRadius;
-    if (cfg.glow) {
-        preview.style.boxShadow = `0 0 6px ${cfg.accent}, inset 0 0 20px rgba(57,255,20,0.03)`;
-        preview.style.border = `1px solid ${cfg.accent}`;
-    }
-    if (cfg.hardShadow) {
-        preview.style.boxShadow = '2px 2px 0 #333';
-    }
-    if (cfg.blur) {
-        preview.style.backdropFilter = 'blur(4px)';
-        preview.style.webkitBackdropFilter = 'blur(4px)';
-    }
-    // Top row: two blocks
-    const row = el('div', 'style-preview-row');
-    const block1 = el('div', 'style-preview-block');
-    block1.style.background = cfg.surface;
-    block1.style.borderRadius = cfg.borderRadius === '0' ? '0' : '3px';
-    const block2 = el('div', 'style-preview-block');
-    block2.style.background = cfg.accent;
-    block2.style.borderRadius = cfg.borderRadius === '0' ? '0' : '3px';
-    block2.style.opacity = '0.7';
-    row.appendChild(block1);
-    row.appendChild(block2);
-    // Bottom bar
-    const bar = el('div', 'style-preview-bar');
-    bar.style.background = cfg.barColor;
-    bar.style.opacity = '0.5';
-    if (cfg.borderRadius === '0') bar.style.borderRadius = '0';
-    preview.appendChild(row);
-    preview.appendChild(bar);
-    return preview;
-}
-
 function divider() {
     const divider = el('div', 'settings-divider');
     return divider;
@@ -118,7 +55,7 @@ function sectionTitleWithIcon(iconName, title) {
     return container;
 }
 
-export function mountSettingsView() {
+export function mountSettingsView(ctx = {}) {
     const state = {
         theme: 'dark',
         style: 'standard',
@@ -131,22 +68,24 @@ export function mountSettingsView() {
         external_notifications: true,
         language: 'en',
         touch_optimized: false,
+        backup_frequency: 'off',
+        backup_retention: 20,
     };
 
     // Store references to elements
     let themeRadios = [];
-    let styleRadios = [];
     let monitorPollingCheckbox = null;
     let toastsEnabledCheckbox = null;
     let oledModeCheckbox = null;
     let accentColorInput = null;
-    let accentGlobalCheckbox = null;
-    let accentGlobalColorInput = null;
     let accentResetBtn = null;
     let externalNotificationsCheckbox = null;
     let notifyPanel = null;
     let languageSelect = null;
     let touchCheckbox = null;
+    let backupFrequencySelect = null;
+    let backupRetentionInput = null;
+    let backupListContainer = null;
 
 function render() {
     // Don't render if the view is not visible
@@ -162,17 +101,6 @@ function render() {
             radio.name = 'theme';
             radio.value = value;
             radio.id = `theme-${value}`;
-            return radio;
-        });
-    }
-    
-    if (styleRadios.length === 0) {
-        styleRadios = ['standard', 'brutalist', 'glassmorphism', 'retro', 'dracula'].map((value) => {
-            const radio = document.createElement('input');
-            radio.type = 'radio';
-            radio.name = 'style';
-            radio.value = value;
-            radio.id = `style-${value}`;
             return radio;
         });
     }
@@ -215,6 +143,30 @@ function render() {
         touchCheckbox.type = 'checkbox';
         touchCheckbox.id = 'touch-optimized';
     }
+    if (!backupFrequencySelect) {
+        backupFrequencySelect = el('select', 'text-input form-select');
+        backupFrequencySelect.id = 'backup-frequency-select';
+        const freqs = [
+            { value: 'off', label: 'Disabled (Manual only)' },
+            { value: 'hourly', label: 'Hourly' },
+            { value: '6h', label: 'Every 6 hours' },
+            { value: 'daily', label: 'Daily' },
+            { value: 'weekly', label: 'Weekly' },
+        ];
+        freqs.forEach((f) => {
+            const o = el('option', '', f.label);
+            o.value = f.value;
+            backupFrequencySelect.appendChild(o);
+        });
+    }
+    if (!backupRetentionInput) {
+        backupRetentionInput = el('input', 'text-input');
+        backupRetentionInput.type = 'number';
+        backupRetentionInput.min = '1';
+        backupRetentionInput.max = '500';
+        backupRetentionInput.id = 'backup-retention-input';
+        backupRetentionInput.style.maxWidth = '100px';
+    }
     
     // Setup event listeners if not already done
     setupEventListeners();
@@ -228,6 +180,9 @@ function render() {
     const displayTitle = $('display-title');
     const notificationsTitle = $('notifications-title');
     const monitoringTitle = $('monitoring-title');
+    const accentTitle = $('accent-title');
+    const backupTitle = $('backup-title');
+    const aboutTitle = $('about-title');
         
     if (appearanceTitle) {
         appearanceTitle.replaceChildren(sectionTitleWithIcon('settings', 'Appearance'));
@@ -243,6 +198,15 @@ function render() {
     }
     if (monitoringTitle) {
         monitoringTitle.replaceChildren(sectionTitleWithIcon('code', 'Monitoring'));
+    }
+    if (accentTitle) {
+        accentTitle.replaceChildren(sectionTitleWithIcon('palette', 'Accent Color'));
+    }
+    if (backupTitle) {
+        backupTitle.replaceChildren(sectionTitleWithIcon('folder', 'Backup & Restore'));
+    }
+    if (aboutTitle) {
+        aboutTitle.replaceChildren(sectionTitleWithIcon('settings', 'About'));
     }
 
     // Theme Section
@@ -276,45 +240,6 @@ function render() {
             themeContainer.appendChild(label);
         });
         themeSection.appendChild(themeContainer);
-
-        // Add divider before style section
-        themeSection.appendChild(divider());
-
-        // Style Section
-        const styleSection = $('settings-style-section');
-        if (!styleSection) {
-            console.warn('settings-style-section not found');
-        } else {
-            styleSection.innerHTML = '';
-        
-        // Style section description
-        styleSection.appendChild(sectionDescription('Customize the visual style and appearance of interface elements.'));
-
-        const styleDescriptions = {
-            standard: 'Clean, modern interface with smooth transitions',
-            brutalist: 'Bold, high-contrast design with strong visual elements',
-            glassmorphism: 'Frosted glass panels with translucent effects and blur',
-            retro: 'CRT-inspired aesthetic with neon glow and monospace terminal feel',
-            dracula: 'Popular Dracula color palette with purple, pink and cyan accents',
-        };
-        const styleContainer = el('div', 'settings-options');
-        styleRadios.forEach((radio) => {
-            const value = radio.value;
-            const label = optionRow(
-                value.charAt(0).toUpperCase() + value.slice(1),
-                styleDescriptions[value] || value,
-                radio
-            );
-            // Add style preview thumbnail
-            const preview = createStylePreview(value);
-            if (preview) {
-                preview.style.marginLeft = 'auto';
-                label.appendChild(preview);
-            }
-            styleContainer.appendChild(label);
-        });
-        styleSection.appendChild(styleContainer);
-        }
 
         // Display Section (i18n + touch, Issue #69)
         const displaySection = $('settings-display-section');
@@ -390,11 +315,7 @@ function render() {
 
         const notifyAnchor = el('div');
         notificationsSection.appendChild(notifyAnchor);
-        if (!notifyPanel) {
-            notifyPanel = mountExternalNotifications(notifyAnchor);
-        } else {
-            notifyPanel.refresh();
-        }
+        notifyPanel = mountExternalNotifications(notifyAnchor);
         }
 
         // Monitoring Section
@@ -422,81 +343,226 @@ function render() {
         const accentSection = $('settings-accent-section');
         if (accentSection) {
             accentSection.innerHTML = '';
-            accentSection.appendChild(sectionDescription('Customize the accent color used across buttons, links, and highlights for each visual style.'));
+            accentSection.appendChild(sectionDescription('Customize the accent color used across buttons, links, and highlights.'));
 
             // Create accent color inputs if not already done
             if (!accentColorInput) {
-                accentColorInput = el('input');
+                accentColorInput = el('input', 'color-picker-input');
                 accentColorInput.type = 'color';
                 accentColorInput.id = 'accent-color-picker';
-                accentColorInput.style.cssText = 'width:48px;height:32px;padding:2px;cursor:pointer;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);';
-            }
-            if (!accentGlobalCheckbox) {
-                accentGlobalCheckbox = el('input');
-                accentGlobalCheckbox.type = 'checkbox';
-                accentGlobalCheckbox.id = 'accent-global';
-            }
-            if (!accentGlobalColorInput) {
-                accentGlobalColorInput = el('input');
-                accentGlobalColorInput.type = 'color';
-                accentGlobalColorInput.id = 'accent-global-color';
-                accentGlobalColorInput.style.cssText = 'width:48px;height:32px;padding:2px;cursor:pointer;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);';
             }
             if (!accentResetBtn) {
                 accentResetBtn = el('button', 'btn btn-small');
                 accentResetBtn.textContent = 'Reset to default';
             }
 
-            // Per-style color picker
-            const perStyleRow = el('div', 'settings-options');
-            const currentDefault = STYLE_DEFAULT_ACCENT[state.style] || '#6366f1';
-            accentColorInput.value = state.accent_overrides[state.style] || currentDefault;
+            const accentRow = el('div', 'settings-options');
+            const currentDefault = '#6366f1';
+            accentColorInput.value = state.accent_overrides['standard'] || currentDefault;
             const accentLabel = el('label', 'settings-option');
             accentLabel.appendChild(accentColorInput);
             const accentCopy = el('span', 'settings-option-copy');
-            accentCopy.appendChild(el('span', 'settings-option-label', 'Accent color for ' + state.style));
-            accentCopy.appendChild(el('span', 'settings-option-description', 'Choose the accent color used by the current visual style'));
+            accentCopy.appendChild(el('span', 'settings-option-label', 'Accent color'));
+            accentCopy.appendChild(el('span', 'settings-option-description', 'Choose the primary accent color used across the interface'));
             accentLabel.appendChild(accentCopy);
-            perStyleRow.appendChild(accentLabel);
-            perStyleRow.appendChild(accentResetBtn);
-            accentSection.appendChild(perStyleRow);
+            accentRow.appendChild(accentLabel);
+            accentRow.appendChild(accentResetBtn);
+            accentSection.appendChild(accentRow);
+        }
 
-            // Global toggle
-            const globalRow = el('div', 'settings-options');
-            const globalLabel = optionRow(
-                'Apply to all styles',
-                'Override the accent color for every visual style at once',
-                accentGlobalCheckbox
-            );
-            globalRow.appendChild(globalLabel);
-            accentSection.appendChild(globalRow);
-
-            // Global color picker (shown when global is checked)
-            const globalColorRow = el('div', 'settings-options');
-            const globalColorLabel = el('label', 'settings-option');
-            globalColorLabel.appendChild(accentGlobalColorInput);
-            const gcCopy = el('span', 'settings-option-copy');
-            gcCopy.appendChild(el('span', 'settings-option-label', 'Global accent color'));
-            gcCopy.appendChild(el('span', 'settings-option-description', 'Color applied to all styles when "Apply to all styles" is enabled'));
-            globalColorLabel.appendChild(gcCopy);
-            globalColorRow.appendChild(globalColorLabel);
-            globalColorRow.style.display = state.accent_global ? '' : 'none';
-            globalColorRow.id = 'accent-global-color-row';
-            accentSection.appendChild(globalColorRow);
+        // Backup & Restore Section
+        const backupSection = $('settings-backup-section');
+        if (backupSection) {
+            renderBackupSection(backupSection);
         }
 
         syncUI();
+    }
+
+    function renderBackupSection(container) {
+        container.innerHTML = '';
+        container.appendChild(sectionDescription('Create snapshots of projects and settings, manage automated backups, or restore previous versions.'));
+
+        // Action buttons toolbar
+        const btnRow = el('div', 'row-gap');
+        btnRow.style.marginBottom = '14px';
+
+        const backupNowBtn = el('button', 'btn btn-primary', 'Create Backup Now');
+        backupNowBtn.addEventListener('click', async () => {
+            backupNowBtn.disabled = true;
+            backupNowBtn.textContent = 'Creating Backup...';
+            try {
+                const res = await api.createBackup();
+                if (res && res.ok) {
+                    showToast('Backup Created', res.message || `Created ${res.filename}`, 'success');
+                    if (backupListContainer) refreshBackupList(backupListContainer);
+                } else {
+                    showToast('Backup Failed', (res && res.message) || 'Failed to create backup', 'error');
+                }
+            } catch (err) {
+                showToast('Backup Error', String(err), 'error');
+            } finally {
+                backupNowBtn.disabled = false;
+                backupNowBtn.textContent = 'Create Backup Now';
+            }
+        });
+
+        const openFolderBtn = el('button', 'btn btn-accent', 'Open Backups Folder');
+        openFolderBtn.addEventListener('click', async () => {
+            try {
+                await api.openBackupsFolder();
+            } catch (err) {
+                showToast('Error', 'Could not open backups folder: ' + err, 'error');
+            }
+        });
+
+        const refreshListBtn = el('button', 'btn', 'Refresh List');
+        refreshListBtn.addEventListener('click', () => {
+            if (backupListContainer) refreshBackupList(backupListContainer);
+        });
+
+        btnRow.appendChild(backupNowBtn);
+        btnRow.appendChild(openFolderBtn);
+        btnRow.appendChild(refreshListBtn);
+        container.appendChild(btnRow);
+
+        // Schedule & Retention options
+        const schedContainer = el('div', 'settings-options');
+
+        const freqLabel = el('label', 'settings-option');
+        freqLabel.appendChild(backupFrequencySelect);
+        const freqCopy = el('span', 'settings-option-copy');
+        freqCopy.appendChild(el('span', 'settings-option-label', 'Automatic Backup Frequency'));
+        freqCopy.appendChild(el('span', 'settings-option-description', 'Schedule automatic snapshots of configuration files'));
+        freqLabel.appendChild(freqCopy);
+        schedContainer.appendChild(freqLabel);
+
+        const retLabel = el('label', 'settings-option');
+        retLabel.appendChild(backupRetentionInput);
+        const retCopy = el('span', 'settings-option-copy');
+        retCopy.appendChild(el('span', 'settings-option-label', 'Backup Retention Limit'));
+        retCopy.appendChild(el('span', 'settings-option-description', 'Maximum number of backup snapshots to keep (1-500)'));
+        retLabel.appendChild(retCopy);
+        schedContainer.appendChild(retLabel);
+
+        container.appendChild(schedContainer);
+
+        // Subtitle for backups list
+        const listHeader = el('div', 'row-between');
+        listHeader.style.marginTop = '16px';
+        listHeader.style.marginBottom = '8px';
+        const listTitle = el('span', 'bold', 'Existing Backups');
+        listHeader.appendChild(listTitle);
+        container.appendChild(listHeader);
+
+        // List container
+        backupListContainer = el('div', 'backups-list');
+        container.appendChild(backupListContainer);
+        refreshBackupList(backupListContainer);
+    }
+
+    async function refreshBackupList(listContainer) {
+        listContainer.innerHTML = '';
+        const loading = el('div', 'dim center padded', 'Loading backups...');
+        listContainer.appendChild(loading);
+        try {
+            const backups = await api.listBackups();
+            listContainer.innerHTML = '';
+            if (!backups || backups.length === 0) {
+                listContainer.appendChild(el('div', 'dim center padded', 'No backups found. Click "Create Backup Now" to create your first snapshot.'));
+                return;
+            }
+            backups.forEach((b) => {
+                const row = el('div', 'backup-item-row');
+                row.style.display = 'flex';
+                row.style.alignItems = 'center';
+                row.style.justifyContent = 'space-between';
+                row.style.padding = '10px 14px';
+                row.style.margin = '6px 0';
+                row.style.background = 'var(--bg-card, var(--bg-panel))';
+                row.style.borderRadius = 'var(--radius, 6px)';
+                row.style.border = '1px solid var(--border)';
+
+                const info = el('div', 'backup-item-info');
+                const nameEl = el('div', 'mono bold', b.filename);
+                nameEl.style.fontSize = '13px';
+                const createdDate = b.createdAt ? new Date(b.createdAt).toLocaleString() : 'Unknown date';
+                const sizeKb = b.sizeBytes ? (b.sizeBytes / 1024).toFixed(1) + ' KB' : '0 KB';
+                const metaEl = el('div', 'dim', `${createdDate} · ${sizeKb} · ${b.projectsCount || 0} projects · v${b.appVersion || '2.x'}`);
+                metaEl.style.fontSize = '12px';
+                metaEl.style.marginTop = '2px';
+                info.appendChild(nameEl);
+                info.appendChild(metaEl);
+
+                const actions = el('div', 'backup-item-actions');
+                actions.style.display = 'flex';
+                actions.style.alignItems = 'center';
+                actions.style.gap = '8px';
+
+                const statusBadge = el('span', `badge ${b.valid ? 'running' : 'stopped'}`, b.valid ? 'Valid' : 'Corrupted');
+                if (b.error) statusBadge.title = b.error;
+                actions.appendChild(statusBadge);
+
+                const validateBtn = el('button', 'btn btn-small', 'Validate');
+                validateBtn.addEventListener('click', async () => {
+                    validateBtn.disabled = true;
+                    try {
+                        const res = await api.validateBackup(b.filename);
+                        showToast('Backup Validation', (res && res.message) || (res && res.ok ? 'Backup is valid' : 'Backup invalid'), (res && res.ok) ? 'success' : 'error');
+                    } catch (err) {
+                        showToast('Validation Error', String(err), 'error');
+                    } finally {
+                        validateBtn.disabled = false;
+                    }
+                });
+                actions.appendChild(validateBtn);
+
+                const restoreBtn = el('button', 'btn btn-small btn-warn', 'Restore');
+                restoreBtn.addEventListener('click', async () => {
+                    let confirmed = false;
+                    if (ctx && ctx.messageDialog && ctx.messageDialog.confirm) {
+                        confirmed = await ctx.messageDialog.confirm({
+                            title: 'Restore Backup',
+                            message: `Restoring "${b.filename}" will overwrite current projects and settings. A safety snapshot (.pre-restore) will be saved first. Continue?`,
+                            confirmLabel: 'Restore',
+                            destructive: true,
+                        });
+                    } else {
+                        confirmed = window.confirm(`Restore "${b.filename}"? Current configuration will be replaced.`);
+                    }
+                    if (!confirmed) return;
+
+                    restoreBtn.disabled = true;
+                    try {
+                        const errs = await api.restoreBackup(b.filename);
+                        if (errs && errs.length > 0) {
+                            showToast('Restore Failed', errs.join('\n'), 'error');
+                        } else {
+                            showToast('Restore Successful', `Restored configuration from ${b.filename}`, 'success');
+                            refreshBackupList(listContainer);
+                        }
+                    } catch (err) {
+                        showToast('Restore Error', String(err), 'error');
+                    } finally {
+                        restoreBtn.disabled = false;
+                    }
+                });
+                actions.appendChild(restoreBtn);
+
+                row.appendChild(info);
+                row.appendChild(actions);
+                listContainer.appendChild(row);
+            });
+        } catch (err) {
+            listContainer.innerHTML = '';
+            listContainer.appendChild(el('div', 'result-strip err', 'Failed to load backups: ' + err));
+        }
     }
 
     function syncUI() {
         // Theme radios
         themeRadios.forEach(radio => {
             radio.checked = radio.value === state.theme;
-        });
-
-        // Style radios
-        styleRadios.forEach(radio => {
-            radio.checked = radio.value === state.style;
         });
 
         // Checkboxes
@@ -506,57 +572,37 @@ function render() {
         if (externalNotificationsCheckbox) externalNotificationsCheckbox.checked = state.external_notifications;
         if (languageSelect) languageSelect.value = state.language;
         if (touchCheckbox) touchCheckbox.checked = state.touch_optimized;
+        if (backupFrequencySelect) backupFrequencySelect.value = state.backup_frequency;
+        if (backupRetentionInput) backupRetentionInput.value = state.backup_retention;
 
         // Accent state
         if (accentColorInput) {
-            const currentDefault = STYLE_DEFAULT_ACCENT[state.style] || '#6366f1';
-            accentColorInput.value = state.accent_overrides[state.style] || currentDefault;
+            accentColorInput.value = state.accent_overrides['standard'] || '#6366f1';
         }
-        if (accentGlobalCheckbox) accentGlobalCheckbox.checked = state.accent_global;
-        if (accentGlobalColorInput) {
-            accentGlobalColorInput.value = state.accent_global_color || '#6366f1';
-        }
-        const globalColorRow = $('accent-global-color-row');
-        if (globalColorRow) globalColorRow.style.display = state.accent_global ? '' : 'none';
-}
+    }
 
     function setupEventListeners() {
-            // Event listeners - only add if not already added
-            themeRadios.forEach(radio => {
-                if (!radio.hasAttribute('data-listener-added')) {
-                    radio.addEventListener('change', async () => {
-                        if (radio.checked) {
-                            state.theme = radio.value;
-                            await api.setSetting('theme', state.theme);
-                            applyTheme(state.theme);
-                            if (window.updateThemeButtonIcon) {
-                                window.updateThemeButtonIcon();
-                            }
+        // Event listeners - only add if not already added
+        themeRadios.forEach(radio => {
+            if (!radio.hasAttribute('data-listener-added')) {
+                radio.addEventListener('change', async () => {
+                    if (radio.checked) {
+                        state.theme = radio.value;
+                        await api.setSetting('theme', state.theme);
+                        applyTheme(state.theme);
+                        if (window.updateThemeButtonIcon) {
+                            window.updateThemeButtonIcon();
                         }
-                    });
-                    radio.setAttribute('data-listener-added', 'true');
-                }
-            });
-
-            styleRadios.forEach(radio => {
-                if (!radio.hasAttribute('data-listener-added')) {
-                    radio.addEventListener('change', async () => {
-                        if (radio.checked) {
-                            state.style = radio.value;
-                            await api.setSetting('style', state.style);
-                            applyStyle(state.style);
-                            // Update accent picker to reflect new style's color
-                            syncUI();
-                        }
-                    });
-                    radio.setAttribute('data-listener-added', 'true');
-                }
-            });
+                    }
+                });
+                radio.setAttribute('data-listener-added', 'true');
+            }
+        });
 
             if (monitorPollingCheckbox && !monitorPollingCheckbox.hasAttribute('data-listener-added')) {
                 monitorPollingCheckbox.addEventListener('change', async () => {
                     state.monitor_polling = monitorPollingCheckbox.checked;
-                    await api.setSetting('monitor_polling', state.monitor_polling);
+                    await api.setSetting('monitor_polling', String(state.monitor_polling));
                 });
                 monitorPollingCheckbox.setAttribute('data-listener-added', 'true');
             }
@@ -564,7 +610,7 @@ function render() {
             if (toastsEnabledCheckbox && !toastsEnabledCheckbox.hasAttribute('data-listener-added')) {
                 toastsEnabledCheckbox.addEventListener('change', async () => {
                     state.toasts_enabled = toastsEnabledCheckbox.checked;
-                    await api.setSetting('toasts_enabled', state.toasts_enabled);
+                    await api.setSetting('toasts_enabled', String(state.toasts_enabled));
                     setToastsEnabled(state.toasts_enabled);
                 });
                 toastsEnabledCheckbox.setAttribute('data-listener-added', 'true');
@@ -609,14 +655,14 @@ function render() {
                 touchCheckbox.setAttribute('data-listener-added', 'true');
             }
 
-            // Accent color per-style picker
+            // Accent color picker
             if (accentColorInput && !accentColorInput.hasAttribute('data-listener-added')) {
                 accentColorInput.addEventListener('input', async () => {
                     const val = accentColorInput.value;
                     if (isValidHexColor(val)) {
-                        state.accent_overrides[state.style] = val;
-                        await api.setSetting('accent_override.' + state.style, val);
-                        setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
+                        state.accent_overrides['standard'] = val;
+                        await api.setSetting('accent_override.standard', val);
+                        setAccentOverrides(state.accent_overrides);
                     }
                 });
                 accentColorInput.setAttribute('data-listener-added', 'true');
@@ -625,36 +671,32 @@ function render() {
             // Accent reset button
             if (accentResetBtn && !accentResetBtn.hasAttribute('data-listener-added')) {
                 accentResetBtn.addEventListener('click', async () => {
-                    delete state.accent_overrides[state.style];
-                    await api.setSetting('accent_override.' + state.style, 'default');
-                    setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
+                    delete state.accent_overrides['standard'];
+                    await api.setSetting('accent_override.standard', 'default');
+                    setAccentOverrides(state.accent_overrides);
                     syncUI();
                 });
                 accentResetBtn.setAttribute('data-listener-added', 'true');
             }
 
-            // Accent global toggle
-            if (accentGlobalCheckbox && !accentGlobalCheckbox.hasAttribute('data-listener-added')) {
-                accentGlobalCheckbox.addEventListener('change', async () => {
-                    state.accent_global = accentGlobalCheckbox.checked;
-                    await api.setSetting('accent_global', String(state.accent_global));
-                    setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
-                    syncUI();
+            // Backup settings listeners
+            if (backupFrequencySelect && !backupFrequencySelect.hasAttribute('data-listener-added')) {
+                backupFrequencySelect.addEventListener('change', async () => {
+                    state.backup_frequency = backupFrequencySelect.value;
+                    await api.setSetting('backup_frequency', state.backup_frequency);
                 });
-                accentGlobalCheckbox.setAttribute('data-listener-added', 'true');
+                backupFrequencySelect.setAttribute('data-listener-added', 'true');
             }
 
-            // Accent global color picker
-            if (accentGlobalColorInput && !accentGlobalColorInput.hasAttribute('data-listener-added')) {
-                accentGlobalColorInput.addEventListener('input', async () => {
-                    const val = accentGlobalColorInput.value;
-                    if (isValidHexColor(val)) {
-                        state.accent_global_color = val;
-                        await api.setSetting('accent_global_color', val);
-                        setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
+            if (backupRetentionInput && !backupRetentionInput.hasAttribute('data-listener-added')) {
+                backupRetentionInput.addEventListener('change', async () => {
+                    const val = parseInt(backupRetentionInput.value, 10);
+                    if (!isNaN(val) && val >= 1 && val <= 500) {
+                        state.backup_retention = val;
+                        await api.setSetting('backup_retention', String(state.backup_retention));
                     }
                 });
-                accentGlobalColorInput.setAttribute('data-listener-added', 'true');
+                backupRetentionInput.setAttribute('data-listener-added', 'true');
             }
         }
 
@@ -664,9 +706,8 @@ function render() {
         // affect labels, previews and section content that syncUI alone can't update).
         let needsRender = false;
         if (key === 'style') {
-            if (!isValidStyle(value)) return;
-            state.style = value;
-            applyStyle(value, { persist: false });
+            state.style = 'standard';
+            applyStyle('standard', { persist: false });
             needsRender = true;
         } else if (key === 'theme') {
             if (!isValidTheme(value)) return;
@@ -690,22 +731,20 @@ function render() {
                 window.updateThemeButtonIcon();
             }
             needsRender = true;
-        } else if (key === 'accent_global') {
-            state.accent_global = normBool(value);
-            setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
-            needsRender = true;
-        } else if (key === 'accent_global_color') {
-            state.accent_global_color = value;
-            setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
-            needsRender = true;
+        } else if (key === 'backup_frequency') {
+            state.backup_frequency = value;
+            if (backupFrequencySelect) backupFrequencySelect.value = value;
+        } else if (key === 'backup_retention') {
+            state.backup_retention = parseInt(value, 10) || 20;
+            if (backupRetentionInput) backupRetentionInput.value = state.backup_retention;
         } else if (key && key.startsWith('accent_override.')) {
             const style = key.slice('accent_override.'.length);
-            if (value && value !== '') {
+            if (value && value !== '' && value !== 'default') {
                 state.accent_overrides[style] = value;
             } else {
                 delete state.accent_overrides[style];
             }
-            setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
+            setAccentOverrides(state.accent_overrides);
             needsRender = true;
         } else {
             return;
@@ -719,21 +758,51 @@ function render() {
         }
     });
 
+    // Backup restore reload event
+    events().EventsOn('settings:reloaded', async () => {
+        try {
+            const s = await api.getSettings();
+            if (s) {
+                if (isValidTheme(s.theme)) state.theme = s.theme;
+                state.style = 'standard';
+                if (typeof s.monitor_polling === 'boolean') state.monitor_polling = s.monitor_polling;
+                if (typeof s.toasts_enabled === 'boolean') state.toasts_enabled = s.toasts_enabled;
+                if (typeof s.oled_mode === 'boolean') state.oled_mode = s.oled_mode;
+                if (s.accent_overrides && typeof s.accent_overrides === 'object') state.accent_overrides = s.accent_overrides;
+                if (typeof s.external_notifications === 'boolean') state.external_notifications = s.external_notifications;
+                if (typeof s.language === 'string') state.language = s.language;
+                if (typeof s.touch_optimized === 'boolean') state.touch_optimized = s.touch_optimized;
+                if (typeof s.backup_frequency === 'string') state.backup_frequency = s.backup_frequency;
+                if (typeof s.backup_retention === 'number') state.backup_retention = s.backup_retention;
+            }
+        } catch { /* ignore */ }
+        applyTheme(state.theme, { persist: false });
+        applyStyle(state.style, { persist: false });
+        setToastsEnabled(state.toasts_enabled);
+        setOledMode(state.oled_mode, { persist: false });
+        setAccentOverrides(state.accent_overrides);
+        if (isVisible()) {
+            render();
+        } else {
+            syncUI();
+        }
+    });
+
 async function init() {
         try {
             const s = await api.getSettings();
             if (s) {
                 if (isValidTheme(s.theme)) state.theme = s.theme;
-                if (isValidStyle(s.style)) state.style = s.style;
+                state.style = 'standard';
                 if (typeof s.monitor_polling === 'boolean') state.monitor_polling = s.monitor_polling;
                 if (typeof s.toasts_enabled === 'boolean') state.toasts_enabled = s.toasts_enabled;
                 if (typeof s.oled_mode === 'boolean') state.oled_mode = s.oled_mode;
                 if (s.accent_overrides && typeof s.accent_overrides === 'object') state.accent_overrides = s.accent_overrides;
-                if (typeof s.accent_global === 'boolean') state.accent_global = s.accent_global;
-                if (typeof s.accent_global_color === 'string') state.accent_global_color = s.accent_global_color;
                 if (typeof s.external_notifications === 'boolean') state.external_notifications = s.external_notifications;
                 if (typeof s.language === 'string') state.language = s.language;
                 if (typeof s.touch_optimized === 'boolean') state.touch_optimized = s.touch_optimized;
+                if (typeof s.backup_frequency === 'string') state.backup_frequency = s.backup_frequency;
+                if (typeof s.backup_retention === 'number') state.backup_retention = s.backup_retention;
             }
         } catch (error) {
             console.warn('Failed to load settings, using defaults', error);
@@ -744,7 +813,7 @@ async function init() {
         applyStyle(state.style, { persist: false });
         setToastsEnabled(state.toasts_enabled);
         setOledMode(state.oled_mode, { persist: false });
-        setAccentOverrides(state.accent_overrides, state.accent_global, state.accent_global_color);
+        setAccentOverrides(state.accent_overrides);
         
         // Version display and update check
         try {
